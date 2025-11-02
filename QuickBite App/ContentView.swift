@@ -9,15 +9,31 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("QuickBite App")
+        TabView {
+            HomeView()
+                .tabItem {
+                    Label("Home", systemImage: "house.fill")
+                }
+            
+            ActivityView()
+                .tabItem {
+                    Label("Activity", systemImage: "clock.fill")
+                }
+            
+            QuestView()
+                .tabItem {
+                    Label("Quest", systemImage: "trophy.fill")
+                }
+            
+            ProfileView()
+                .tabItem {
+                    Label("Profile", systemImage: "person.circle")
+                }
         }
         .padding()
     }
 }
+
 
 #Preview {
     ContentView()

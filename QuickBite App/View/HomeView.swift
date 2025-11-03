@@ -193,6 +193,7 @@ struct HomeView: View {
                         .padding(.bottom)
                     }
                 }
+                .scrollIndicators(.hidden)
                 .onTapGesture {
                     hideKeyboard()
                 }

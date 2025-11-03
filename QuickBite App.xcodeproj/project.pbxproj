@@ -24,7 +24,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		0BC1B11F2EB0A13B006C6206 /* QuickBite App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "QuickBite App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		0B35DF802EB88F73009F0218 /* QuickBite-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "QuickBite-Info.plist"; sourceTree = "<group>"; };
+		0BC1B11F2EB0A13B006C6206 /* QuickBite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickBite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BC1B12C2EB0A13C006C6206 /* QuickBite AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BC1B1362EB0A13C006C6206 /* QuickBite AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -75,6 +76,7 @@
 		0BC1B1162EB0A13B006C6206 = {
 			isa = PBXGroup;
 			children = (
+				0B35DF802EB88F73009F0218 /* QuickBite-Info.plist */,
 				0BC1B1212EB0A13B006C6206 /* QuickBite App */,
 				0BC1B12F2EB0A13C006C6206 /* QuickBite AppTests */,
 				0BC1B1392EB0A13C006C6206 /* QuickBite AppUITests */,
@@ -85,7 +87,7 @@
 		0BC1B1202EB0A13B006C6206 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				0BC1B11F2EB0A13B006C6206 /* QuickBite App.app */,
+				0BC1B11F2EB0A13B006C6206 /* QuickBite.app */,
 				0BC1B12C2EB0A13C006C6206 /* QuickBite AppTests.xctest */,
 				0BC1B1362EB0A13C006C6206 /* QuickBite AppUITests.xctest */,
 			);
@@ -95,9 +97,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		0BC1B11E2EB0A13B006C6206 /* QuickBite App */ = {
+		0BC1B11E2EB0A13B006C6206 /* QuickBite */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 0BC1B1402EB0A13C006C6206 /* Build configuration list for PBXNativeTarget "QuickBite App" */;
+			buildConfigurationList = 0BC1B1402EB0A13C006C6206 /* Build configuration list for PBXNativeTarget "QuickBite" */;
 			buildPhases = (
 				0BC1B11B2EB0A13B006C6206 /* Sources */,
 				0BC1B11C2EB0A13B006C6206 /* Frameworks */,
@@ -110,11 +112,11 @@
 			fileSystemSynchronizedGroups = (
 				0BC1B1212EB0A13B006C6206 /* QuickBite App */,
 			);
-			name = "QuickBite App";
+			name = QuickBite;
 			packageProductDependencies = (
 			);
 			productName = "QuickBite App";
-			productReference = 0BC1B11F2EB0A13B006C6206 /* QuickBite App.app */;
+			productReference = 0BC1B11F2EB0A13B006C6206 /* QuickBite.app */;
 			productType = "com.apple.product-type.application";
 		};
 		0BC1B12B2EB0A13C006C6206 /* QuickBite AppTests */ = {
@@ -200,7 +202,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				0BC1B11E2EB0A13B006C6206 /* QuickBite App */,
+				0BC1B11E2EB0A13B006C6206 /* QuickBite */,
 				0BC1B12B2EB0A13C006C6206 /* QuickBite AppTests */,
 				0BC1B1352EB0A13C006C6206 /* QuickBite AppUITests */,
 			);
@@ -258,12 +260,12 @@
 /* Begin PBXTargetDependency section */
 		0BC1B12E2EB0A13C006C6206 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite App */;
+			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite */;
 			targetProxy = 0BC1B12D2EB0A13C006C6206 /* PBXContainerItemProxy */;
 		};
 		0BC1B1382EB0A13C006C6206 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite App */;
+			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite */;
 			targetProxy = 0BC1B1372EB0A13C006C6206 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -395,13 +397,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4L78Q5L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "QuickBite-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -426,13 +431,16 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = SY4L78Q5L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "QuickBite-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -542,7 +550,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		0BC1B1402EB0A13C006C6206 /* Build configuration list for PBXNativeTarget "QuickBite App" */ = {
+		0BC1B1402EB0A13C006C6206 /* Build configuration list for PBXNativeTarget "QuickBite" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				0BC1B1412EB0A13C006C6206 /* Debug */,

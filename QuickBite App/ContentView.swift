@@ -16,24 +16,26 @@ struct ContentView: View {
                 }
             
             ActivityView()
+                .padding(.bottom)
                 .tabItem {
                     Label("Activity", systemImage: "clock.fill")
                 }
             
             QuestView()
+                .padding(.bottom)
                 .tabItem {
                     Label("Quest", systemImage: "trophy.fill")
                 }
             
             ProfileView()
+                .padding(.bottom)
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")
                 }
         }
-        .padding()
+        .tint(.orange)
     }
 }
-
 
 #Preview {
     ContentView()

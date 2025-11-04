@@ -11,6 +11,8 @@ struct MainFormView: View {
     @State private var selectedTab = 0
     @State private var email = ""
     @State private var password = ""
+    @State private var showingGoogleSignInAlert = false
+    @State private var showHome = false
     
     var body: some View {
         NavigationStack {
@@ -81,7 +83,9 @@ struct MainFormView: View {
                             }
                         }
                         
-                        Button(action: {}) {
+                        Button(action: {
+                            showHome = true
+                        }) {
                             Text("Sign in")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -99,7 +103,9 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        Button(action: {}) {
+                        Button(action: {
+                            showingGoogleSignInAlert = true
+                        }) {
                             HStack {
                                 Image("GoogleIcon")
                                     .resizable()
@@ -112,6 +118,14 @@ struct MainFormView: View {
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
                             .background(RoundedRectangle(cornerRadius: 24).stroke(Color(.systemGray4)))
+                        }
+                        .alert("\"QuickBite\" Wants to Use \"google.com\" to Sign In", isPresented: $showingGoogleSignInAlert) {
+                            Button("Cancel", role: .cancel) { }
+                            Button("Continue") {
+                                // Aksi jika user pilih Continue, bisa implementasi Google Sign-In
+                            }
+                        } message: {
+                            Text("This allows the app to share information about you.")
                         }
                     }
                 } else {
@@ -149,6 +163,9 @@ struct MainFormView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+            .fullScreenCover(isPresented: $showHome) {
+                ContentView()
+            }
         }
         .onTapGesture {
             hideKeyboard()

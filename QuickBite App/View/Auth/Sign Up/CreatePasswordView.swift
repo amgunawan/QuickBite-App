@@ -9,6 +9,7 @@ import SwiftUI
 
 struct CreatePasswordView: View {
     @State private var password = ""
+    @State private var showHome = false
     
     var body: some View {
         NavigationStack {
@@ -65,7 +66,9 @@ struct CreatePasswordView: View {
                     }
                 }
                 
-                Button(action: {}) {
+                Button(action: {
+                    showHome = true
+                }) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -78,6 +81,9 @@ struct CreatePasswordView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+            .fullScreenCover(isPresented: $showHome) {
+                ContentView()
+            }
         }
     }
 }

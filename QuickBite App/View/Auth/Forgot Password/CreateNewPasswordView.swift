@@ -82,7 +82,7 @@ struct CreateNewPasswordView: View {
             }
             .padding(.horizontal, 24)
             .fullScreenCover(isPresented: $showHome) {
-                ContentView()
+                UserContentView()
             }
         }
     }

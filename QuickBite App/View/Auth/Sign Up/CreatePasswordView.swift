@@ -1,19 +1,19 @@
 //
-//  FindAccountView.swift
+//  CreatePasswordView.swift
 //  QuickBite
 //
-//  Created by Angela on 03/11/25.
+//  Created by Angela on 04/11/25.
 //
 
 import SwiftUI
 
-struct CreateNewPasswordView: View {
+struct CreatePasswordView: View {
     @State private var password = ""
     
     var body: some View {
         NavigationStack {
             VStack(alignment:. leading, spacing: 24) {
-                Text("Create a new password")
+                Text("Create password")
                     .font(.title)
                     .fontWeight(.bold)
                 
@@ -83,5 +83,5 @@ struct CreateNewPasswordView: View {
 }
 
 #Preview {
-    CreateNewPasswordView()
+    CreatePasswordView()
 }

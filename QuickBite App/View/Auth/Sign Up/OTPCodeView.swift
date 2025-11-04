@@ -1,6 +1,14 @@
+//
+//  OTPCodeView.swift
+//  QuickBite
+//
+//  Created by Angela on 04/11/25.
+//
+
 import SwiftUI
 
-struct ConfirmAccountView: View {
+struct OTPCodeView: View {
+    let email: String
     @StateObject var viewModel = OTPViewModel()
     @FocusState private var isFocused: Bool
 
@@ -8,11 +16,11 @@ struct ConfirmAccountView: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Confirm your account")
+                    Text("Enter 6-digit code")
                         .font(.title)
                         .fontWeight(.bold)
 
-                    Text("We sent a code to your email. Enter that code to confirm your account.")
+                    Text("Your code was sent to \(email)")
                         .font(.headline)
                         .fontWeight(.regular)
                         .foregroundStyle(.secondary)
@@ -59,7 +67,7 @@ struct ConfirmAccountView: View {
                     .foregroundColor(.orange)
                 }
 
-                NavigationLink(destination: CreateNewPasswordView()) {
+                NavigationLink(destination: CreatePasswordView()) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -77,8 +85,4 @@ struct ConfirmAccountView: View {
             .onAppear { isFocused = true }
         }
     }
-}
-
-#Preview {
-    ConfirmAccountView()
 }

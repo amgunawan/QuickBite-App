@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-struct SignInView: View {
+struct MainFormView: View {
     @State private var selectedTab = 0
     @State private var email = ""
     @State private var password = ""
@@ -16,7 +16,7 @@ struct SignInView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 Spacer()
-                    .frame(height: 4)
+                    .frame(height: 2)
                 
                 VStack(spacing: 8) {
                     Text("Welcome to QuickBite")
@@ -48,6 +48,7 @@ struct SignInView: View {
                                 TextField("e-mail address", text: $email)
                                     .autocapitalization(.none)
                                     .disableAutocorrection(true)
+                                    .keyboardType(.emailAddress)
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 12)
@@ -61,7 +62,7 @@ struct SignInView: View {
                             HStack {
                                 Image(systemName: "lock")
                                     .foregroundColor(.gray)
-                                SecureField("placeholder", text: $password)
+                                SecureField("password", text: $password)
                                 Button(action: {}) {
                                     Image(systemName: "eye")
                                         .foregroundColor(.gray)
@@ -115,7 +116,7 @@ struct SignInView: View {
                     }
                 } else {
                     VStack(spacing: 16) {
-//                        NavigationLink(destination: ) {
+                        NavigationLink(destination: SignUpFormView(role: "user")) {
                             Text("Sign up as user")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -123,7 +124,7 @@ struct SignInView: View {
                                 .padding(.vertical, 12)
                                 .background(Color.orange)
                                 .cornerRadius(24)
-//                        }
+                        }
                         
                         HStack {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
@@ -133,7 +134,7 @@ struct SignInView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        Button(action: {}) {
+                        NavigationLink(destination: SignUpFormView(role: "merchant")) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -149,9 +150,12 @@ struct SignInView: View {
             }
             .padding(.horizontal, 24)
         }
+        .onTapGesture {
+            hideKeyboard()
+        }
     }
 }
 
 #Preview {
-    SignInView()
+    MainFormView()
 }

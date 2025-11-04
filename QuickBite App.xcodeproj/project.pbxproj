@@ -24,7 +24,6 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		0B35DF802EB88F73009F0218 /* QuickBite-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "QuickBite-Info.plist"; sourceTree = "<group>"; };
 		0BC1B11F2EB0A13B006C6206 /* QuickBite.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QuickBite.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BC1B12C2EB0A13C006C6206 /* QuickBite AppTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 		0BC1B1362EB0A13C006C6206 /* QuickBite AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,7 +75,6 @@
 		0BC1B1162EB0A13B006C6206 = {
 			isa = PBXGroup;
 			children = (
-				0B35DF802EB88F73009F0218 /* QuickBite-Info.plist */,
 				0BC1B1212EB0A13B006C6206 /* QuickBite App */,
 				0BC1B12F2EB0A13C006C6206 /* QuickBite AppTests */,
 				0BC1B1392EB0A13C006C6206 /* QuickBite AppUITests */,

@@ -1,19 +1,20 @@
 //
-//  FindAccountView.swift
+//  SignUpFormView.swift
 //  QuickBite
 //
-//  Created by Angela on 03/11/25.
+//  Created by Angela on 04/11/25.
 //
 
 import SwiftUI
 
-struct FindAccountView: View {
+struct SignUpFormView: View {
+    let role: String
     @State private var email = ""
     
     var body: some View {
         NavigationStack {
             VStack(alignment:. leading, spacing: 24) {
-                Text("Find your account")
+                Text("Sign up as \(role)")
                     .font(.title)
                     .fontWeight(.bold)
                 
@@ -34,7 +35,18 @@ struct FindAccountView: View {
                     .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
                 }
                 
-                NavigationLink(destination: ConfirmAccountView()) {
+                HStack (alignment: .top) {
+                    Image(systemName: "checkmark.square")
+                        .foregroundColor(.gray)
+                    Text("By signing up, you agree to our ")
+                    + Text("terms and conditions").foregroundColor(.blue)
+                    + Text(" and ")
+                    + Text("privacy policy").foregroundColor(.blue)
+                }
+                .font(.footnote)
+                .foregroundColor(.gray)
+                
+                NavigationLink(destination: OTPCodeView(email: email)) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -49,8 +61,4 @@ struct FindAccountView: View {
             .padding(.horizontal, 24)
         }
     }
-}
-
-#Preview {
-    FindAccountView()
 }

@@ -7,7 +7,7 @@ struct QuickBite_AppApp: App {
     var body: some Scene {
         WindowGroup {
             ZStack {
-                ContentView()
+                MainFormView()
                 
                 if showSplash {
                     SplashView {

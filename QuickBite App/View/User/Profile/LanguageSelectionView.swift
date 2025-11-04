@@ -60,6 +60,7 @@ struct LanguageSelectionView: View {
                 }
             }
             .listStyle(.plain)
+            .scrollDisabled(true)
         }
         .navigationTitle("Change Language")
     }

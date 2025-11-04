@@ -61,27 +61,18 @@ struct DeleteAccountView: View {
                         agreeDelete.toggle()
                     }
                 } label: {
-                    HStack(alignment: .top, spacing: 12) {
+                    HStack (alignment: .top, spacing: 12) {
                         Image(systemName: agreeDelete ? "checkmark.square.fill" : "square")
-                            .foregroundColor(agreeDelete ? brandOrange : Color(uiColor: .tertiaryLabel))
+                            .foregroundColor(agreeDelete ? Color.orange : Color(uiColor: .tertiaryLabel))
                             .imageScale(.large)
-                            .padding(.top, 2)
-
+                        
                         Text("I agree and confirm to permanently delete my account.")
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(.primary)
+                            .font(.footnote)
                             .multilineTextAlignment(.leading)
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                    .padding(14)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(agreeDelete ? brandOrange.opacity(0.12) : Color(.systemBackground))
-                    )
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(agreeDelete ? brandOrange : Color.black.opacity(0.08), lineWidth: 1)
-                    )
+                    .font(.footnote)
+                    .foregroundColor(.gray)
                 }
                 .buttonStyle(.plain)
                 
@@ -94,9 +85,10 @@ struct DeleteAccountView: View {
                             .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(Color.red)
+                            .background(agreeDelete ? Color.red : Color(.systemGray4))
                             .cornerRadius(24)
                     }
+                    .disabled(!agreeDelete)
                     .alert("Delete Account", isPresented: $showDeleteAccountAlert) {
                         Button("Cancel", role: .cancel) { }
                         Button("Delete", role: .destructive) {

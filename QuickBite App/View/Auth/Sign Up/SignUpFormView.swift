@@ -11,6 +11,7 @@ struct SignUpFormView: View {
     let role: String
     @State private var email = ""
     @State private var showingGoogleSignInAlert = false
+    @State private var agreeTermsAndConditions = false
     
     var body: some View {
         NavigationStack {
@@ -36,16 +37,25 @@ struct SignUpFormView: View {
                     .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
                 }
                 
-                HStack (alignment: .top) {
-                    Image(systemName: "checkmark.square")
-                        .foregroundColor(.gray)
-                    Text("By signing up, you agree to our ")
-                    + Text("terms and conditions").foregroundColor(.blue)
-                    + Text(" and ")
-                    + Text("privacy policy").foregroundColor(.blue)
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        agreeTermsAndConditions.toggle()
+                    }
+                } label: {
+                    HStack (alignment: .top, spacing: 12) {
+                        Image(systemName: agreeTermsAndConditions ? "checkmark.square.fill" : "square")
+                            .foregroundColor(agreeTermsAndConditions ? Color.orange : Color(uiColor: .tertiaryLabel))
+                            .imageScale(.large)
+                        
+                        Text("By signing up, you agree to our ")
+                        + Text("terms and conditions").foregroundColor(.blue)
+                        + Text(" and ")
+                        + Text("privacy policy").foregroundColor(.blue)
+                    }
+                    .font(.footnote)
+                    .foregroundColor(.gray)
                 }
-                .font(.footnote)
-                .foregroundColor(.gray)
+                .buttonStyle(.plain)
                 
                 NavigationLink(destination: OTPCodeView(email: email)) {
                     Text("Continue")

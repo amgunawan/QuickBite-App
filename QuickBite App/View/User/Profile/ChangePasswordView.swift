@@ -100,10 +100,10 @@ struct ChangePasswordView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(isMatch ? Color.orange : Color(.systemGray4))
                         .cornerRadius(24)
                 }
-                .disabled(!isFormValid)
+                .disabled(!isMatch)
             }
             .padding(.horizontal)
             

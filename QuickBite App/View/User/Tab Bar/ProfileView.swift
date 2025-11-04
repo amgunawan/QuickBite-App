@@ -155,9 +155,10 @@ struct ProfileView: View {
                             }
                         }
                     }
-                    .listStyle(.insetGrouped)
+                    .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .padding(.top,-36)
+                    .padding(.top,-60)
+                    .scrollDisabled(true)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)

@@ -50,6 +50,7 @@ struct ManageAccountView: View {
                 } message: {
                     Text("Are you sure you want to logout? You will need to sign in again to access your account.")
                 }
+                .tint(.primary)
                 
                 NavigationLink(destination: DeleteAccountView()) {
                     HStack {

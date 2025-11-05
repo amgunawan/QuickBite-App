@@ -46,16 +46,20 @@ struct HomeView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
                                     ForEach(["Snacks", "Rice", "Noodles", "Chicken", "Korean", "Japanese", "Beverages", "Chinese", "Western"], id: \.self) { item in
-                                        VStack {
-                                            Image(item)
-                                                .resizable()
-                                                .scaledToFill()
-                                                .frame(width: 70, height: 70)
-                                                .clipShape(Circle())
-                                            Text(item)
-                                                .font(.subheadline)
-                                                .foregroundColor(.primary)
+                                        NavigationLink(destination: FoodCategoryView(categoryName: item)) {
+                                            VStack {
+                                                Image(item)
+                                                    .resizable()
+                                                    .scaledToFill()
+                                                    .frame(width: 70, height: 70)
+                                                    .clipShape(Circle())
+                                                
+                                                Text(item)
+                                                    .font(.subheadline)
+                                                    .foregroundColor(.primary)
+                                            }
                                         }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .padding(.horizontal)

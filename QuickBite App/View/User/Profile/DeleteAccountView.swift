@@ -97,21 +97,7 @@ struct DeleteAccountView: View {
                     } message: {
                         Text("This action cannot be undone. This will permanently delete your account and remove all your data from our servers. Are you absolutely sure?")
                     }
-                    
-                    Button(action: {
-                        
-                    }) {
-                        Text("Cancel")
-                            .fontWeight(.medium)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 12)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24)
-                                    .stroke(Color.red, lineWidth: 1.5)
-                            )
-                            .cornerRadius(24)
-                    }
+                    .tint(.primary)
                 }
                 
                 Spacer()

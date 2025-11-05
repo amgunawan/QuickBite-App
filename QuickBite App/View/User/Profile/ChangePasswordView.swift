@@ -43,7 +43,6 @@ struct ChangePasswordView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                
                 // Current Password
                 VStack(alignment: .leading, spacing: 8) {
                     requiredLabel("Current Password")
@@ -66,8 +65,8 @@ struct ChangePasswordView: View {
                         onToggle: { showNew.toggle() }
                     )
                     .focused($focused, equals: .new)
-                    .onChange(of: newPassword) { newValue in
-                        passwordChecker.password = newValue
+                    .onChange(of: newPassword) {
+                        passwordChecker.password = newPassword
                     }
                     
                     // Validasi visual dari PasswordCheckViewModel

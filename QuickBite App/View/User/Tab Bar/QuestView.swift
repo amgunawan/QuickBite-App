@@ -1,11 +1,13 @@
 //
-//  ProfileView.swift
+//  QuestView.swift
 //  QuickBite App
 //
 //  Created by jessica tedja on 02/11/25.
 //
 
 import SwiftUI
+
+// MARK: - Models
 
 struct RankUser: Identifiable {
     let id = UUID()
@@ -29,6 +31,9 @@ struct QuestView: View {
     let userName = "Angela"
     @State private var dailyProgress: Double = 30
     private let weeklyTarget: Double = 100
+
+    // Alert state
+    @State private var showLockedAlert = false
 
     private let podiumUsers: [RankUser] = [
         .init(username: "@hsutedjo", points: 700, tier: "Diamond"),
@@ -62,93 +67,140 @@ struct QuestView: View {
               current: 0, target: 2, rewardPts: 1000, tint: .purple)
     ]
 
-    var nextTierLabel: String {
-        "Next tier: Silver"
-    }
+    var nextTierLabel: String { "Next tier: Silver" }
 
     var body: some View {
-        ScrollView {
-                VStack(spacing: 16) {
+        NavigationStack {
+            ScrollView {
+                VStack(spacing: 0) {
                     header
-                    Text("Leaderboard")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 6)
-                    
-                    PodiumView(users: podiumUsers)
+                        .frame(maxWidth: .infinity)
 
-                    rankingTable
+                    VStack(spacing: 16) {
+                        Text("Leaderboard")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 6)
 
-                    Text("How far can you go?")
-                        .font(.title3)
-                        .fontWeight(.semibold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 8)
+                        PodiumView(users: podiumUsers)
 
-                    // Badges list
-                    VStack(spacing: 10) {
-                        ForEach(badges) { badge in
-                            BadgeRow(badge: badge)
+                        rankingTable
+
+                        Text("How far can you go?")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 8)
+
+                        // Badge list with alert trigger
+                        VStack(spacing: 16) {
+                            ForEach(badges) { badge in
+                                BadgeRow(badge: badge)
+                                    .onTapGesture {
+                                        if badge.current == 0 {
+                                            showLockedAlert = true
+                                        }
+                                    }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 24)
+                }
+            }
+            .alert("Badge Locked", isPresented: $showLockedAlert) {
+                Button("Got it", role: .cancel) { }
+            } message: {
+                Text("You’re almost there! Finish all required challenges before this badge can be unlocked.")
+            }
+            .tint(.orange)
+            .toolbar(.hidden, for: .navigationBar)
+        }
+    }
+
+    // MARK: Header
+
+    private var header: some View {
+        VStack(spacing: 0) {
+            HeaderBackgroundView(title: "Quest", height: 100)
+
+            HStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Welcome, \(userName)!")
+                        .font(.title2).bold()
+                        .foregroundColor(.primary)
+
+                    Text("Ready to earn more badges this week?")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+
+                    VStack(spacing: 8) {
+                        BarProgress(value: dailyProgress, total: weeklyTarget)
+                        HStack {
+                            Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
+                                .font(.caption).bold()
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text(nextTierLabel)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
                     }
                 }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 24)
-        }
-        .navigationTitle("Quest")
-        .navigationBarTitleDisplayMode(.inline)
-    }
 
-    private var header: some View {
-        ZStack(alignment: .top) {
-            LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                           startPoint: .topLeading, endPoint: .bottomTrailing)
-                .frame(height: 130)
+                Spacer(minLength: 8)
 
-
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(alignment: .center, spacing: 12) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Welcome, \(userName)!")
-                            .font(.title3).fontWeight(.bold)
-                            .foregroundColor(.white)
-                        Text("Ready to earn more badges this week?")
-                            .font(.subheadline).foregroundColor(.white.opacity(0.95))
-                    }
-
-                    Spacer()
-                    Image(systemName: "shield.fill")
-                        .font(.title2)
-                        .foregroundColor(.yellow)
-                        .padding(8)
-                        .background(.white.opacity(0.15), in: Circle())
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    // progress
-                    ProgressView(value: dailyProgress, total: weeklyTarget)
-                        .progressViewStyle(.linear)
-                    HStack {
-                        Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
-                            .font(.caption).fontWeight(.semibold)
-                        Spacer()
-                        Text(nextTierLabel)
-                            .font(.caption).foregroundColor(.secondary)
-                    }
-                }
-                .padding(12)
-                .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                .shadow(color: .black.opacity(0.05), radius: 6, y: 4)
+                Image(systemName: "shield.fill")
+                    .font(.system(size: 28, weight: .semibold))
+                    .foregroundColor(.yellow)
+                    .padding(10)
+                    .background(Circle().fill(Color.yellow.opacity(0.18)))
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 10)
+            .padding()
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(Color(.systemBackground))
+                    .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
+                    .shadow(color: .black.opacity(0.03), radius: 2,  x: 0, y: 1)
+            )
+            .padding(.horizontal)
+            .offset(y: -44)
+            .zIndex(1)
         }
     }
+
+    // MARK: Progress bar
+
+    private struct BarProgress: View {
+        var value: Double
+        var total: Double
+
+        private var pct: CGFloat {
+            guard total > 0 else { return 0 }
+            return min(max(CGFloat(value/total), 0), 1)
+        }
+
+        var body: some View {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(Color(.systemGray5))
+                        .frame(height: 8)
+
+                    Capsule()
+                        .fill(Color.orange)
+                        .frame(width: geo.size.width * pct, height: 8)
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+
+    // MARK: Ranking Table
 
     private var rankingTable: some View {
         VStack(spacing: 8) {
-            // header row
             RankRow(rank: "Rank", username: "Username", points: "Points", isHeader: true)
 
             ForEach(Array(topUsers.enumerated()), id: \.offset) { index, u in
@@ -163,30 +215,19 @@ struct QuestView: View {
         )
         .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
     }
-
-    private func sectionHeader(title: String) -> some View {
-        HStack {
-            Text(title)
-                .font(.headline)
-            Spacer()
-        }
-        .padding(.top, 6)
-    }
 }
+
+// MARK: - Podium
 
 struct PodiumView: View {
     let users: [RankUser]
 
     var body: some View {
-        Text("Quest View")
         HStack(alignment: .bottom, spacing: 12) {
             if users.count >= 3 {
-                // 2nd
                 PodiumCard(user: users[1], place: 2, height: 110, color: .gray)
-                // 1st
                 PodiumCard(user: users[0], place: 1, height: 140, color: .yellow)
-                // 3rd
-                PodiumCard(user: users[2], place: 3, height: 95, color: .green)
+                PodiumCard(user: users[2], place: 3, height: 95,  color: .green)
             }
         }
         .frame(maxWidth: .infinity)
@@ -212,7 +253,6 @@ struct PodiumCard: View {
 
     var body: some View {
         VStack(spacing: 8) {
-            // avatar-like circle w/ initial
             ZStack {
                 Circle().fill(color.opacity(0.15)).frame(width: 54, height: 54)
                 Text(String(user.username.dropFirst().prefix(1)).uppercased())
@@ -224,7 +264,7 @@ struct PodiumCard: View {
                 .foregroundColor(place == 1 ? .yellow : .secondary)
 
             VStack(spacing: 4) {
-                Text(user.username.replacingOccurrences(of: "@", with: "")) // show without @ in card
+                Text(user.username.replacingOccurrences(of: "@", with: ""))
                     .font(.footnote).fontWeight(.semibold)
                 Text("\(user.points)")
                     .font(.headline)
@@ -241,6 +281,8 @@ struct PodiumCard: View {
     }
 }
 
+// MARK: - Components
+
 struct RingProgress: View {
     let current: Int
     let target: Int
@@ -255,20 +297,12 @@ struct RingProgress: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color(.systemBackground))
-            Circle()
-                .stroke(Color.secondary.opacity(0.18), lineWidth: lineWidth)
+            Circle().fill(Color(.systemBackground))
+            Circle().stroke(Color.secondary.opacity(0.18), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: progress)
-                .stroke(
-                    color,
-                    style: StrokeStyle(lineWidth: lineWidth,
-                                       lineCap: .round,
-                                       lineJoin: .round)
-                )
+                .stroke(color, style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round))
                 .rotationEffect(.degrees(-90))
-
             Text("\(current)/\(target)")
                 .font(.footnote).fontWeight(.semibold)
         }
@@ -312,52 +346,35 @@ struct BadgeRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            // Circular progress ring (misalnya: 1/3)
-            RingProgress(
-                current: badge.current,
-                target: badge.target,
-                color: badge.tint,
-                size: 44,
-                lineWidth: 6
-            )
+            RingProgress(current: badge.current, target: badge.target, color: badge.tint, size: 44, lineWidth: 6)
 
-            // Badge info
             VStack(alignment: .leading, spacing: 2) {
                 Text(badge.title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.subheadline).fontWeight(.semibold)
                 Text(badge.subtitle)
-                    .font(.caption)
-                    .foregroundColor(.secondary)
+                    .font(.caption).foregroundColor(.secondary)
             }
 
             Spacer()
 
-            // Reward points
             HStack(spacing: 4) {
                 Image(systemName: "sparkles")
                 Text("\(badge.rewardPts) pts")
-                    .font(.caption)
-                    .fontWeight(.semibold)
+                    .font(.caption).fontWeight(.semibold)
             }
             .foregroundColor(badge.tint)
         }
         .padding(12)
         .background(
             RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(
-                    badge.current > 0
-                    ? Color.white  // unlocked badge
-                    : Color(.secondarySystemBackground) // locked badge
-                )
+                .fill(badge.current > 0 ? Color.white : Color(.secondarySystemBackground))
         )
-        .shadow(
-            color: badge.current > 0
-                ? Color.black.opacity(0.08)
-                : Color.clear,
-            radius: badge.current > 0 ? 4 : 0,
-            y: 2
-        )
+        .shadow(color: badge.current > 0 ? Color.black.opacity(0.08) : Color.clear,
+                radius: badge.current > 0 ? 4 : 0, y: 2)
         .animation(.easeInOut(duration: 0.25), value: badge.current)
     }
+}
+
+#Preview {
+    QuestView()
 }

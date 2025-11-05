@@ -31,8 +31,6 @@ struct QuestView: View {
     let userName = "Angela"
     @State private var dailyProgress: Double = 30
     private let weeklyTarget: Double = 100
-
-    // Alert state
     @State private var showLockedAlert = false
 
     private let podiumUsers: [RankUser] = [
@@ -71,42 +69,60 @@ struct QuestView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
+            ZStack(alignment: .top) {
                 VStack(spacing: 0) {
-                    header
-                        .frame(maxWidth: .infinity)
+                    HeaderBackgroundView(height: 100)
+                    Spacer()
+                }
 
-                    VStack(spacing: 16) {
-                        Text("Leaderboard")
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // MARK: - Title
+                        Text("Quest")
+                            .font(.title)
+                            .fontWeight(.bold)
+                            .padding(.horizontal)
+                            .padding(.bottom, 20)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 6)
 
-                        PodiumView(users: podiumUsers)
+                        // MARK: - Header Card (user progress)
+                        headerCard
+                            .padding(.horizontal)
+                            .offset(y: -10)
+                            .zIndex(1)
 
-                        rankingTable
+                        // MARK: - Leaderboard Section
+                        VStack(alignment: .leading, spacing: 16) {
+                            Text("Leaderboard")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .padding(.top, 6)
 
-                        Text("How far can you go?")
-                            .font(.title3)
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, 8)
+                            PodiumView(users: podiumUsers)
 
-                        // Badge list with alert trigger
-                        VStack(spacing: 16) {
-                            ForEach(badges) { badge in
-                                BadgeRow(badge: badge)
-                                    .onTapGesture {
-                                        if badge.current == 0 {
-                                            showLockedAlert = true
+                            rankingTable
+
+                            Text("How far can you go?")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .padding(.top, 8)
+
+                            // MARK: - Badges
+                            VStack(spacing: 16) {
+                                ForEach(badges) { badge in
+                                    BadgeRow(badge: badge)
+                                        .onTapGesture {
+                                            if badge.current == 0 {
+                                                showLockedAlert = true
+                                            }
                                         }
-                                    }
+                                }
                             }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 24)
+                        .offset(y: -6)
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 24)
                 }
             }
             .alert("Badge Locked", isPresented: $showLockedAlert) {
@@ -119,59 +135,47 @@ struct QuestView: View {
         }
     }
 
-    // MARK: Header
+    // MARK: - Header Card (styled like ProfileCard)
+    private var headerCard: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                Circle().fill(Color.orange.opacity(0.18))
+                Image(systemName: "shield.fill")
+                    .foregroundColor(.orange)
+                    .font(.title2)
+            }
+            .frame(width: 48, height: 48)
 
-    private var header: some View {
-        VStack(spacing: 0) {
-            HeaderBackgroundView(title: "Quest", height: 100)
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Welcome, \(userName)!")
+                    .font(.headline)
+                Text("Ready to earn more badges this week?")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
 
-            HStack(spacing: 12) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Welcome, \(userName)!")
-                        .font(.title2).bold()
-                        .foregroundColor(.primary)
-
-                    Text("Ready to earn more badges this week?")
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-
-                    VStack(spacing: 8) {
-                        BarProgress(value: dailyProgress, total: weeklyTarget)
-                        HStack {
-                            Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
-                                .font(.caption).bold()
-                                .foregroundColor(.primary)
-                            Spacer()
-                            Text(nextTierLabel)
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
+                VStack(spacing: 6) {
+                    BarProgress(value: dailyProgress, total: weeklyTarget)
+                    HStack {
+                        Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
+                            .font(.caption).bold()
+                        Spacer()
+                        Text(nextTierLabel)
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
                 }
-
-                Spacer(minLength: 8)
-
-                Image(systemName: "shield.fill")
-                    .font(.system(size: 28, weight: .semibold))
-                    .foregroundColor(.yellow)
-                    .padding(10)
-                    .background(Circle().fill(Color.yellow.opacity(0.18)))
             }
-            .padding()
-            .background(
-                RoundedRectangle(cornerRadius: 16, style: .continuous)
-                    .fill(Color(.systemBackground))
-                    .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
-                    .shadow(color: .black.opacity(0.03), radius: 2,  x: 0, y: 1)
-            )
-            .padding(.horizontal)
-            .offset(y: -44)
-            .zIndex(1)
         }
+        .padding()
+        .background(
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.03), radius: 2,  x: 0, y: 1)
+        )
     }
 
-    // MARK: Progress bar
-
+    // MARK: Progress Bar
     private struct BarProgress: View {
         var value: Double
         var total: Double
@@ -198,11 +202,9 @@ struct QuestView: View {
     }
 
     // MARK: Ranking Table
-
     private var rankingTable: some View {
         VStack(spacing: 8) {
             RankRow(rank: "Rank", username: "Username", points: "Points", isHeader: true)
-
             ForEach(Array(topUsers.enumerated()), id: \.offset) { index, u in
                 RankRow(rank: "\(index + 1)", username: u.username, points: "\(u.points)")
             }

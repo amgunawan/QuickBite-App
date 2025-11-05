@@ -13,12 +13,19 @@ struct MainFormView: View {
     @State private var password = ""
     @State private var showingGoogleSignInAlert = false
     @State private var showHome = false
+    @State private var showPassword = false
+    
+    // MARK: - Validation
+    private var isSignInDisabled: Bool {
+        // Hilangkan spasi di awal/akhir sebelum cek kosong
+        email.trimmingCharacters(in: .whitespaces).isEmpty ||
+        password.trimmingCharacters(in: .whitespaces).isEmpty
+    }
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                Spacer()
-                    .frame(height: 2)
+                Spacer().frame(height: 2)
                 
                 VStack(spacing: 8) {
                     Text("Welcome to QuickBite")
@@ -31,15 +38,17 @@ struct MainFormView: View {
                         .foregroundStyle(.secondary)
                 }
                 
-                // Segmented Control
+                // MARK: - Segmented Control
                 Picker("", selection: $selectedTab) {
                     Text("Sign in").tag(0)
                     Text("Sign up").tag(1)
                 }
                 .pickerStyle(.segmented)
                 
+                // MARK: - Sign In Section
                 if selectedTab == 0 {
                     VStack(spacing: 16) {
+                        // Email Field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Email")
                                 .font(.subheadline)
@@ -54,26 +63,46 @@ struct MainFormView: View {
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(.systemGray4))
+                            )
                         }
                         
+                        // Password Field
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Password")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
+                            
                             HStack {
                                 Image(systemName: "lock")
                                     .foregroundColor(.gray)
-                                SecureField("password", text: $password)
-                                Button(action: {}) {
-                                    Image(systemName: "eye")
+                                
+                                if showPassword {
+                                    TextField("password", text: $password)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
+                                } else {
+                                    SecureField("password", text: $password)
+                                        .autocapitalization(.none)
+                                        .disableAutocorrection(true)
+                                }
+                                
+                                Button(action: { showPassword.toggle() }) {
+                                    Image(systemName: showPassword ? "eye.slash" : "eye")
                                         .foregroundColor(.gray)
                                 }
                             }
                             .padding(.horizontal)
                             .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color(.systemGray4))
+                            )
                         }
+                        
+                        // Forgot Password
                         HStack {
                             Spacer()
                             NavigationLink(destination: FindAccountView()) {
@@ -83,6 +112,7 @@ struct MainFormView: View {
                             }
                         }
                         
+                        // Sign In Button
                         Button(action: {
                             showHome = true
                         }) {
@@ -91,10 +121,12 @@ struct MainFormView: View {
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(Color.orange)
+                                .background(isSignInDisabled ? Color(.systemGray4) : Color.orange)
                                 .cornerRadius(24)
                         }
+                        .disabled(isSignInDisabled)
                         
+                        // Divider
                         HStack {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                             Text("or")
@@ -103,6 +135,7 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
+                        // Google Sign-In
                         Button(action: {
                             showingGoogleSignInAlert = true
                         }) {
@@ -117,18 +150,22 @@ struct MainFormView: View {
                             }
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 12)
-                            .background(RoundedRectangle(cornerRadius: 24).stroke(Color(.systemGray4)))
+                            .background(
+                                RoundedRectangle(cornerRadius: 24)
+                                    .stroke(Color(.systemGray4))
+                            )
                         }
                         .alert("\"QuickBite\" Wants to Use \"google.com\" to Sign In", isPresented: $showingGoogleSignInAlert) {
                             Button("Cancel", role: .cancel) { }
                             Button("Continue") {
-                                // Aksi jika user pilih Continue, bisa implementasi Google Sign-In
+                                // Aksi implementasi Google Sign-In
                             }
                         } message: {
                             Text("This allows the app to share information about you.")
                         }
                     }
                 } else {
+                    // MARK: - Sign Up Section
                     VStack(spacing: 16) {
                         NavigationLink(destination: SignUpFormView(role: "user")) {
                             Text("Sign up as user")

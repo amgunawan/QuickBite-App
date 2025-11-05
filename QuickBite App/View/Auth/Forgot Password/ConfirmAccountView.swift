@@ -3,7 +3,7 @@ import SwiftUI
 struct ConfirmAccountView: View {
     @StateObject var viewModel = OTPViewModel()
     @FocusState private var isFocused: Bool
-
+    
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
@@ -65,11 +65,10 @@ struct ConfirmAccountView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(viewModel.code.count < 6 ? Color(.systemGray4) : Color.orange)
                         .cornerRadius(24)
                 }
                 .disabled(viewModel.code.count < 6)
-                .opacity(viewModel.code.count < 6 ? 0.5 : 1)
 
                 Spacer()
             }
@@ -77,8 +76,4 @@ struct ConfirmAccountView: View {
             .onAppear { isFocused = true }
         }
     }
-}
-
-#Preview {
-    ConfirmAccountView()
 }

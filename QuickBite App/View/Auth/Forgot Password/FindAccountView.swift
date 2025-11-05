@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct FindAccountView: View {
-    @State private var email = ""
+    @StateObject private var viewModel = EmailCheckViewModel()
     
     var body: some View {
         NavigationStack {
-            VStack(alignment:. leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 24) {
                 Text("Find your account")
                     .font(.title)
                     .fontWeight(.bold)
@@ -21,17 +21,22 @@ struct FindAccountView: View {
                     Text("Email")
                         .font(.subheadline)
                         .fontWeight(.medium)
+                    
                     HStack {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
-                        TextField("e-mail address", text: $email)
+                        
+                        TextField("e-mail address", text: $viewModel.email)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .keyboardType(.emailAddress)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(.systemGray4))
+                    )
                 }
                 
                 NavigationLink(destination: ConfirmAccountView()) {
@@ -40,9 +45,10 @@ struct FindAccountView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(viewModel.isEmailValid ? Color.orange : Color(.systemGray4))
                         .cornerRadius(24)
                 }
+                .disabled(!viewModel.isEmailValid)
                 
                 Spacer()
             }

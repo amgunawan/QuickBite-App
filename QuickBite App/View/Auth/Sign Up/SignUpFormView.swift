@@ -9,13 +9,17 @@ import SwiftUI
 
 struct SignUpFormView: View {
     let role: String
-    @State private var email = ""
+    @StateObject private var viewModel = EmailCheckViewModel()
     @State private var showingGoogleSignInAlert = false
     @State private var agreeTermsAndConditions = false
     
+    private var canContinue: Bool {
+        viewModel.isEmailValid && agreeTermsAndConditions
+    }
+    
     var body: some View {
         NavigationStack {
-            VStack(alignment:. leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 24) {
                 Text("Sign up as \(role)")
                     .font(.title)
                     .fontWeight(.bold)
@@ -24,17 +28,22 @@ struct SignUpFormView: View {
                     Text("Email")
                         .font(.subheadline)
                         .fontWeight(.medium)
+                    
                     HStack {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
-                        TextField("e-mail address", text: $email)
+                        
+                        TextField("e-mail address", text: $viewModel.email)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .keyboardType(.emailAddress)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(.systemGray4))
+                    )
                 }
                 
                 Button {
@@ -42,7 +51,7 @@ struct SignUpFormView: View {
                         agreeTermsAndConditions.toggle()
                     }
                 } label: {
-                    HStack (alignment: .top, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
                         Image(systemName: agreeTermsAndConditions ? "checkmark.square.fill" : "square")
                             .foregroundColor(agreeTermsAndConditions ? Color.orange : Color(uiColor: .tertiaryLabel))
                             .imageScale(.large)
@@ -57,15 +66,16 @@ struct SignUpFormView: View {
                 }
                 .buttonStyle(.plain)
                 
-                NavigationLink(destination: OTPCodeView(email: email)) {
+                NavigationLink(destination: OTPCodeView(email: viewModel.email)) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(canContinue ? Color.orange : Color(.systemGray4))
                         .cornerRadius(24)
                 }
+                .disabled(!canContinue)
                 
                 HStack {
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
@@ -89,12 +99,15 @@ struct SignUpFormView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(RoundedRectangle(cornerRadius: 24).stroke(Color(.systemGray4)))
+                    .background(
+                        RoundedRectangle(cornerRadius: 24)
+                            .stroke(Color(.systemGray4))
+                    )
                 }
                 .alert("\"QuickBite\" Wants to Use \"google.com\" to Sign In", isPresented: $showingGoogleSignInAlert) {
                     Button("Cancel", role: .cancel) { }
                     Button("Continue") {
-                        // Aksi jika user pilih Continue, bisa implementasi Google Sign-In
+                        // Implement Google Sign-In here
                     }
                 } message: {
                     Text("This allows the app to share information about you.")

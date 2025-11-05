@@ -66,18 +66,17 @@ struct OTPCodeView: View {
                     }
                     .foregroundColor(.orange)
                 }
-
+                
                 NavigationLink(destination: CreatePasswordView()) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(viewModel.code.count < 6 ? Color(.systemGray4) : Color.orange)
                         .cornerRadius(24)
                 }
                 .disabled(viewModel.code.count < 6)
-                .opacity(viewModel.code.count < 6 ? 0.5 : 1)
 
                 Spacer()
             }

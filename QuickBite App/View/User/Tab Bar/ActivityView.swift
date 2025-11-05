@@ -9,7 +9,20 @@ import SwiftUI
 
 struct ActivityView: View {
     var body: some View {
-        Text("Activity View")
+        VStack(spacing: 24) {
+            Text("Activity")
+                .font(.title)
+                .fontWeight(.bold)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal)
+            
+            
+            
+            Spacer()
+        }
     }
 }
 
+#Preview {
+    ActivityView()
+}

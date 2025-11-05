@@ -8,22 +8,35 @@
 import SwiftUI
 
 struct CreatePasswordView: View {
-    @State private var password = ""
+    @StateObject private var viewModel = PasswordCheckViewModel()
     @State private var showHome = false
+    @State private var showPassword = false
     
     var body: some View {
         NavigationStack {
-            VStack(alignment:. leading, spacing: 24) {
+            VStack(alignment: .leading, spacing: 24) {
+                // Title
                 Text("Create password")
                     .font(.title)
                     .fontWeight(.bold)
                 
+                // Password field
                 HStack {
                     Image(systemName: "lock")
                         .foregroundColor(.gray)
-                    SecureField("password", text: $password)
-                    Button(action: {}) {
-                        Image(systemName: "eye")
+                    
+                    if showPassword {
+                        TextField("password", text: $viewModel.password)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    } else {
+                        SecureField("password", text: $viewModel.password)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                    
+                    Button(action: { showPassword.toggle() }) {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
                             .foregroundColor(.gray)
                     }
                 }
@@ -31,41 +44,37 @@ struct CreatePasswordView: View {
                 .padding(.vertical, 12)
                 .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
                 
+                // Password rules
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your password must contain at least:")
                         .font(.subheadline)
                     
                     HStack {
-                        Image(systemName: "checkmark")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(viewModel.hasValidLength ? .green : .secondary)
                         Text("8 characters (max. 20)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     
                     HStack {
-                        Image(systemName: "checkmark")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(viewModel.hasLetterAndNumber ? .green : .secondary)
                         Text("1 letter and 1 number")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     
                     HStack {
-                        Image(systemName: "checkmark")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(viewModel.hasSpecialCharacter ? .green : .secondary)
                         Text("1 special character (e.g., # ? ! $ & @)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                 }
                 
+                // Continue button
                 Button(action: {
                     showHome = true
                 }) {
@@ -74,9 +83,10 @@ struct CreatePasswordView: View {
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(viewModel.isPasswordValid ? Color.orange : Color(.systemGray4))
                         .cornerRadius(24)
                 }
+                .disabled(!viewModel.isPasswordValid)
                 
                 Spacer()
             }

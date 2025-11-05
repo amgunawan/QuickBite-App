@@ -93,8 +93,7 @@ struct ProfileView: View {
         NavigationStack {
             ZStack {
                 VStack(spacing: 0) {
-                    HeaderBackgroundView(title: "Profile",
-                                         height: 100)
+                    HeaderBackgroundView(height: 100)
 
                     ProfileCard(username: username, email: email) {
                         showEdit = true

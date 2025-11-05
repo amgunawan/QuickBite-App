@@ -40,8 +40,8 @@ struct MainFormView: View {
                 
                 // MARK: - Segmented Control
                 Picker("", selection: $selectedTab) {
-                    Text("Sign in").tag(0)
-                    Text("Sign up").tag(1)
+                    Text("Sign In").tag(0)
+                    Text("Sign Up").tag(1)
                 }
                 .pickerStyle(.segmented)
                 

@@ -7,8 +7,6 @@
 
 import SwiftUI
 
-// MARK: - Models
-
 struct RankUser: Identifiable {
     let id = UUID()
     let username: String
@@ -66,62 +64,58 @@ struct QuestView: View {
     ]
 
     var nextTierLabel: String { "Next tier: Silver" }
-
+    
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-                VStack(spacing: 0) {
-                    HeaderBackgroundView(height: 100)
-                    Spacer()
-                }
+            GeometryReader { geo in
+                let top = geo.safeAreaInsets.top
+                let headerH = 100 + top
 
                 ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        // MARK: - Title
-                        Text("Quest")
-                            .font(.title)
-                            .fontWeight(.bold)
-                            .padding(.horizontal)
-                            .padding(.bottom, 20)
-                            .frame(maxWidth: .infinity, alignment: .leading)
+                    ZStack(alignment: .top) {
+                        HeaderBackgroundView(height: headerH)
+                            .frame(height: headerH)
+                            .padding(.top, -top)
+                        VStack(spacing: 0) {
+                            Text("Quest")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .padding(.horizontal)
+                                .padding(.top, 10)
+                                .padding(.bottom, 10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
-                        // MARK: - Header Card (user progress)
-                        headerCard
-                            .padding(.horizontal)
-                            .offset(y: -10)
-                            .zIndex(1)
+                            headerCard
+                                .padding(.horizontal)
 
-                        // MARK: - Leaderboard Section
-                        VStack(alignment: .leading, spacing: 16) {
-                            Text("Leaderboard")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .padding(.top, 6)
+                            VStack(alignment: .leading, spacing: 16) {
+                                Text("Leaderboard")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .padding(.top, 6)
 
-                            PodiumView(users: podiumUsers)
+                                PodiumView(users: podiumUsers)
+                                rankingTable
 
-                            rankingTable
+                                Text("How far can you go?")
+                                    .font(.title3)
+                                    .fontWeight(.semibold)
+                                    .padding(.top, 8)
 
-                            Text("How far can you go?")
-                                .font(.title3)
-                                .fontWeight(.semibold)
-                                .padding(.top, 8)
-
-                            // MARK: - Badges
-                            VStack(spacing: 16) {
-                                ForEach(badges) { badge in
-                                    BadgeRow(badge: badge)
-                                        .onTapGesture {
-                                            if badge.current == 0 {
-                                                showLockedAlert = true
+                                VStack(spacing: 16) {
+                                    ForEach(badges) { badge in
+                                        BadgeRow(badge: badge)
+                                            .onTapGesture {
+                                                if badge.current == 0 { showLockedAlert = true }
                                             }
-                                        }
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 16)
+                            .padding(.bottom, 24)
+                            .offset(y: -6)
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.bottom, 24)
-                        .offset(y: -6)
+                        .padding(.top, headerH - 180) 
                     }
                 }
             }
@@ -135,13 +129,13 @@ struct QuestView: View {
         }
     }
 
-    // MARK: - Header Card (styled like ProfileCard)
+
     private var headerCard: some View {
         HStack(spacing: 12) {
             ZStack {
-                Circle().fill(Color.orange.opacity(0.18))
+                Circle().fill(Color.yellow.opacity(0.18))
                 Image(systemName: "shield.fill")
-                    .foregroundColor(.orange)
+                    .foregroundColor(.yellow)
                     .font(.title2)
             }
             .frame(width: 48, height: 48)
@@ -174,8 +168,6 @@ struct QuestView: View {
                 .shadow(color: .black.opacity(0.03), radius: 2,  x: 0, y: 1)
         )
     }
-
-    // MARK: Progress Bar
     private struct BarProgress: View {
         var value: Double
         var total: Double
@@ -201,7 +193,6 @@ struct QuestView: View {
         }
     }
 
-    // MARK: Ranking Table
     private var rankingTable: some View {
         VStack(spacing: 8) {
             RankRow(rank: "Rank", username: "Username", points: "Points", isHeader: true)
@@ -218,8 +209,6 @@ struct QuestView: View {
         .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
     }
 }
-
-// MARK: - Podium
 
 struct PodiumView: View {
     let users: [RankUser]
@@ -282,8 +271,6 @@ struct PodiumCard: View {
         .frame(maxWidth: .infinity)
     }
 }
-
-// MARK: - Components
 
 struct RingProgress: View {
     let current: Int
@@ -377,6 +364,3 @@ struct BadgeRow: View {
     }
 }
 
-#Preview {
-    QuestView()
-}

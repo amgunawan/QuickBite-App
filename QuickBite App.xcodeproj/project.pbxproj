@@ -77,12 +77,20 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		0B1707962EBB15D600FF788E /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		0BC1B1162EB0A13B006C6206 = {
 			isa = PBXGroup;
 			children = (
 				0BC1B1212EB0A13B006C6206 /* QuickBite App */,
 				0BC1B12F2EB0A13C006C6206 /* QuickBite AppTests */,
 				0BC1B1392EB0A13C006C6206 /* QuickBite AppUITests */,
+				0B1707962EBB15D600FF788E /* Frameworks */,
 				0BC1B1202EB0A13B006C6206 /* Products */,
 			);
 			sourceTree = "<group>";

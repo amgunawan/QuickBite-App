@@ -91,15 +91,27 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
+            ZStack(alignment: .top) {
                 VStack(spacing: 0) {
                     HeaderBackgroundView(height: 100)
+                    
+                    Spacer()
+                }
+
+                VStack(spacing: 0) {
+                    Text("Profile")
+                        .font(.title)
+                        .fontWeight(.bold)
+//                        .foregroundColor(.white)
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     ProfileCard(username: username, email: email) {
                         showEdit = true
                     }
                     .padding(.horizontal)
-                    .offset(y: -44)
+                    .offset(y: -10)
                     .zIndex(1)
 
                     List {
@@ -156,7 +168,7 @@ struct ProfileView: View {
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .padding(.top,-60)
+                    .padding(.top,-20)
                     .scrollDisabled(true)
                 }
             }

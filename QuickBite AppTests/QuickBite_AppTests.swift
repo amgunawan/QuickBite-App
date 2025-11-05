@@ -6,7 +6,7 @@
 //
 
 import Testing
-@testable import QuickBite_App
+@testable import QuickBite
 
 struct QuickBite_AppTests {
 

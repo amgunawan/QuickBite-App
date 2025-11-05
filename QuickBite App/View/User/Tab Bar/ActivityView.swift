@@ -12,7 +12,6 @@ struct ActivityView: View {
     
     var body: some View {
         VStack(spacing: 16) {
-            // 🔹 Header tetap fixed di atas
             VStack(spacing: 12) {
                 Text("Activity")
                     .font(.title)
@@ -26,9 +25,7 @@ struct ActivityView: View {
                 .pickerStyle(.segmented)
             }
             .padding(.horizontal)
-            .padding(.top)
             
-            // 🔹 ScrollView hanya untuk daftar order
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 16) {
                     if selectedTab == 0 {
@@ -160,7 +157,7 @@ struct ActivityView: View {
                                             .foregroundColor(.secondary)
                                             .lineLimit(1)
                                         
-                                        Text("Rp32.500")
+                                        Text("Rp15.000")
                                             .font(.subheadline)
                                             .fontWeight(.medium)
                                             .foregroundColor(.orange)

@@ -90,9 +90,9 @@ struct QuestView: View {
 
                             VStack(alignment: .leading, spacing: 16) {
                                 Text("Leaderboard")
-                                    .font(.title3)
+                                    .font(.headline)
                                     .fontWeight(.semibold)
-                                    .padding(.top, 6)
+                                    .padding(.top, 28)
 
                                 PodiumView(users: podiumUsers)
                                 rankingTable
@@ -111,11 +111,11 @@ struct QuestView: View {
                                     }
                                 }
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.bottom, 24)
+                            .padding(.horizontal)
+                            .padding(.bottom)
                             .offset(y: -6)
                         }
-                        .padding(.top, headerH - 180) 
+                        .padding(.top, headerH - 156)
                     }
                 }
             }

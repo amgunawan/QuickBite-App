@@ -165,6 +165,7 @@ struct ProfileView: View {
                                                  title: "Manage Account")
                             }
                         }
+                        .foregroundColor(.black)
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)

@@ -80,15 +80,14 @@ struct TenantProfileCard: View {
 }
 
 struct TenantProfileView: View {
-    @State private var username: String = "sharontan1"
-    @State private var email: String = "sharontan1@gmail.com"
-    @State private var language: String = "English"
+    @State private var tenantusername: String = "sharontan1"
+    @State private var tenantemail: String = "sharontan1@gmail.com"
+    @State private var tenantlanguage: String = "English"
 
     @State private var showEdit = false
-    @State private var fullName: String = "Sharon Tan"
-    @State private var phoneCode: String = "+62"
-    @State private var phone: String = "82134584979"
-    @State private var points: Int = 30
+    @State private var tenantfullName: String = "Sharon Tan"
+    @State private var tenantphoneCode: String = "+62"
+    @State private var tenantphone: String = "82134584979"
 
     var body: some View {
         NavigationStack {
@@ -97,18 +96,17 @@ struct TenantProfileView: View {
                     HeaderBackgroundView(height: 100)
                     Spacer()
                 }
-
                 VStack(spacing: 10) {
                     Text("Store Profile")
                         .font(.title)
                         .fontWeight(.bold)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                         .padding(.horizontal)
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     // Profile card
-                    TenantProfileCard(username: username, email: email) {
+                    TenantProfileCard(username: tenantusername, email: tenantemail) {
                         showEdit = true
                     }
                     .padding(.horizontal)
@@ -129,7 +127,14 @@ struct TenantProfileView: View {
                             }
 
                             NavigationLink {
-                                EditStoreDetailsTenantView()
+                                EditStoreDetailsTenantView(
+                                            tenantusername: tenantusername,
+                                            tenantfullName: $tenantfullName,
+                                            tenantphoneCode: $tenantphoneCode,
+                                            tenantphone: $tenantphone,
+                                            tenantemail: $tenantemail,
+                                            onSave: {}
+                                        )
                             } label: {
                                 TenantSettingsRowLabel(
                                     systemIcon: "pencil.and.scribble",
@@ -149,7 +154,6 @@ struct TenantProfileView: View {
                             }
                         }
 
-                        // MARK: Account & Support
                         Section("Account & Support") {
                             NavigationLink {
                                 ChangePasswordTenantView()
@@ -162,13 +166,13 @@ struct TenantProfileView: View {
                             }
 
                             NavigationLink {
-                                LanguageSelectionTenantView(selectedLanguage: $language)
+                                LanguageSelectionTenantView(selectedLanguage: $tenantlanguage)
                             } label: {
                                 TenantSettingsRowLabel(
                                     systemIcon: "globe",
                                     tint: .gray,
                                     title: "Languages",
-                                    trailing: language
+                                    trailing: tenantlanguage
                                 )
                             }
 
@@ -215,23 +219,19 @@ struct TenantProfileView: View {
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .padding(.top, -20) // supaya nempel dengan header
+                    .padding(.top, -20)
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .sheet(isPresented: $showEdit) {
-                EditProfileView(
-                    username: username,
-                    fullName: $fullName,
-                    phoneCode: $phoneCode,
-                    phone: $phone,
-                    email: $email,
-                    points: points,
+            .navigationDestination(isPresented: $showEdit) {
+                EditStoreDetailsTenantView(
+                    tenantusername: tenantusername,
+                    tenantfullName: $tenantfullName,
+                    tenantphoneCode: $tenantphoneCode,
+                    tenantphone: $tenantphone,
+                    tenantemail: $tenantemail,
                     onSave: { showEdit = false }
                 )
-                .presentationDetents([.medium, .large])
-                .scrollDisabled(true)
-
             }
         }
     }
@@ -240,3 +240,5 @@ struct TenantProfileView: View {
 #Preview {
     TenantProfileView()
 }
+
+

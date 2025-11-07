@@ -10,8 +10,12 @@ import SwiftUI
 struct SignUpFormView: View {
     let role: String
     @StateObject private var viewModel = EmailCheckViewModel()
-    @State private var showingGoogleSignInAlert = false
     @State private var agreeTermsAndConditions = false
+    
+    // Google Sign In
+    @State private var loginError = ""
+    @State private var isLoggedIn = false
+    @State private var vm = AuthenticationViewModel()
     
     private var canContinue: Bool {
         viewModel.isEmailValid && agreeTermsAndConditions
@@ -86,7 +90,7 @@ struct SignUpFormView: View {
                 }
                 
                 Button(action: {
-                    showingGoogleSignInAlert = true
+                    vm.signInWithGoogle()
                 }) {
                     HStack {
                         Image("GoogleIcon")
@@ -104,13 +108,19 @@ struct SignUpFormView: View {
                             .stroke(Color(.systemGray4))
                     )
                 }
-                .alert("\"QuickBite\" Wants to Use \"google.com\" to Sign In", isPresented: $showingGoogleSignInAlert) {
-                    Button("Cancel", role: .cancel) { }
-                    Button("Continue") {
-                        // Implement Google Sign-In here
-                    }
-                } message: {
-                    Text("This allows the app to share information about you.")
+                
+                if !loginError.isEmpty {
+                    Text(loginError)
+                        .foregroundColor(.red)
+                        .padding()
+                }
+                
+                NavigationLink(value: isLoggedIn) {
+                    EmptyView()
+                }
+                .navigationDestination(isPresented: $isLoggedIn) {
+                    UserContentView()
+                        .navigationBarBackButtonHidden(true)
                 }
                 
                 Spacer()

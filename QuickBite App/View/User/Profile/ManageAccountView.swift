@@ -9,6 +9,7 @@ import SwiftUI
 
 struct ManageAccountView: View {
     @State private var showLogoutAlert = false
+    @State private var err: String = ""
     
     var body: some View {
         NavigationStack {
@@ -45,7 +46,14 @@ struct ManageAccountView: View {
                 .alert("Logout Confirmation", isPresented: $showLogoutAlert) {
                     Button("Cancel", role: .cancel) { }
                     Button("Logout", role: .destructive) {
-                        // Aksi jika user pilih Logout
+                        Task {
+                            do {
+                                try await AuthenticationViewModel().logout()
+                            }
+                            catch let e {
+                                err = e.localizedDescription
+                            }
+                        }
                     }
                 } message: {
                     Text("Are you sure you want to logout? You will need to sign in again to access your account.")

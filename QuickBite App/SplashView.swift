@@ -1,3 +1,10 @@
+//
+//  SplashView.swift
+//  QuickBite
+//
+//  Created by Angela on 04/11/25.
+//
+
 import SwiftUI
 
 struct SplashView: View {

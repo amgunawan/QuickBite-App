@@ -23,146 +23,137 @@ struct EditProfileView: View {
     enum Field { case fullName, phone, email }
 
     var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
-                }
-                Spacer()
-                Text("Edit Profile")
-                    .font(.headline)
-                Spacer()
-                Button("Save") {
-                    onSave()
-                }
-                .font(.headline)
-                .foregroundColor(.orange)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-
-            ScrollView {
-                VStack(spacing: 20) {
-
-                    VStack(spacing: 8) {
-                        ZStack {
-                            Circle()
-                                .fill(
-                                    LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                                                   startPoint: .topLeading,
-                                                   endPoint: .bottomTrailing)
-                                )
-                                .frame(width: 96, height: 96)
-                            Image(systemName: "person.fill")
-                                .font(.system(size: 44))
-                                .foregroundColor(.white)
-
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Image(systemName: "camera.fill")
-                                        .foregroundColor(.black.opacity(0.9))
-                                        .padding(6)
-                                        .background(.white, in: Circle())
-                                        .offset(x: 6, y: 6)
-                                }
-                            }
-                            .frame(width: 96, height: 96)
-                        }
-
-                        HStack(spacing: 6) {
-                            Image(systemName: "sparkles")
-                                .foregroundColor(.orange)
-                            Text("\(points) Points")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.top, 6)
-
-                    // FORM
-                    VStack(spacing: 14) {
-                        // Username (disabled)
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Username")
-                            TextField("", text: .constant(username))
-                                .disabled(true)
-                                .textFieldStyle(.roundedBorder)
-                                .opacity(0.7)
-                        }
-
-                        // Full Name + clear button
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Full Name")
-                            HStack {
-                                TextField("Your full name", text: $fullName)
-                                    .textInputAutocapitalization(.words)
-                                    .autocorrectionDisabled()
-                                    .focused($focusedField, equals: .fullName)
-
-                                if !fullName.isEmpty {
-                                    Button {
-                                        fullName = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                            .padding(10)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(
-                                        Color.orange.opacity(0.5),
-                                        lineWidth: focusedField == .fullName ? 1.2 : 0.3
-                                    )
+        NavigationStack {
+            VStack(spacing: 20) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(colors: [.orange, .orange.opacity(0.7)],
+                                               startPoint: .topLeading,
+                                               endPoint: .bottomTrailing)
                             )
-                        }
+                            .frame(width: 96, height: 96)
+                        Image(systemName: "person.fill")
+                            .font(.system(size: 44))
+                            .foregroundColor(.white)
 
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Phone Number")
-                            HStack(spacing: 8) {
-                                HStack(spacing: 6) {
-                                    Text("🇮🇩")
-                                        .font(.body)
-                                    Text(phoneCode)
-                                        .font(.body)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 44)
-                                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-
-                                TextField("81230300020", text: $phone)
-                                    .keyboardType(.numberPad)
-                                    .focused($focusedField, equals: .phone)
-                                    .font(.body) // samakan ukuran font
-                                    .padding(10)
-                                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                        VStack {
+                            Spacer()
+                            HStack {
+                                Spacer()
+                                Image(systemName: "camera.fill")
+                                    .foregroundColor(.black.opacity(0.9))
+                                    .padding(6)
+                                    .background(.white, in: Circle())
+                                    .offset(x: 6, y: 6)
                             }
                         }
-                        
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Email")
-                            TextField("name@example.com", text: $email)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
+                        .frame(width: 96, height: 96)
+                    }
+
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .foregroundColor(.orange)
+                        Text("\(points) Points")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .padding(.top, 6)
+
+                // FORM
+                VStack(spacing: 14) {
+                    // Username (disabled)
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Username")
+                        TextField("", text: .constant(username))
+                            .disabled(true)
+                            .textFieldStyle(.roundedBorder)
+                            .opacity(0.7)
+                    }
+
+                    // Full Name + clear button
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Full Name")
+                        HStack {
+                            TextField("Your full name", text: $fullName)
+                                .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
-                                .focused($focusedField, equals: .email)
-                                .textFieldStyle(.roundedBorder)
+                                .focused($focusedField, equals: .fullName)
+
+                            if !fullName.isEmpty {
+                                Button {
+                                    fullName = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(10)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(
+                                    Color.orange.opacity(0.5),
+                                    lineWidth: focusedField == .fullName ? 1.2 : 0.3
+                                )
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Phone Number")
+                        HStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Text("🇮🇩")
+                                    .font(.body)
+                                Text(phoneCode)
+                                    .font(.body)
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(height: 44)
+                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+
+                            TextField("81230300020", text: $phone)
+                                .keyboardType(.numberPad)
+                                .focused($focusedField, equals: .phone)
+                                .font(.body) // samakan ukuran font
+                                .padding(10)
+                                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
+                    
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Email")
+                        TextField("name@example.com", text: $email)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
+                            .focused($focusedField, equals: .email)
+                            .textFieldStyle(.roundedBorder)
+                    }
+                    
+                    Button(action: {
+                        
+                    }) {
+                        Text("Save")
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.orange)
+                            .cornerRadius(24)
+                    }
+                    .padding(.vertical, 8)
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 40)
             }
+            
+            Spacer()
         }
-        .background(Color.white.ignoresSafeArea())
-        .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(true)
+        .navigationTitle("Edit Profile")
     }
 
     private func labelRequired(_ text: String) -> some View {

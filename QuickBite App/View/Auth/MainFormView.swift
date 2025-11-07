@@ -6,14 +6,23 @@
 //
 
 import SwiftUI
+import Firebase
+import FirebaseAuth
+import GoogleSignIn
+import GoogleSignInSwift
 
 struct MainFormView: View {
+    @EnvironmentObject var viewModel: AuthenticationViewModel
     @State private var selectedTab = 0
     @State private var email = ""
     @State private var password = ""
     @State private var showingGoogleSignInAlert = false
-    @State private var showHome = false
     @State private var showPassword = false
+    
+    // Google Sign In
+    @State private var loginError = ""
+    @State private var isLoggedIn = false
+    @State private var vm = AuthenticationViewModel()
     
     // MARK: - Validation
     private var isSignInDisabled: Bool {
@@ -114,7 +123,7 @@ struct MainFormView: View {
                         
                         // Sign In Button
                         Button(action: {
-                            showHome = true
+                            login()
                         }) {
                             Text("Sign in")
                                 .fontWeight(.medium)
@@ -134,10 +143,10 @@ struct MainFormView: View {
                                 .font(.subheadline)
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
-                        
+                                           
                         // Google Sign-In
                         Button(action: {
-                            showingGoogleSignInAlert = true
+                            vm.signInWithGoogle()
                         }) {
                             HStack {
                                 Image("GoogleIcon")
@@ -155,13 +164,19 @@ struct MainFormView: View {
                                     .stroke(Color(.systemGray4))
                             )
                         }
-                        .alert("\"QuickBite\" Wants to Use \"google.com\" to Sign In", isPresented: $showingGoogleSignInAlert) {
-                            Button("Cancel", role: .cancel) { }
-                            Button("Continue") {
-                                // Aksi implementasi Google Sign-In
-                            }
-                        } message: {
-                            Text("This allows the app to share information about you.")
+                        
+                        if !loginError.isEmpty {
+                            Text(loginError)
+                                .foregroundColor(.red)
+                                .padding()
+                        }
+                        
+                        NavigationLink(value: isLoggedIn) {
+                            EmptyView()
+                        }
+                        .navigationDestination(isPresented: $isLoggedIn) {
+                            UserContentView()
+                                .navigationBarBackButtonHidden(true)
                         }
                     }
                 } else {
@@ -200,12 +215,19 @@ struct MainFormView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .fullScreenCover(isPresented: $showHome) {
-                UserContentView()
-            }
         }
         .onTapGesture {
             hideKeyboard()
+        }
+    }
+    
+    func login() {
+        Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
+            if let error = error {
+                loginError = error.localizedDescription
+            }
+            
+            isLoggedIn = true
         }
     }
 }

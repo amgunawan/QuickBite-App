@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct SignUpFormView: View {
     let role: String
@@ -18,6 +19,9 @@ struct SignUpFormView: View {
     @State private var loginError = ""
     @State private var isLoggedIn = false
     @State private var vm = AuthenticationViewModel()
+    
+    // Email Verification
+    @State private var userVerificationModal: Bool = false
     
     private var canContinue: Bool {
         viewModel.isEmailValid && agreeTermsAndConditions && passwordVM.isPasswordValid
@@ -123,10 +127,16 @@ struct SignUpFormView: View {
                     }
                     .font(.footnote)
                     .foregroundColor(.gray)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
                 }
                 .buttonStyle(.plain)
                 
-                NavigationLink(destination: OTPCodeView(email: viewModel.email, password: passwordVM.password)) {
+                Button(action: {
+                    Task {
+                        userVerificationModal = true
+                    }
+                }) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -136,6 +146,13 @@ struct SignUpFormView: View {
                         .cornerRadius(24)
                 }
                 .disabled(!canContinue)
+                .alert("Email Verification", isPresented: $userVerificationModal) {
+                    Button("Verified?") {
+                        
+                    }
+                } message: {
+                    Text("We have sent a verification email to your address. Please check your inbox.")
+                }
                 
                 HStack {
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
@@ -185,3 +202,4 @@ struct SignUpFormView: View {
         }
     }
 }
+

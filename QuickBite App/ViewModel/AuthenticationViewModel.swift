@@ -27,8 +27,6 @@ class AuthenticationViewModel: ObservableObject {
             return
         }
         
-        // OTP email verification
-        
         Task {
             do {
                 let returnedUserData = try await createUser(email: email, password: password)
@@ -36,6 +34,34 @@ class AuthenticationViewModel: ObservableObject {
             }
             catch {
                 print("Error: \(error)")
+            }
+        }
+    }
+    
+    func signInWithEmailPassword() async throws {
+        guard !email.isEmpty, !password.isEmpty else {
+            throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "Please enter both email and password."])
+        }
+        
+        do {
+            let result = try await Auth.auth().signIn(withEmail: email, password: password)
+            print("✅ Signed in user: \(result.user.uid)")
+        } catch let error as NSError {
+            print("Firebase error code: \(error.code)")
+            
+            switch AuthErrorCode(rawValue: error.code) {
+            case .userNotFound:
+                throw NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "This email is not registered."])
+                
+            case .wrongPassword, .invalidCredential:
+                throw NSError(domain: "", code: 401, userInfo: [NSLocalizedDescriptionKey: "The password you entered is incorrect."])
+                
+            case .invalidEmail:
+                throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "The email address is invalid."])
+                
+            default:
+                print("⚠️ Unhandled Firebase error: \(error.localizedDescription)")
+                throw NSError(domain: "", code: 500, userInfo: [NSLocalizedDescriptionKey: "Unexpected error: \(error.localizedDescription)"])
             }
         }
     }

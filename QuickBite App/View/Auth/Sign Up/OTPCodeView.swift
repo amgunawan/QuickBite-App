@@ -38,7 +38,8 @@ struct OTPCodeView: View {
                         ZStack {
                             RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(.systemGray6))
-                                .frame(width: 50, height: 50)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 50)
                             
                             Text(viewModel.digit(at: index))
                                 .font(.title2)

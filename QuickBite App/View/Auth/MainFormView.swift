@@ -18,6 +18,10 @@ struct MainFormView: View {
     @State private var showingGoogleSignInAlert = false
     @State private var showPassword = false
     
+    // Email Password Sign In
+    @State private var showingLoginAlert = false
+    @State private var alertMessage = ""
+    
     // Google Sign In
     @State private var loginError = ""
     @State private var isLoggedIn = false
@@ -115,7 +119,9 @@ struct MainFormView: View {
                         
                         // Sign In Button
                         Button(action: {
-                            // sign in view model
+                            Task {
+                                await signInUser()
+                            }
                         }) {
                             Text("Sign in")
                                 .fontWeight(.medium)
@@ -124,6 +130,9 @@ struct MainFormView: View {
                                 .padding(.vertical, 12)
                                 .background(Color.orange)
                                 .cornerRadius(24)
+                        }
+                        .alert(isPresented: $showingLoginAlert) {
+                            Alert(title: Text("Sign In Failed"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
                         }
                         
                         // Divider
@@ -137,14 +146,7 @@ struct MainFormView: View {
                                            
                         // Google Sign-In
                         Button(action: {
-                            Task {
-                                do {
-                                    try await vm.signInWithGoogle()
-                                    isLoggedIn = true
-                                } catch {
-                                    loginError = error.localizedDescription
-                                }
-                            }
+                            vm.signInWithGoogle()
                         }) {
                             HStack {
                                 Image("GoogleIcon")
@@ -226,6 +228,16 @@ struct MainFormView: View {
             }
             
             isLoggedIn = true
+        }
+    }
+    
+    func signInUser() async {
+        do {
+            try await vm.signInWithEmailPassword()
+            isLoggedIn = true
+        } catch {
+            alertMessage = error.localizedDescription
+            showingLoginAlert = true
         }
     }
 }

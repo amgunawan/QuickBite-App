@@ -9,8 +9,15 @@ import SwiftUI
 
 struct OTPCodeView: View {
     let email: String
+    let password: String
+    
     @StateObject var viewModel = OTPViewModel()
     @FocusState private var isFocused: Bool
+    
+    // Email Sign Up
+    @State private var loginError = ""
+    @State private var isLoggedIn = false
+    @State private var vm = AuthenticationViewModel()
 
     var body: some View {
         NavigationStack {
@@ -67,7 +74,20 @@ struct OTPCodeView: View {
                     .foregroundColor(.orange)
                 }
                 
-                NavigationLink(destination: CreatePasswordView()) {
+                Button(action: {
+                    // check jika otp authentication benar, maka lakukan task dibawah
+                    Task {
+                        do {
+                            vm.email = email
+                            vm.password = password
+                            
+                            try await vm.signUp()
+                            isLoggedIn = true
+                        } catch {
+                            loginError = error.localizedDescription
+                        }
+                    }
+                }) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)

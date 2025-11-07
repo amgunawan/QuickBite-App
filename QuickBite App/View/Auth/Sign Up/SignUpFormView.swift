@@ -10,7 +10,9 @@ import SwiftUI
 struct SignUpFormView: View {
     let role: String
     @StateObject private var viewModel = EmailCheckViewModel()
+    @StateObject private var passwordVM = PasswordCheckViewModel()
     @State private var agreeTermsAndConditions = false
+    @State private var showPassword = false
     
     // Google Sign In
     @State private var loginError = ""
@@ -18,7 +20,7 @@ struct SignUpFormView: View {
     @State private var vm = AuthenticationViewModel()
     
     private var canContinue: Bool {
-        viewModel.isEmailValid && agreeTermsAndConditions
+        viewModel.isEmailValid && agreeTermsAndConditions && passwordVM.isPasswordValid
     }
     
     var body: some View {
@@ -50,6 +52,60 @@ struct SignUpFormView: View {
                     )
                 }
                 
+                // Password field
+                HStack {
+                    Image(systemName: "lock")
+                        .foregroundColor(.gray)
+                    
+                    if showPassword {
+                        TextField("password", text: $passwordVM.password)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    } else {
+                        SecureField("password", text: $passwordVM.password)
+                            .autocapitalization(.none)
+                            .disableAutocorrection(true)
+                    }
+                    
+                    Button(action: { showPassword.toggle() }) {
+                        Image(systemName: showPassword ? "eye.slash" : "eye")
+                            .foregroundColor(.gray)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                
+                // Password rules
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Your password must contain at least:")
+                        .font(.subheadline)
+                    
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(passwordVM.hasValidLength ? .green : .secondary)
+                        Text("8 characters (max. 20)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(passwordVM.hasLetterAndNumber ? .green : .secondary)
+                        Text("1 letter and 1 number")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                    
+                    HStack {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(passwordVM.hasSpecialCharacter ? .green : .secondary)
+                        Text("1 special character (e.g., # ? ! $ & @)")
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         agreeTermsAndConditions.toggle()
@@ -70,7 +126,7 @@ struct SignUpFormView: View {
                 }
                 .buttonStyle(.plain)
                 
-                NavigationLink(destination: OTPCodeView(email: viewModel.email)) {
+                NavigationLink(destination: OTPCodeView(email: viewModel.email, password: passwordVM.password)) {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)

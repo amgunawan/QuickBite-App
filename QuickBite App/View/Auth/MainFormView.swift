@@ -12,7 +12,6 @@ import GoogleSignIn
 import GoogleSignInSwift
 
 struct MainFormView: View {
-    @EnvironmentObject var viewModel: AuthenticationViewModel
     @State private var selectedTab = 0
     @State private var email = ""
     @State private var password = ""
@@ -23,13 +22,6 @@ struct MainFormView: View {
     @State private var loginError = ""
     @State private var isLoggedIn = false
     @State private var vm = AuthenticationViewModel()
-    
-    // MARK: - Validation
-    private var isSignInDisabled: Bool {
-        // Hilangkan spasi di awal/akhir sebelum cek kosong
-        email.trimmingCharacters(in: .whitespaces).isEmpty ||
-        password.trimmingCharacters(in: .whitespaces).isEmpty
-    }
     
     var body: some View {
         NavigationStack {
@@ -65,7 +57,7 @@ struct MainFormView: View {
                             HStack {
                                 Image(systemName: "envelope")
                                     .foregroundColor(.gray)
-                                TextField("e-mail address", text: $email)
+                                TextField("e-mail address", text: $vm.email)
                                     .autocapitalization(.none)
                                     .disableAutocorrection(true)
                                     .keyboardType(.emailAddress)
@@ -89,11 +81,11 @@ struct MainFormView: View {
                                     .foregroundColor(.gray)
                                 
                                 if showPassword {
-                                    TextField("password", text: $password)
+                                    TextField("password", text: $vm.password)
                                         .autocapitalization(.none)
                                         .disableAutocorrection(true)
                                 } else {
-                                    SecureField("password", text: $password)
+                                    SecureField("password", text: $vm.password)
                                         .autocapitalization(.none)
                                         .disableAutocorrection(true)
                                 }
@@ -123,17 +115,16 @@ struct MainFormView: View {
                         
                         // Sign In Button
                         Button(action: {
-                            login()
+                            // sign in view model
                         }) {
                             Text("Sign in")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 12)
-                                .background(isSignInDisabled ? Color(.systemGray4) : Color.orange)
+                                .background(Color.orange)
                                 .cornerRadius(24)
                         }
-                        .disabled(isSignInDisabled)
                         
                         // Divider
                         HStack {
@@ -146,7 +137,14 @@ struct MainFormView: View {
                                            
                         // Google Sign-In
                         Button(action: {
-                            vm.signInWithGoogle()
+                            Task {
+                                do {
+                                    try await vm.signInWithGoogle()
+                                    isLoggedIn = true
+                                } catch {
+                                    loginError = error.localizedDescription
+                                }
+                            }
                         }) {
                             HStack {
                                 Image("GoogleIcon")

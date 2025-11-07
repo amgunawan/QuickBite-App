@@ -13,6 +13,32 @@ import GoogleSignIn
 
 class AuthenticationViewModel: ObservableObject {
     @Published var isLoginSuccessed = false
+    @Published var email = ""
+    @Published var password = ""
+    
+    func createUser(email: String, password: String) async throws -> AuthDataResultModel {
+        let authDataResult = try await Auth.auth().createUser(withEmail: email, password: password)
+        return AuthDataResultModel(user: authDataResult.user)
+    }
+    
+    func signUp() async throws {
+        guard !email.isEmpty, !password.isEmpty else {
+            print("No email or password found.")
+            return
+        }
+        
+        // OTP email verification
+        
+        Task {
+            do {
+                let returnedUserData = try await createUser(email: email, password: password)
+                print("Signed up user: \(returnedUserData)")
+            }
+            catch {
+                print("Error: \(error)")
+            }
+        }
+    }
     
     func signInWithGoogle() {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
@@ -45,7 +71,7 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
     
-    func logout() async throws {
+    func signOut() async throws {
         GIDSignIn.sharedInstance.signOut()
         try Auth.auth().signOut()
     }

@@ -23,7 +23,7 @@ struct ManageAccountView: View {
                             .font(.system(size: 22))
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("Logout")
+                            Text("Sign Out")
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
@@ -43,12 +43,12 @@ struct ManageAccountView: View {
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
                 }
-                .alert("Logout Confirmation", isPresented: $showLogoutAlert) {
+                .alert("Sign Out Confirmation", isPresented: $showLogoutAlert) {
                     Button("Cancel", role: .cancel) { }
-                    Button("Logout", role: .destructive) {
+                    Button("Sign Out", role: .destructive) {
                         Task {
                             do {
-                                try await AuthenticationViewModel().logout()
+                                try await AuthenticationViewModel().signOut()
                             }
                             catch let e {
                                 err = e.localizedDescription

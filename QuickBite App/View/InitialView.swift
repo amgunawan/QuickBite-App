@@ -13,6 +13,9 @@ struct InitialView: View {
     @State private var showSplash = true
     @State private var userLoggedIn = (Auth.auth().currentUser != nil)
     
+    @StateObject private var authVM = AuthenticationViewModel()
+    @State private var showSignInView: Bool = false
+    
     var body: some View {
         ZStack {
             VStack {

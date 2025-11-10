@@ -102,7 +102,6 @@ struct ProfileView: View {
                     Text("Profile")
                         .font(.title)
                         .fontWeight(.bold)
-//                        .foregroundColor(.white)
                         .padding(.horizontal)
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)

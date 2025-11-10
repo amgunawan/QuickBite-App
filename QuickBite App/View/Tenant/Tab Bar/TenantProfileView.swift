@@ -1,10 +1,6 @@
-//
-//  TenantProfileView.swift
-//  QuickBite
-//
-
 import SwiftUI
 
+// MARK: - Row Label (tanpa NavigationView)
 struct TenantSettingsRowLabel: View {
     let systemIcon: String
     let tint: Color
@@ -24,19 +20,18 @@ struct TenantSettingsRowLabel: View {
 
             Text(title)
                 .foregroundColor(.primary)
-
             Spacer()
 
             if let trailing {
                 Text(trailing)
                     .foregroundColor(.primary)
             }
-
         }
         .padding(.vertical, 4)
     }
 }
 
+// MARK: - Profile Card
 struct TenantProfileCard: View {
     let username: String
     let email: String
@@ -53,7 +48,8 @@ struct TenantProfileCard: View {
             .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(username).font(.headline)
+                Text(username)
+                    .font(.headline)
                 Text(email)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -79,15 +75,16 @@ struct TenantProfileCard: View {
     }
 }
 
+// MARK: - Tenant Profile View
 struct TenantProfileView: View {
-    @State private var tenantusername: String = "sharontan1"
-    @State private var tenantemail: String = "sharontan1@gmail.com"
-    @State private var tenantlanguage: String = "English"
+    @State private var tenantusername = "sharontan1"
+    @State private var tenantemail = "sharontan1@gmail.com"
+    @State private var tenantlanguage = "English"
 
-    @State private var showEdit = false
-    @State private var tenantfullName: String = "Sharon Tan"
-    @State private var tenantphoneCode: String = "+62"
-    @State private var tenantphone: String = "82134584979"
+    @State private var showEditProfile = false
+    @State private var tenantfullName = "Sharon Tan"
+    @State private var tenantphoneCode = "+62"
+    @State private var tenantphone = "82134584979"
 
     var body: some View {
         NavigationStack {
@@ -96,6 +93,7 @@ struct TenantProfileView: View {
                     HeaderBackgroundView(height: 100)
                     Spacer()
                 }
+
                 VStack(spacing: 10) {
                     Text("Store Profile")
                         .font(.title)
@@ -105,16 +103,16 @@ struct TenantProfileView: View {
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    // Profile card
                     TenantProfileCard(username: tenantusername, email: tenantemail) {
-                        showEdit = true
+                        showEditProfile = true
                     }
                     .padding(.horizontal)
                     .offset(y: -10)
                     .zIndex(1)
 
-                    // Menu list
+                    // === Menu List ===
                     List {
+                        // SECTION 1
                         Section("Store Management") {
                             NavigationLink {
                                 ManageMenuStockTenantView()
@@ -127,17 +125,10 @@ struct TenantProfileView: View {
                             }
 
                             NavigationLink {
-                                EditStoreDetailsTenantView(
-                                            tenantusername: tenantusername,
-                                            tenantfullName: $tenantfullName,
-                                            tenantphoneCode: $tenantphoneCode,
-                                            tenantphone: $tenantphone,
-                                            tenantemail: $tenantemail,
-                                            onSave: {}
-                                        )
+                                EditStoreDetailsTenantView()
                             } label: {
                                 TenantSettingsRowLabel(
-                                    systemIcon: "pencil.and.scribble",
+                                    systemIcon: "shippingbox",
                                     tint: .gray,
                                     title: "Edit Store Details"
                                 )
@@ -154,6 +145,7 @@ struct TenantProfileView: View {
                             }
                         }
 
+                        // SECTION 2
                         Section("Account & Support") {
                             NavigationLink {
                                 ChangePasswordTenantView()
@@ -223,22 +215,16 @@ struct TenantProfileView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(isPresented: $showEdit) {
-                EditStoreDetailsTenantView(
+            .navigationDestination(isPresented: $showEditProfile) {
+                EditProfileTenantView(
                     tenantusername: tenantusername,
                     tenantfullName: $tenantfullName,
                     tenantphoneCode: $tenantphoneCode,
                     tenantphone: $tenantphone,
                     tenantemail: $tenantemail,
-                    onSave: { showEdit = false }
+                    onSave: { showEditProfile = false }
                 )
             }
         }
     }
 }
-
-#Preview {
-    TenantProfileView()
-}
-
-

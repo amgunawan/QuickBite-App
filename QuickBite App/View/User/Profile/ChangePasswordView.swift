@@ -21,10 +21,8 @@ struct ChangePasswordView: View {
     @FocusState private var focused: Field?
     enum Field { case current, new, confirm }
     
-    // ViewModel untuk validasi password
     @StateObject private var passwordChecker = PasswordCheckViewModel()
     
-    // MARK: - Computed properties
     private var isMatch: Bool {
         !newPassword.isEmpty && newPassword == confirmPassword
     }
@@ -150,7 +148,6 @@ struct ChangePasswordView: View {
     }
 }
 
-// MARK: - Custom Password Field
 struct PasswordFieldWithToggle: View {
     let placeholder: String
     @Binding var text: String

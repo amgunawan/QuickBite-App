@@ -1,341 +1,359 @@
 //
-//  EditStoreDetailsView.swift
+//  EditStoreDetailsTenantView.swift
 //  QuickBite App
 //
-//  Created by jessica tedja on 05/11/25.
+//  Created by jessica tedja on 10/11/25.
 //
 
 import SwiftUI
 import PhotosUI
-import UIKit
 
 struct EditStoreDetailsTenantView: View {
-    // Props dari parent
-    let tenantusername: String
-    @Binding var tenantfullName: String
-    @Binding var tenantphoneCode: String
-    @Binding var tenantphone: String
-    @Binding var tenantemail: String
-    var onSave: () -> Void
-
-    // State untuk overlay & picker
-    @State private var showChoosePhoto = false
-    @State private var showCamera = false
-    @State private var showPhotosPicker = false
-    @State private var pickedItem: PhotosPickerItem?
-    @State private var profileImage: UIImage? = nil
-
     @Environment(\.dismiss) private var dismiss
-    @FocusState private var focusedField: Field?
-    enum Field { case fullName, phone, email }
+
+    // Track perubahan
+    @State private var isDirty = false
+    private func markDirty() { isDirty = true }
+
+    // Banner & Search Icon
+    @State private var bannerImage: UIImage? = nil
+    @State private var iconImage: UIImage? = nil
+    @State private var bannerPickedItem: PhotosPickerItem?
+    @State private var iconPickedItem: PhotosPickerItem?
+    @State private var bannerFileName: String = ""
+    @State private var iconFileName: String = ""
+
+    // Operational Hours
+    @State private var open24Hours = false
+    @State private var openingTime: Date = Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!
+    @State private var closingTime: Date = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())!
+
+    // Weekly open days (disimpan di parent layar ini)
+    @State private var openDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday]
+
+    @State private var showOpeningPicker = false
+    @State private var showClosingPicker = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Top bar
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
+        ScrollView {
+            VStack(alignment: .leading, spacing: 8) {
+
+                Group {
+                    Text("Store Banner").font(.headline)
+                    Text("This will appear on the top of your store profile")
+                        .font(.footnote).foregroundColor(.secondary)
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(Color(.secondarySystemBackground))
+                        if let img = bannerImage {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        } else { Text(" ") }
+                    }
+                    .frame(height: 120)
+
+                    HStack(spacing: 10) {
+                        PhotosPicker(selection: $bannerPickedItem, matching: .images) {
+                            pillButton("Choose File")
+                        }
+                        Text(bannerFileName.isEmpty ? " " : bannerFileName)
+                            .font(.subheadline).foregroundColor(.secondary)
+                            .lineLimit(1).truncationMode(.middle)
+                        Spacer()
+                    }
                 }
-                Spacer()
-                Text("Edit Profile")
-                    .font(.headline)
-                Spacer()
-                Button("Save") { onSave() }
-                    .font(.headline)
-                    .foregroundColor(.orange)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
 
-            ScrollView {
-                VStack(spacing: 20) {
+                Group {
+                    Text("Search Menu Icon").font(.headline)
 
-                    // === Avatar + Camera button ===
-                    VStack(spacing: 8) {
+                    HStack(alignment: .top, spacing: 12) {
                         ZStack {
-                            if let img = profileImage {
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .fill(Color(.secondarySystemBackground))
+                            if let img = iconImage {
                                 Image(uiImage: img)
                                     .resizable()
                                     .scaledToFill()
-                                    .frame(width: 96, height: 96)
-                                    .clipShape(Circle())
-                            } else {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                                                       startPoint: .topLeading,
-                                                       endPoint: .bottomTrailing)
-                                    )
-                                    .frame(width: 96, height: 96)
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 44))
-                                            .foregroundColor(.white)
-                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                        }
+                        .frame(width: 64, height: 64)
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 10) {
+                                PhotosPicker(selection: $iconPickedItem, matching: .images) {
+                                    pillButton("Choose File")
+                                }
+                                Text(iconFileName.isEmpty ? " " : iconFileName)
+                                    .font(.subheadline).foregroundColor(.secondary)
+                                    .lineLimit(1).truncationMode(.middle)
                             }
 
-                            // tombol kamera (pojok kanan bawah)
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Button {
-                                        showChoosePhoto = true
-                                    } label: {
-                                        Image(systemName: "camera.fill")
-                                            .foregroundColor(.black.opacity(0.9))
-                                            .padding(6)
-                                            .background(.white, in: Circle())
-                                            .shadow(radius: 1)
-                                    }
-                                    .offset(x: 6, y: 6)
-                                }
-                            }
-                            .frame(width: 96, height: 96)
+                            Text("A clear, square image for search results")
+                                .font(.footnote).foregroundColor(.secondary)
                         }
+                        Spacer()
                     }
-                    .padding(.top, 6)
-
-                    // === FORM ===
-                    VStack(spacing: 14) {
-                        // Username (disabled)
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Username")
-                            TextField("", text: .constant(tenantusername))
-                                .disabled(true)
-                                .textFieldStyle(.roundedBorder)
-                                .opacity(0.7)
-                        }
-
-                        // Full Name + clear button
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Full Name")
-                            HStack {
-                                TextField("Your full name", text: $tenantfullName)
-                                    .textInputAutocapitalization(.words)
-                                    .autocorrectionDisabled()
-                                    .focused($focusedField, equals: .fullName)
-
-                                if !tenantfullName.isEmpty {
-                                    Button {
-                                        tenantfullName = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                            .padding(10)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(
-                                        Color.orange.opacity(0.5),
-                                        lineWidth: focusedField == .fullName ? 1.2 : 0.3
-                                    )
-                            )
-                        }
-
-                        // Phone
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Phone Number")
-                            HStack(spacing: 8) {
-                                HStack(spacing: 6) {
-                                    Text("🇮🇩")
-                                        .font(.body)
-                                    Text(tenantphoneCode)
-                                        .font(.body)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 44)
-                                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-
-                                TextField("82134584979", text: $tenantphone)
-                                    .keyboardType(.numberPad)
-                                    .focused($focusedField, equals: .phone)
-                                    .font(.body)
-                                    .padding(10)
-                                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-
-                        // Email
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Email")
-                            TextField("name@example.com", text: $tenantemail)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
-                                .autocorrectionDisabled()
-                                .focused($focusedField, equals: .email)
-                                .textFieldStyle(.roundedBorder)
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
                 }
+
+                VStack(spacing: 0) {
+                    GroupBoxRow {
+                        Toggle(isOn: $open24Hours) { Text("Open 24 Hours") }
+                            .onChange(of: open24Hours) { _,_ in markDirty() }
+                    }
+
+                    if !open24Hours {
+                        GroupBoxRow {
+                            HStack {
+                                Text("Opening Time")
+                                Spacer()
+                                Button(formatTime(openingTime)) { showOpeningPicker = true }
+                                    .font(.callout.weight(.semibold))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                        GroupBoxRow {
+                            HStack {
+                                Text("Closing Time")
+                                Spacer()
+                                Button(formatTime(closingTime)) { showClosingPicker = true }
+                                    .font(.callout.weight(.semibold))
+                                    .foregroundColor(.orange)
+                            }
+                        }
+                    }
+
+                    NavigationLink {
+                        // Pass binding agar perubahan balik ke parent
+                        WeeklyScheduleView(openDays: $openDays)
+                    } label: {
+                        HStack {
+                            Text("Weekly Schedule")
+                            Spacer()
+                            Image(systemName: "chevron.right").foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 16)
+                        .frame(height: 48)
+                    }
+                    .background(Color(.systemBackground))
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(Color(.systemBackground))
+                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                )
+            }
+            .padding(16)
+            .padding(.bottom, 16)
+        }
+        .background(Color(.systemBackground).ignoresSafeArea())
+        .navigationTitle("Edit Store Details")
+        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(false)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Save") {
+                    dismiss() // ⬅️ langsung balik
+                }
+                .foregroundColor(isDirty ? .orange : .secondary)
+                .disabled(!isDirty)
             }
         }
-        .background(Color.white.ignoresSafeArea())
-        .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(true)
-        .overlay(
-            ChoosePhotoOverlay(
-                isPresented: $showChoosePhoto,
-                onPickGallery: {
-                    showChoosePhoto = false
-                    showPhotosPicker = true
-                },
-                onTakePhoto: {
-                    showChoosePhoto = false
-                    showCamera = true
-                }
-            )
-        )
+        .toolbar(.hidden, for: .tabBar)
 
-        .photosPicker(isPresented: $showPhotosPicker, selection: $pickedItem)
-        .onChange(of: pickedItem) { oldValue, newValue in
+        // PhotosPicker handlers → tandai dirty
+        .onChange(of: bannerPickedItem) { _, newValue in
             guard let newValue else { return }
             Task {
                 if let data = try? await newValue.loadTransferable(type: Data.self),
                    let uiimg = UIImage(data: data) {
-                    profileImage = uiimg
+                    bannerImage = uiimg
+                    bannerFileName = await fileName(from: newValue) ?? "selected_banner.png"
+                    markDirty()
                 }
             }
         }
-        .sheet(isPresented: $showCamera) {
-            CameraPicker(image: $profileImage)
+        .onChange(of: iconPickedItem) { _, newValue in
+            guard let newValue else { return }
+            Task {
+                if let data = try? await newValue.loadTransferable(type: Data.self),
+                   let uiimg = UIImage(data: data) {
+                    iconImage = uiimg
+                    iconFileName = await fileName(from: newValue) ?? "selected_icon.png"
+                    markDirty()
+                }
+            }
+        }
+        .onChange(of: openingTime) { _,_ in markDirty() }
+        .onChange(of: closingTime) { _,_ in markDirty() }
+        .onChange(of: openDays) { _,_ in markDirty() } // perubahan dari WeeklySchedule
+        // Time pickers
+        .sheet(isPresented: $showOpeningPicker) {
+            TimePickerSheet(title: "Opening Time", date: $openingTime)
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showClosingPicker) {
+            TimePickerSheet(title: "Closing Time", date: $closingTime)
+                .presentationDetents([.height(320)])
+                .presentationDragIndicator(.visible)
         }
     }
 
-    private func labelRequired(_ text: String) -> some View {
-        HStack(spacing: 2) {
-            Text(text)
-            Text("*").foregroundColor(.orange)
-        }
-        .font(.subheadline)
-        .foregroundColor(.secondary)
+    // Helpers
+    private func pillButton(_ title: String) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .padding(.horizontal, 14).padding(.vertical, 8)
+            .background(Capsule().fill(Color.orange.opacity(0.15)))
+            .foregroundColor(.orange)
+    }
+
+    private func formatTime(_ date: Date) -> String {
+        let f = DateFormatter(); f.dateFormat = "h:mm a"; return f.string(from: date)
+    }
+
+    private func fileName(from item: PhotosPickerItem) async -> String? {
+        await item.itemIdentifier
     }
 }
 
-struct ChoosePhotoOverlay: View {
-    @Binding var isPresented: Bool
-    var onPickGallery: () -> Void
-    var onTakePhoto: () -> Void
+// Row container ala list card
+private struct GroupBoxRow<Content: View>: View {
+    @ViewBuilder var content: Content
+    var body: some View {
+        VStack(spacing: 0) {
+            content
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+            Divider().padding(.leading, 16)
+        }
+        .background(Color(.systemBackground))
+    }
+}
 
-    @State private var yOffset: CGFloat = 200 // animasi naik dari bawah
+// Bottom time picker sheet
+private struct TimePickerSheet: View {
+    let title: String
+    @Binding var date: Date
+    var body: some View {
+        VStack {
+            Capsule().fill(Color.secondary.opacity(0.35))
+                .frame(width: 36, height: 5)
+                .padding(.top, 8)
+            Text(title).font(.headline).padding(.top, 6)
+            DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
+                .datePickerStyle(.wheel).labelsHidden()
+                .frame(height: 200).padding(.top, 8)
+            Spacer(minLength: 0)
+        }
+        .padding(.bottom, 10)
+        .background(Color(.systemBackground))
+        .toolbar(.hidden, for: .tabBar)
+    }
+}
+
+enum Weekday: String, CaseIterable, Identifiable {
+    case monday, tuesday, wednesday, thursday, friday, saturday, sunday
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .monday: "Monday"
+        case .tuesday: "Tuesday"
+        case .wednesday: "Wednesday"
+        case .thursday: "Thursday"
+        case .friday: "Friday"
+        case .saturday: "Saturday"
+        case .sunday: "Sunday"
+        }
+    }
+}
+
+struct OrangeCheckSquareStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        Button {
+            configuration.isOn.toggle()
+        } label: {
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 6, style: .continuous)
+                        .strokeBorder(Color.orange.opacity(configuration.isOn ? 0 : 0.5), lineWidth: 1)
+                        .background(
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(configuration.isOn ? Color.orange : Color.clear)
+                        )
+                        .frame(width: 22, height: 22)
+                    if configuration.isOn {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                    }
+                }
+                configuration.label
+                    .font(.body)
+                    .foregroundColor(.primary)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+struct WeeklyOpeningDaysView: View {
+    @Binding var openDays: Set<Weekday>
 
     var body: some View {
-        ZStack {
-            if isPresented {
-                // Latar belakang blur gelap
-                Color.black.opacity(0.45)
-                    .ignoresSafeArea()
-                    .onTapGesture { close() }
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Choose Store Opening Days")
+                .font(.headline)
+                .padding(.bottom, 4)
 
-                VStack(spacing: 0) {
-                    Spacer() // tetap biar muncul di bawah
-
-                    VStack(spacing: 0) {
-                        Capsule()
-                            .fill(Color.gray.opacity(0.3))
-                            .frame(width: 40, height: 5)
-                            .padding(.top, 8)
-
-                        Text("Edit Profile")
-                            .font(.headline)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity)
-
-                        Divider()
-
-                        Button(action: { onPickGallery(); close() }) {
-                            row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
-                        }
-
-                        Divider()
-
-                        Button(action: { onTakePhoto(); close() }) {
-                            row(icon: "camera.fill", title: "Take Photo")
-                        }
+            ForEach(Weekday.allCases) { day in
+                Toggle(isOn: Binding(
+                    get: { openDays.contains(day) },
+                    set: { isOn in
+                        if isOn { openDays.insert(day) } else { openDays.remove(day) }
                     }
-                    .background(Color.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
-                    .padding(.bottom, safeAreaBottom()) // ✅ tambahkan ini agar nempel di bawah
-                    .offset(y: yOffset)
-                    .onAppear { open() }
-                    .onChange(of: isPresented) { _, newVal in
-                        newVal ? open() : close()
-                    }
+                )) {
+                    Text(day.label)
                 }
-                .ignoresSafeArea(edges: .bottom) // ✅ biar area bawah penuh
+                .toggleStyle(OrangeCheckSquareStyle())
             }
         }
-        .animation(.spring(response: 0.3, dampingFraction: 0.85), value: yOffset)
-    }
-
-    private func row(icon: String, title: String) -> some View {
-        HStack(spacing: 14) {
-            ZStack {
-                Circle().fill(Color.orange.opacity(0.15))
-                Image(systemName: icon)
-                    .foregroundColor(.orange)
-                    .font(.system(size: 18, weight: .semibold))
-            }
-            .frame(width: 32, height: 32)
-
-            Text(title).foregroundColor(.primary)
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 10)
-    }
-
-    private func safeAreaBottom() -> CGFloat {
-        UIApplication.shared.connectedScenes
-            .compactMap { ($0 as? UIWindowScene)?.windows.first?.safeAreaInsets.bottom }
-            .first ?? 0
-    }
-
-    private func open() { yOffset = 0 }
-    private func close() {
-        yOffset = 200
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { isPresented = false }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-struct CameraPicker: UIViewControllerRepresentable {
-    @Environment(\.presentationMode) private var presentationMode
-    @Binding var image: UIImage?
+struct WeeklyScheduleView: View {
+    @Environment(\.dismiss) private var dismiss
+    @Binding var openDays: Set<Weekday>
 
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let vc = UIImagePickerController()
-        vc.sourceType = .camera
-        vc.cameraCaptureMode = .photo
-        vc.delegate = context.coordinator
-        return vc
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
-
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let img = info[.originalImage] as? UIImage {
-                parent.image = img
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                WeeklyOpeningDaysView(openDays: $openDays)
             }
-            parent.presentationMode.wrappedValue.dismiss()
+            .padding(.horizontal, 20)
+            .padding(.top, 20)
         }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentationMode.wrappedValue.dismiss()
+        .navigationTitle("Weekly Schedule")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Save") {
+                    // perubahan sudah tersalur ke parent via binding
+                    dismiss() // ⬅️ langsung balik
+                }
+                .foregroundColor(.orange)
+                .font(.headline)
+            }
         }
     }
 }
 
+//#Preview {
+//    NavigationStack { EditStoreDetailsTenantView() }
+//}

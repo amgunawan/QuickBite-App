@@ -154,9 +154,10 @@ struct AllReviewsTenantView: View {
                                         .foregroundColor(selectedRatingFilter == nil ? .white : .primary)
                                         .clipShape(Capsule())
                                 }
+
                                 ForEach((1...5).reversed(), id: \.self) { star in
                                     let count = ratingDistribution[star] ?? 0
-                                    Button(action: { selectedRatingFilter = (count > 0 ? star : nil) }) {
+                                    Button(action: { selectedRatingFilter = star }) {
                                         HStack(spacing: 4) {
                                             Image(systemName: "star.fill")
                                             Text("\(star) (\(count))")
@@ -174,47 +175,75 @@ struct AllReviewsTenantView: View {
                     }
 
                     // Rating Summary (Orange Card)
-                    VStack(alignment: .leading, spacing: 10) {
-                        HStack(alignment: .center, spacing: 12) {
-                            Text(String(format: "%.1f", averageRating))
-                                .font(.system(size: 42, weight: .bold))
-                                .foregroundColor(.white)
-                            VStack(alignment: .leading, spacing: 6) {
-                                RatingStars(rating: averageRating, size: 18)
-                                Text("\(reviews.count) total reviews")
-                                    .font(.caption)
-                                    .foregroundColor(.white.opacity(0.9))
-                            }
-                        }
-                        .padding(.bottom, 6)
+                    
+                    let cardBg   = Color(red: 1.00, green: 0.96, blue: 0.89) // creamy soft orange
+                    let barFill  = Color(red: 1.00, green: 0.65, blue: 0.20) // warm orange (match stars)
+                    let starTint = barFill
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            ForEach((1...5).reversed(), id: \.self) { star in
-                                HStack {
-                                    Text("\(star)")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .frame(width: 14)
-                                    GeometryReader { geo in
-                                        let total = reviews.count == 0 ? 1 : reviews.count
-                                        let width = CGFloat(ratingDistribution[star] ?? 0) / CGFloat(total) * geo.size.width
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(Color.white)
-                                            .frame(width: width, height: 6)
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack(alignment: .center, spacing: 6) {
+                            // Left: score + stars + total
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(String(format: "%.1f", averageRating))
+                                    .font(.system(size: 48, weight: .bold))
+                                    .foregroundColor(.black)
+
+                                RatingStars(rating: averageRating, size: 20)
+                                    .foregroundColor(starTint)
+
+                                Text("\(reviews.count) total reviews")
+                                    .font(.subheadline)
+                                    .foregroundColor(.black.opacity(0.75))
+                            }
+
+                            Spacer(minLength: 16)
+
+                            // Right: distribution 5…1 with star icon on label
+                            VStack(alignment: .leading, spacing: 10) {
+                                ForEach((1...5).reversed(), id: \.self) { star in
+                                    HStack(spacing: 8) {
+                                        // "5 ★" label
+                                        HStack(spacing: 4) {
+                                            Text("\(star)")
+                                                .font(.subheadline)
+                                                .foregroundColor(.black)
+                                            Image(systemName: "star.fill")
+                                                .font(.caption)
+                                                .foregroundColor(starTint)
+                                        }
+                                        .frame(width: 28, alignment: .leading)
+
+                                        // progress bar (white track + orange fill)
+                                        GeometryReader { geo in
+                                            let total = max(reviews.count, 1)
+                                            let ratio = CGFloat(ratingDistribution[star] ?? 0) / CGFloat(total)
+                                            ZStack(alignment: .leading) {
+                                                Capsule()
+                                                    .fill(Color.white.opacity(1))
+                                                    .frame(height: 8)
+                                                Capsule()
+                                                    .fill(barFill)
+                                                    .frame(width: geo.size.width * ratio, height: 8)
+                                            }
+                                        }
+                                        .frame(height: 8)
+
+                                        // count at right
+                                        Text("\(ratingDistribution[star] ?? 0)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.black.opacity(0.8))
+                                            .frame(width: 28, alignment: .trailing)
                                     }
-                                    .frame(height: 6)
-                                    Text("\(ratingDistribution[star] ?? 0)")
-                                        .font(.caption)
-                                        .foregroundColor(.white)
-                                        .frame(width: 30, alignment: .trailing)
                                 }
                             }
+                            .frame(maxWidth: .infinity)
                         }
                     }
-                    .padding()
-                    .background(Color.orange)
-                    .cornerRadius(12)
+                    .padding(16)
+                    .background(cardBg)
+                    .cornerRadius(18)
                     .padding(.horizontal)
+
 
                     // Review List / Empty State
                     if filteredReviews.isEmpty {
@@ -275,7 +304,7 @@ struct AllReviewsTenantView: View {
             }
             .navigationTitle("All Reviews")
             .navigationBarTitleDisplayMode(.inline)
-            .background(Color.white) // 🔥 white full background
+            .background(Color.white)
         }
     }
 }

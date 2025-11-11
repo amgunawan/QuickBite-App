@@ -7,6 +7,15 @@
 
 import SwiftUI
 
+// MARK: - Design Tokens
+private enum UIConst {
+    static let corner: CGFloat = 14
+    static let pad: CGFloat = 16
+    static let brandOrange = Color(hex: "#FF9500")
+    static let softCardBG  = Color.white
+    static let hairline    = Color(.systemGray5)
+}
+
 // MARK: - Models
 struct SummaryMetrics: Identifiable {
     let id = UUID()
@@ -44,29 +53,28 @@ struct StockItem: Identifiable {
 
 // MARK: - Components
 struct Card<Content: View>: View {
-    let content: Content
-    init(@ViewBuilder content: () -> Content) { self.content = content() }
-
+    @ViewBuilder let content: () -> Content
     var body: some View {
-        content
-            .padding(16)
-            .background(Color.white)
+        content()
+            .padding(UIConst.pad)
+            .background(UIConst.softCardBG)
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Color(.systemGray5), lineWidth: 1)
+                RoundedRectangle(cornerRadius: UIConst.corner)
+                    .stroke(UIConst.hairline, lineWidth: 1)
             )
-            .clipShape(RoundedRectangle(cornerRadius: 14))
-            .shadow(color: .black.opacity(0.04), radius: 4, y: 2)
+            .clipShape(RoundedRectangle(cornerRadius: UIConst.corner))
+            .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
     }
 }
 
 struct MetricCard: View {
     let metric: SummaryMetrics
-    var borderColor: Color {
+
+    private var borderColor: Color {
         switch metric.title {
         case "Total Income": return .green
         case "Total Orders": return .orange
-        default: return .red
+        default:             return .red
         }
     }
 
@@ -87,7 +95,7 @@ struct MetricCard: View {
                     .foregroundColor(.green)
             }
         }
-        .padding()
+        .padding(.vertical, 12)
         .frame(maxWidth: .infinity)
         .overlay(
             RoundedRectangle(cornerRadius: 12)
@@ -101,10 +109,10 @@ struct RatingStars: View {
     let size: CGFloat
     var body: some View {
         HStack(spacing: 3) {
-            ForEach(0..<5) { i in
+            ForEach(0..<5, id: \.self) { i in
                 Image(systemName: i < Int(round(rating)) ? "star.fill" : "star")
                     .font(.system(size: size))
-                    .foregroundColor(Color(hex: "#FF9500"))
+                    .foregroundColor(UIConst.brandOrange)
             }
         }
     }
@@ -112,31 +120,29 @@ struct RatingStars: View {
 
 struct LineChart: View {
     let points: [DaySalesPoint]
-    var maxValue: Double { max(points.map { $0.value }.max() ?? 1, 1) }
+    private var maxValue: Double { max(points.map(\.value).max() ?? 1, 1) }
 
     var body: some View {
         GeometryReader { geo in
             let w = geo.size.width
             let h = geo.size.height
             let stepX = w / CGFloat(max(points.count - 1, 1))
-            let scaled = points.enumerated().map { (i, p) -> CGPoint in
+            let scaled: [CGPoint] = points.enumerated().map { i, p in
                 CGPoint(x: CGFloat(i) * stepX, y: h - CGFloat(p.value / maxValue) * h)
             }
 
             ZStack(alignment: .bottomLeading) {
-                // Garis tren
                 Path { path in
                     guard let first = scaled.first else { return }
                     path.move(to: first)
                     scaled.dropFirst().forEach { path.addLine(to: $0) }
                 }
-                .stroke(Color.orange, style: StrokeStyle(lineWidth: 2, lineJoin: .round))
+                .stroke(UIConst.brandOrange, style: .init(lineWidth: 2, lineJoin: .round))
 
-                // Titik data & label X
                 ForEach(Array(points.enumerated()), id: \.offset) { i, p in
                     let pt = scaled[i]
                     Circle()
-                        .fill(Color.orange)
+                        .fill(UIConst.brandOrange)
                         .frame(width: 6, height: 6)
                         .position(pt)
                     Text(p.day)
@@ -144,34 +150,29 @@ struct LineChart: View {
                         .foregroundColor(.secondary)
                         .position(x: pt.x, y: h + 8)
                 }
-
-                // Sumbu Y (Rp)
-                VStack(alignment: .leading, spacing: h / 4) {
-                    ForEach((0...4).reversed(), id: \.self) { i in
-                        Text("Rp\(Int(maxValue) * i / 4)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                        Spacer()
-                    }
-                }
             }
         }
-        .frame(height: 160)
+        .frame(height: 150)
     }
 }
 
 struct BarChart: View {
     let items: [HourBucket]
-    var maxVal: Int { max(items.map { $0.count }.max() ?? 1, 1) }
+    private var maxVal: Int { max(items.map(\.count).max() ?? 1, 1) }
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
             ForEach(items) { b in
                 VStack(spacing: 6) {
                     RoundedRectangle(cornerRadius: 6)
-                        .fill(LinearGradient(colors: [Color(hex: "#FF9500"), Color.orange.opacity(0.8)],
-                                             startPoint: .top, endPoint: .bottom))
-                        .frame(width: 24, height: CGFloat(b.count) / CGFloat(maxVal) * 120)
+                        .fill(
+                            LinearGradient(
+                                colors: [UIConst.brandOrange, .orange.opacity(0.8)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        )
+                        .frame(width: 22, height: CGFloat(b.count) / CGFloat(maxVal) * 120)
                     Text("\(b.hour)")
                         .font(.caption2)
                         .foregroundColor(.secondary)
@@ -182,18 +183,58 @@ struct BarChart: View {
     }
 }
 
-//extension Color {
-//    init(hex: String) {
-//        let scanner = Scanner(string: hex)
-//        _ = scanner.scanString("#")
-//        var rgb: UInt64 = 0
-//        scanner.scanHexInt64(&rgb)
-//        let r = Double((rgb >> 16) & 0xFF) / 255
-//        let g = Double((rgb >> 8) & 0xFF) / 255
-//        let b = Double(rgb & 0xFF) / 255
-//        self.init(red: r, green: g, blue: b)
-//    }
-//}
+struct HomeSettingsRowLabel: View {
+    let systemIcon: String
+    let tint: Color
+    let title: String
+    var trailing: String? = nil
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                    .fill(Color(.secondarySystemBackground))
+                Image(systemName: systemIcon)
+                    .foregroundColor(tint)
+                    .font(.subheadline)
+            }
+            .frame(width: 28, height: 28)
+
+            Text(title)
+                .foregroundColor(.primary)
+            Spacer()
+            if let trailing {
+                Text(trailing)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+
+// MARK: - Header Background (inline, pengganti ProfileHeaderBackground)
+private struct HomeHeaderBackgroundView: View {
+    var height: CGFloat = 120
+    var body: some View {
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(red: 1.00, green: 0.80, blue: 0.45),
+                    Color(red: 1.00, green: 0.60, blue: 0.05)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            RoundedRectangle(cornerRadius: 0)
+                .fill(Color.white.opacity(0.18))
+                .frame(width: 180, height: height * 1.1)
+                .rotationEffect(.degrees(10))
+                .offset(x: 60, y: 10)
+        }
+        .frame(height: height)
+        .ignoresSafeArea(edges: .top)
+    }
+}
 
 // MARK: - TenantHomeView
 struct TenantHomeView: View {
@@ -233,7 +274,7 @@ struct TenantHomeView: View {
     @State private var lowStock: [StockItem] = [
         .init(index: 1, name: "Chicken Katsu Shiokara Ramen", left: 4),
         .init(index: 2, name: "Chicken Katsu Curry Rice", left: 3),
-        .init(index: 3, name: "Katsutama Donburi", left: 0)
+        .init(index: 3, name: "Katsutama Donbri", left: 0)
     ]
 
     // Busy Hours
@@ -241,25 +282,26 @@ struct TenantHomeView: View {
         .init(hour: 10, count: 8),
         .init(hour: 11, count: 12),
         .init(hour: 12, count: 15),
-        .init(hour: 1, count: 9),
-        .init(hour: 2, count: 7),
-        .init(hour: 3, count: 8),
-        .init(hour: 4, count: 10),
-        .init(hour: 5, count: 9)
+        .init(hour: 1,  count: 9),
+        .init(hour: 2,  count: 7),
+        .init(hour: 3,  count: 8),
+        .init(hour: 4,  count: 10),
+        .init(hour: 5,  count: 9)
     ]
 
     // Ratings
     @State private var ratingScore: Double = 4.8
     @State private var totalReviews: Int = 27
 
-    var formattedBalance: String {
+    // Formatter
+    private var formattedBalance: String {
         let nf = NumberFormatter()
         nf.numberStyle = .decimal
         nf.groupingSeparator = "."
-        return "Rp " + (nf.string(from: NSNumber(value: walletBalance)) ?? "0")
+        return "Rp " + (nf.string(from: walletBalance as NSNumber) ?? "0")
     }
 
-    var formattedScheduled: String {
+    private var formattedScheduled: String {
         let df = DateFormatter()
         df.dateFormat = "MMMM d, yyyy"
         return df.string(from: scheduledDate)
@@ -267,197 +309,203 @@ struct TenantHomeView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 16) {
-                    // Header
-                    Card {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Welcome, \(tenantName)!")
-                                    .font(.title3)
-                                    .fontWeight(.bold)
-                                Text("It's a great day to serve delicious bites!")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                            Spacer()
-                            Image("Raburi")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 48, height: 48)
-                        }
-                    }
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    HeaderBackgroundView(height: 100)
+                    Spacer()
+                }
 
-                    // Performance Overview
-                    Card {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Today's Performance Overview")
-                                .font(.headline)
-                            HStack(spacing: 12) {
-                                MetricCard(metric: SummaryMetrics(title: "Total Income", value: "Rp \(Int(totalIncome))", subtitle: "↑ 1.3% Up from yesterday", icon: "creditcard"))
-                                MetricCard(metric: SummaryMetrics(title: "Total Orders", value: "\(totalOrders) orders", subtitle: "↑ 4.3% Up from yesterday", icon: "cart"))
-                                MetricCard(metric: SummaryMetrics(title: "Pending Pickups", value: "\(pendingPickups) orders", subtitle: "", icon: "clock"))
-                            }
-                        }
-                    }
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 16) {
 
-                    // Weekly Sales
-                    Card {
-                        VStack(alignment: .leading, spacing: 12) {
+                        // Header Card
+                        Card {
                             HStack {
-                                Text("Weekly Performance Sales Trends")
-                                    .font(.headline)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("Welcome, \(tenantName)!")
+                                        .font(.title3).fontWeight(.bold)
+                                    Text("It's a great day to serve delicious bites!")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
                                 Spacer()
-                                Text("↑ Up 12% compared to last week")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
+                                Image("Raburi")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 48, height: 48)
+                                    .accessibilityHidden(true)
                             }
-                            LineChart(points: weeklySales)
                         }
-                    }
 
-                    // Wallet (Orange Card Directly)
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 14)
-                            .fill(Color(hex: "#FF9500"))
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
+                        // Performance Overview
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Today's Performance Overview")
+                                    .font(.headline)
+                                HStack(spacing: 12) {
+                                    MetricCard(metric: .init(title: "Total Income",
+                                                             value: "Rp \(Int(totalIncome))",
+                                                             subtitle: "↑ 1.3% Up from yesterday",
+                                                             icon: "creditcard"))
+                                    MetricCard(metric: .init(title: "Total Orders",
+                                                             value: "\(totalOrders) orders",
+                                                             subtitle: "↑ 4.3% Up from yesterday",
+                                                             icon: "cart"))
+                                    MetricCard(metric: .init(title: "Pending Pickups",
+                                                             value: "\(pendingPickups) orders",
+                                                             subtitle: "",
+                                                             icon: "clock"))
+                                }
+                            }
+                        }
+
+                        // Weekly Sales
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Weekly Performance Sales Trends")
+                                        .font(.headline)
+                                    Spacer()
+                                    Text("↑ Up 12% compared to last week")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                }
+                                LineChart(points: weeklySales)
+                            }
+                        }
+
+                        // Wallet
+                        Card {
+                            VStack(alignment: .leading, spacing: 8) {
                                 Text("Total Wallet Balance")
                                     .font(.headline)
                                     .foregroundColor(.white)
-                                Spacer()
-                                Image(systemName: "creditcard")
-                                    .font(.system(size: 20, weight: .semibold))
-                                    .foregroundColor(.white.opacity(0.9))
-                                    .padding(6)
-                                    .background(Color.white.opacity(0.25))
-                                    .clipShape(Circle())
-                            }
-                            Text(formattedBalance)
-                                .font(.title2)
-                                .fontWeight(.bold)
+                                Text(formattedBalance)
+                                    .font(.title2).fontWeight(.bold)
+                                    .foregroundColor(.white)
+                                HStack(spacing: 6) {
+                                    Image(systemName: "calendar")
+                                    Text("Scheduled for \(formattedScheduled)")
+                                }
+                                .font(.caption)
                                 .foregroundColor(.white)
-                            Divider().background(Color.white.opacity(0.7))
-                            HStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                Text("Scheduled for \(formattedScheduled)")
+                                Text("Transferred automatically to your registered account.")
+                                    .font(.caption2)
+                                    .foregroundColor(.white.opacity(0.9))
                             }
-                            .font(.caption)
-                            .foregroundColor(.white)
-                            Text("Transferred automatically to your registered account.")
-                                .font(.caption2)
-                                .foregroundColor(.white.opacity(0.9))
+                            .padding()
+                            .background(UIConst.brandOrange)
+                            .cornerRadius(UIConst.corner)
                         }
-                        .padding(16)
-                    }
 
-                    // Rating
-                    Card {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Customer Rating")
-                                    .font(.headline)
-                                Spacer()
-                                Button("See All") { showAllReviews = true }
-                                    .font(.subheadline)
-                            }
-                            HStack(spacing: 10) {
-                                Text(String(format: "%.1f", ratingScore))
-                                    .font(.system(size: 40, weight: .bold))
-                                    .foregroundColor(Color(hex: "#FF9500"))
-                                Text("/ 5")
-                                    .font(.title3)
+                        // Rating
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Customer Rating")
+                                        .font(.headline)
+                                    Spacer()
+                                    Button("See All") { showAllReviews = true }
+                                        .font(.subheadline)
+                                }
+                                HStack(spacing: 10) {
+                                    Text(String(format: "%.1f", ratingScore))
+                                        .font(.system(size: 40, weight: .bold))
+                                        .foregroundColor(UIConst.brandOrange)
+                                    Text("/ 5")
+                                        .font(.title3)
+                                        .foregroundColor(.secondary)
+                                }
+                                RatingStars(rating: ratingScore, size: 18)
+                                Text("(Based on \(totalReviews) reviews)")
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            RatingStars(rating: ratingScore, size: 18)
-                            Text("(Based on \(totalReviews) reviews)")
+                        }
+
+                        // Top 3 Menu
+                        Card {
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Top 3 Menu Items")
+                                    .font(.headline)
+                                HStack {
+                                    Text("No").frame(width: 30)
+                                    Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
+                                    Text("Sold").frame(width: 50, alignment: .trailing)
+                                }
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                        }
-                    }
-
-                    // Top 3 Menu
-                    Card {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Top 3 Menu Items").font(.headline)
-                            HStack {
-                                Text("No").frame(width: 30)
-                                Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
-                                Text("Sold").frame(width: 50, alignment: .trailing)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            Divider()
-                            ForEach(topMenu) { item in
-                                HStack {
-                                    Text("\(item.index).").frame(width: 30)
-                                    Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
-                                    Text("\(item.sold)").frame(width: 50, alignment: .trailing)
-                                }
                                 Divider()
-                            }
-                        }
-                    }
-
-                    // Busiest Hours
-                    Card {
-                        VStack(alignment: .leading, spacing: 12) {
-                            Text("Order Busiest Hours Heatmap").font(.headline)
-                            BarChart(items: busiestHours)
-                            HStack {
-                                Text("10 AM").font(.caption).foregroundColor(.secondary)
-                                Spacer()
-                                Text("5 PM").font(.caption).foregroundColor(.secondary)
-                            }
-                        }
-                    }
-
-                    // Low Stock
-                    Card {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Low Stock Items").font(.headline)
-                                Spacer()
-                                Button("See All") {}
-                                    .font(.subheadline)
-                            }
-                            HStack {
-                                Text("No").frame(width: 30)
-                                Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
-                                Text("Stock Left").frame(width: 80, alignment: .trailing)
-                            }
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            Divider()
-                            ForEach(lowStock) { s in
-                                HStack {
-                                    Text("\(s.index).").frame(width: 30)
-                                    Text(s.name).frame(maxWidth: .infinity, alignment: .leading)
-                                    Text("\(s.left)").frame(width: 80, alignment: .trailing)
+                                ForEach(topMenu) { item in
+                                    HStack {
+                                        Text("\(item.index).").frame(width: 30)
+                                        Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
+                                        Text("\(item.sold)").frame(width: 50, alignment: .trailing)
+                                    }
+                                    Divider()
                                 }
+                            }
+                        }
+
+                        // Busiest Hours
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Order Busiest Hours Heatmap")
+                                    .font(.headline)
+                                BarChart(items: busiestHours)
+                                HStack {
+                                    Text("10 AM").font(.caption).foregroundColor(.secondary)
+                                    Spacer()
+                                    Text("5 PM").font(.caption).foregroundColor(.secondary)
+                                }
+                            }
+                        }
+
+                        // Low Stock
+                        Card {
+                            VStack(alignment: .leading, spacing: 12) {
+                                HStack {
+                                    Text("Low Stock Items").font(.headline)
+                                    Spacer()
+                                    Button("See All") {}
+                                        .font(.subheadline)
+                                }
+                                HStack {
+                                    Text("No").frame(width: 30)
+                                    Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
+                                    Text("Stock Left").frame(width: 80, alignment: .trailing)
+                                }
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                                 Divider()
+                                ForEach(lowStock) { s in
+                                    HStack {
+                                        Text("\(s.index).").frame(width: 30)
+                                        Text(s.name).frame(maxWidth: .infinity, alignment: .leading)
+                                        Text("\(s.left)").frame(width: 80, alignment: .trailing)
+                                    }
+                                    Divider()
+                                }
                             }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 120) // ruang untuk header
+                    .padding(.bottom, 8)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 8)
+                .scrollContentBackground(.hidden)
             }
-            .navigationDestination(isPresented: $showAllReviews) {
-                AllReviewsTenantView()
-            }
-            .navigationTitle("Home")
+            .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
-            .background(Color.white)
         }
     }
 }
 
-// Helper
+// MARK: - Helpers
 extension Calendar {
     func startOfMonth(for date: Date) -> Date {
-        let components = dateComponents([.year, .month], from: date)
-        return self.date(from: components) ?? date
+        let comps = dateComponents([.year, .month], from: date)
+        return self.date(from: comps) ?? date
     }
 }
 

@@ -52,6 +52,7 @@ struct MainFormView: View {
                 
                 // MARK: - Sign In Section
                 if selectedTab == 0 {
+                    // ... Sign In View remains the same ...
                     VStack(spacing: 16) {
                         // Email Field
                         VStack(alignment: .leading, spacing: 8) {
@@ -143,7 +144,7 @@ struct MainFormView: View {
                                 .font(.subheadline)
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
-                                           
+                        
                         // Google Sign-In
                         Button(action: {
                             vm.signInWithGoogle()
@@ -180,7 +181,7 @@ struct MainFormView: View {
                         }
                     }
                 } else {
-                    // MARK: - Sign Up Section
+
                     VStack(spacing: 16) {
                         NavigationLink(destination: SignUpFormView(role: "user")) {
                             Text("Sign up as user")
@@ -200,7 +201,7 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        NavigationLink(destination: SignUpFormView(role: "merchant")) {
+                        NavigationLink(destination: SignUpFormTenantView()) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -221,6 +222,7 @@ struct MainFormView: View {
         }
     }
     
+    // ... login and signInUser functions remain the same ...
     func login() {
         Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
             if let error = error {

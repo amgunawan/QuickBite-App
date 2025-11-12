@@ -15,7 +15,10 @@ struct FeatureRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
             Image(systemName: icon)
+                .resizable()
+                .scaledToFit()
                 .foregroundColor(.orange)
+                .frame(width: 40, height: 40)
                 .font(.title3)
             VStack(alignment: .leading, spacing: 4) {
                 Text(title)

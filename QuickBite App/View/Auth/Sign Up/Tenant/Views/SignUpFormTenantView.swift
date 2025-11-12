@@ -30,11 +30,11 @@ struct SignUpFormTenantView: View {
                 
                 FeatureRow(icon: "creditcard.fill",
                            title: "Merchant Payout Protection",
-                           subtitle: "QuickBite will charge Rp. 2,500/order billed directly to the customer.")
+                           subtitle: "QuickBite will charge Rp. 2,500-/order which will be charged directly to the customer, ensuring your full profit margin.")
                 
                 FeatureRow(icon: "clock.fill",
                            title: "Optimized Pre-Orders",
-                           subtitle: "Receive orders in advance to prepare for rush hours.")
+                           subtitle: "Receive orders hours in advance, streamlining your preparation during peak class breaks.")
             }
             .padding(.horizontal)
             

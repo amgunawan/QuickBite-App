@@ -127,10 +127,14 @@ struct TenantHomeView: View {
         NavigationStack {
                 ScrollView(showsIndicators: false) {
                     ZStack(alignment: .top) {
-                        HeaderBackgroundView(height: 160)
+                        HeaderBackgroundView(height: 190)
                             .frame(height: 80)
                             .ignoresSafeArea(edges: .top)
                         VStack(spacing: 14) {
+                            Text("Home")
+                                .font(.title)
+                                .fontWeight(.bold)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                             // Header Card
                             Card {
                                 HStack {
@@ -308,7 +312,7 @@ struct TenantHomeView: View {
                             }
                         }
                         .padding(.horizontal, 16)
-                        .padding(.top, 40)
+                        .padding(.top, 20)
                         .padding(.bottom, 8)
                     }
                 }

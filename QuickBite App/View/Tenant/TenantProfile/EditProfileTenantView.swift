@@ -1,14 +1,9 @@
-//
-//  EditStoreDetailsView.swift
-//  QuickBite App
-//
-
 import SwiftUI
 import PhotosUI
 import UIKit
 
+// MARK: - Edit Profile (Tenant)
 struct EditProfileTenantView: View {
-    // Props dari parent
     let tenantusername: String
     @Binding var tenantfullName: String
     @Binding var tenantphoneCode: String
@@ -16,202 +11,213 @@ struct EditProfileTenantView: View {
     @Binding var tenantemail: String
     var onSave: () -> Void
 
-    // State untuk picker
-    @State private var showChoosePhoto = false
-    @State private var showCamera = false
-    @State private var showPhotosPicker = false
-    @State private var pickedItem: PhotosPickerItem?
-    @State private var profileImage: UIImage? = nil
-
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    @State private var profileImage: UIImage? = nil
+    @State private var showPhotoOptions = false
+    @State private var showCamera = false
+    @State private var showGallery = false
+    @State private var pickedItem: PhotosPickerItem?
+
     enum Field { case fullName, phone, email }
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Top bar
-            HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "chevron.left")
-                        .font(.title3.weight(.semibold))
-                        .foregroundColor(.primary)
-                }
-                Spacer()
-                Text("Edit Profile")
-                    .font(.headline)
-                Spacer()
-                Button("Save") { onSave() }
-                    .font(.headline)
-                    .foregroundColor(.orange)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-
-            ScrollView {
-                VStack(spacing: 20) {
-
-                    // === Avatar + Camera button ===
-                    VStack(spacing: 8) {
-                        ZStack {
-                            if let img = profileImage {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 96, height: 96)
-                                    .clipShape(Circle())
-                            } else {
-                                Circle()
-                                    .fill(
-                                        LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                                                       startPoint: .topLeading,
-                                                       endPoint: .bottomTrailing)
-                                    )
-                                    .frame(width: 96, height: 96)
-                                    .overlay(
-                                        Image(systemName: "person.fill")
-                                            .font(.system(size: 44))
-                                            .foregroundColor(.white)
-                                    )
-                            }
-
-                            // tombol kamera (pojok kanan bawah)
-                            VStack {
-                                Spacer()
-                                HStack {
-                                    Spacer()
-                                    Button {
-                                        showChoosePhoto = true     // ⬅️ buka sheet 1/4 layar
-                                    } label: {
-                                        Image(systemName: "camera.fill")
-                                            .foregroundColor(.black.opacity(0.9))
-                                            .padding(6)
-                                            .background(.white, in: Circle())
-                                            .shadow(radius: 1)
-                                    }
-                                    .offset(x: 6, y: 6)
-                                }
-                            }
-                            .frame(width: 96, height: 96)
-                        }
-                    }
-                    .padding(.top, 6)
-
-                    // === FORM ===
-                    VStack(spacing: 14) {
-                        // Username (disabled)
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Username")
-                            TextField("", text: .constant(tenantusername))
-                                .disabled(true)
-                                .textFieldStyle(.roundedBorder)
-                                .opacity(0.7)
+        ScrollView {
+            VStack(spacing: 20) {
+                // MARK: Profile Picture Section
+                VStack(spacing: 8) {
+                    ZStack {
+                        if let img = profileImage {
+                            Image(uiImage: img)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 96, height: 96)
+                                .clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(
+                                    LinearGradient(colors: [.orange, .orange.opacity(0.7)],
+                                                   startPoint: .topLeading,
+                                                   endPoint: .bottomTrailing)
+                                )
+                                .frame(width: 96, height: 96)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 44))
+                                .foregroundColor(.white)
                         }
 
-                        // Full Name + clear button
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Full Name")
+                        VStack {
+                            Spacer()
                             HStack {
-                                TextField("Your full name", text: $tenantfullName)
-                                    .textInputAutocapitalization(.words)
-                                    .autocorrectionDisabled()
-                                    .focused($focusedField, equals: .fullName)
-
-                                if !tenantfullName.isEmpty {
-                                    Button {
-                                        tenantfullName = ""
-                                    } label: {
-                                        Image(systemName: "xmark.circle.fill")
-                                            .foregroundColor(.secondary)
-                                    }
+                                Spacer()
+                                Button {
+                                    showPhotoOptions = true
+                                } label: {
+                                    Image(systemName: "camera.fill")
+                                        .foregroundColor(.black.opacity(0.9))
+                                        .padding(6)
+                                        .background(.white, in: Circle())
+                                        .offset(x: 6, y: 6)
                                 }
                             }
-                            .padding(10)
-                            .background(.white, in: RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(
-                                        Color.orange.opacity(0.5),
-                                        lineWidth: focusedField == .fullName ? 1.2 : 0.3
-                                    )
-                            )
                         }
+                        .frame(width: 96, height: 96)
+                    }
+                }
+                .padding(.top, 6)
 
-                        // Phone
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Phone Number")
-                            HStack(spacing: 8) {
-                                HStack(spacing: 6) {
-                                    Text("🇮🇩").font(.body)
-                                    Text(tenantphoneCode).font(.body)
-                                }
-                                .padding(.horizontal, 10)
-                                .frame(height: 44)
-                                .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
+                // MARK: Form Section
+                VStack(spacing: 14) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Username")
+                        TextField("", text: .constant(tenantusername))
+                            .disabled(true)
+                            .textFieldStyle(.roundedBorder)
+                            .opacity(0.7)
+                    }
 
-                                TextField("82134584979", text: $tenantphone)
-                                    .keyboardType(.numberPad)
-                                    .focused($focusedField, equals: .phone)
-                                    .font(.body)
-                                    .padding(10)
-                                    .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-
-                        // Email
-                        VStack(alignment: .leading, spacing: 6) {
-                            labelRequired("Email")
-                            TextField("name@example.com", text: $tenantemail)
-                                .textInputAutocapitalization(.never)
-                                .keyboardType(.emailAddress)
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Full Name")
+                        HStack {
+                            TextField("Your full name", text: $tenantfullName)
+                                .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
-                                .focused($focusedField, equals: .email)
-                                .textFieldStyle(.roundedBorder)
+                                .focused($focusedField, equals: .fullName)
+
+                            if !tenantfullName.isEmpty {
+                                Button {
+                                    tenantfullName = ""
+                                } label: {
+                                    Image(systemName: "xmark.circle.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                        }
+                        .padding(10)
+                        .background(.white, in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(
+                                    Color.orange.opacity(0.5),
+                                    lineWidth: focusedField == .fullName ? 1.2 : 0.3
+                                )
+                        )
+                    }
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Phone Number")
+                        HStack(spacing: 8) {
+                            HStack(spacing: 6) {
+                                Text("🇮🇩")
+                                Text(tenantphoneCode)
+                            }
+                            .padding(.horizontal, 10)
+                            .frame(height: 44)
+                            .background(Color(.secondarySystemBackground),
+                                        in: RoundedRectangle(cornerRadius: 8))
+
+                            TextField("82134584979", text: $tenantphone)
+                                .keyboardType(.numberPad)
+                                .focused($focusedField, equals: .phone)
+                                .padding(10)
+                                .background(Color(.secondarySystemBackground),
+                                            in: RoundedRectangle(cornerRadius: 8))
                         }
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.bottom, 40)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        labelRequired("Email")
+                        TextField("name@example.com", text: $tenantemail)
+                            .textInputAutocapitalization(.never)
+                            .keyboardType(.emailAddress)
+                            .autocorrectionDisabled()
+                            .focused($focusedField, equals: .email)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    // MARK: Save Button
+                    Button {
+                        if let data = profileImage?.jpegData(compressionQuality: 0.9) {
+                            UserDefaults.standard.set(data, forKey: "tenant.avatar")
+                        }
+                        onSave()
+                        dismiss()
+                    } label: {
+                        Text("Save")
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.orange)
+                            .cornerRadius(24)
+                    }
+                    .padding(.vertical, 8)
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 40)
             }
         }
-        // Hilangkan tab bar di halaman Edit Profile
-        .toolbar(.hidden, for: .tabBar)
-        .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationBarBackButtonHidden(true)
-        .navigationBarHidden(true)
+        .background(Color(.systemBackground))
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            if let data = UserDefaults.standard.data(forKey: "tenant.avatar") {
+                profileImage = UIImage(data: data)
+            }
+        }
 
-        // ======= PHOTO PICKERS =======
-        .photosPicker(isPresented: $showPhotosPicker, selection: $pickedItem)
+        .sheet(isPresented: $showPhotoOptions) {
+            VStack(spacing: 0) {
+                Text("Edit Profile Photo")
+                    .font(.headline)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showGallery = true
+                } label: {
+                    row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
+                }
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showCamera = true
+                } label: {
+                    row(icon: "camera.fill", title: "Take Photo")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 18)
+            .presentationDetents([.fraction(0.25)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(22)
+        }
+
+        // Gallery Picker
+        .photosPicker(isPresented: $showGallery, selection: $pickedItem)
         .onChange(of: pickedItem) { _, newValue in
             guard let newValue else { return }
             Task {
                 if let data = try? await newValue.loadTransferable(type: Data.self),
-                   let uiimg = UIImage(data: data) {
-                    profileImage = uiimg
+                   let uiImage = UIImage(data: data) {
+                    profileImage = uiImage
                 }
             }
         }
-        .sheet(isPresented: $showChoosePhoto) {
-            ChoosePhotoSheet(
-                onPickGallery: {
-                    showChoosePhoto = false
-                    showPhotosPicker = true
-                },
-                onTakePhoto: {
-                    showChoosePhoto = false
-                    showCamera = true
-                }
-            )
-            .presentationDetents([.fraction(0.25)])     // ¼ layar
-            .presentationDragIndicator(.visible)
-            .presentationCornerRadius(22)
-            .toolbar(.hidden, for: .tabBar)             // pastikan tab bar hilang saat sheet terbuka
-        }
+
+        // Camera Sheet
         .sheet(isPresented: $showCamera) {
-            CameraPicker(image: $profileImage)
-                .toolbar(.hidden, for: .tabBar)
+            TenantCameraPicker(image: $profileImage)
         }
     }
 
+    // MARK: - Helper Components
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -219,37 +225,6 @@ struct EditProfileTenantView: View {
         }
         .font(.subheadline)
         .foregroundColor(.secondary)
-    }
-}
-
-// === Bottom sheet 1/4 layar (native) ===
-struct ChoosePhotoSheet: View {
-    var onPickGallery: () -> Void
-    var onTakePhoto: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            Text("Edit Profile")
-                .font(.headline)
-                .padding(.top, 18)
-                .padding(.bottom, 8)
-
-            Divider()
-
-            Button(action: onPickGallery) {
-                row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
-            }
-
-            Divider()
-
-            Button(action: onTakePhoto) {
-                row(icon: "camera.fill", title: "Take Photo")
-            }
-
-            Spacer(minLength: 0)
-        }
-        .padding(.horizontal, 18)
-        .background(.clear) // tidak bikin "putih" di area tab bar
     }
 
     private func row(icon: String, title: String) -> some View {
@@ -262,16 +237,16 @@ struct ChoosePhotoSheet: View {
             }
             .frame(width: 32, height: 32)
 
-            Text(title).foregroundColor(.primary)
+            Text(title)
+                .foregroundColor(.primary)
             Spacer()
         }
-        .contentShape(Rectangle())
         .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 
-// === Camera picker ===
-struct CameraPicker: UIViewControllerRepresentable {
+struct TenantCameraPicker: UIViewControllerRepresentable {
     @Environment(\.presentationMode) private var presentationMode
     @Binding var image: UIImage?
 
@@ -288,8 +263,8 @@ struct CameraPicker: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
 
     final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: CameraPicker
-        init(_ parent: CameraPicker) { self.parent = parent }
+        let parent: TenantCameraPicker
+        init(_ parent: TenantCameraPicker) { self.parent = parent }
 
         func imagePickerController(_ picker: UIImagePickerController,
                                    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
@@ -303,4 +278,8 @@ struct CameraPicker: UIViewControllerRepresentable {
             parent.presentationMode.wrappedValue.dismiss()
         }
     }
+}
+
+#Preview {
+    TenantContentView()
 }

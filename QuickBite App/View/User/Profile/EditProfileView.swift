@@ -1,11 +1,6 @@
-//
-//  EditProfileView.swift
-//  QuickBite App
-//
-//  Created by jessica tedja on 02/11/25.
-//
-
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct EditProfileView: View {
     let username: String
@@ -14,39 +9,55 @@ struct EditProfileView: View {
     @Binding var phone: String
     @Binding var email: String
     let points: Int
-
     var onSave: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+    @State private var showPhotoOptions = false
+    @State private var showCamera = false
+    @State private var showGallery = false
+    @State private var pickedItem: PhotosPickerItem?
+    @State private var profileImage: UIImage? = nil
 
     enum Field { case fullName, phone, email }
 
     var body: some View {
-        NavigationStack {
+        ScrollView {
             VStack(spacing: 20) {
                 VStack(spacing: 8) {
                     ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                                               startPoint: .topLeading,
-                                               endPoint: .bottomTrailing)
-                            )
-                            .frame(width: 96, height: 96)
-                        Image(systemName: "person.fill")
-                            .font(.system(size: 44))
-                            .foregroundColor(.white)
+                        if let image = profileImage {
+                            Image(uiImage: image)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 96, height: 96)
+                                .clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(
+                                    LinearGradient(colors: [.orange, .orange.opacity(0.7)],
+                                                   startPoint: .topLeading,
+                                                   endPoint: .bottomTrailing)
+                                )
+                                .frame(width: 96, height: 96)
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 44))
+                                .foregroundColor(.white)
+                        }
 
                         VStack {
                             Spacer()
                             HStack {
                                 Spacer()
-                                Image(systemName: "camera.fill")
-                                    .foregroundColor(.black.opacity(0.9))
-                                    .padding(6)
-                                    .background(.white, in: Circle())
-                                    .offset(x: 6, y: 6)
+                                Button {
+                                    showPhotoOptions = true
+                                } label: {
+                                    Image(systemName: "camera.fill")
+                                        .foregroundColor(.black.opacity(0.9))
+                                        .padding(6)
+                                        .background(.white, in: Circle())
+                                        .offset(x: 6, y: 6)
+                                }
                             }
                         }
                         .frame(width: 96, height: 96)
@@ -62,9 +73,8 @@ struct EditProfileView: View {
                 }
                 .padding(.top, 6)
 
-                // FORM
+                // MARK: - Form Section
                 VStack(spacing: 14) {
-                    // Username (disabled)
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Username")
                         TextField("", text: .constant(username))
@@ -73,7 +83,6 @@ struct EditProfileView: View {
                             .opacity(0.7)
                     }
 
-                    // Full Name + clear button
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
                         HStack {
@@ -107,9 +116,7 @@ struct EditProfileView: View {
                         HStack(spacing: 8) {
                             HStack(spacing: 6) {
                                 Text("🇮🇩")
-                                    .font(.body)
                                 Text(phoneCode)
-                                    .font(.body)
                             }
                             .padding(.horizontal, 10)
                             .frame(height: 44)
@@ -118,12 +125,11 @@ struct EditProfileView: View {
                             TextField("81230300020", text: $phone)
                                 .keyboardType(.numberPad)
                                 .focused($focusedField, equals: .phone)
-                                .font(.body) // samakan ukuran font
                                 .padding(10)
                                 .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
                         }
                     }
-                    
+
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
                         TextField("name@example.com", text: $email)
@@ -133,10 +139,11 @@ struct EditProfileView: View {
                             .focused($focusedField, equals: .email)
                             .textFieldStyle(.roundedBorder)
                     }
-                    
-                    Button(action: {
-                        
-                    }) {
+
+                    Button {
+                        onSave()
+                        dismiss()
+                    } label: {
                         Text("Save")
                             .fontWeight(.medium)
                             .foregroundColor(.white)
@@ -150,10 +157,80 @@ struct EditProfileView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
             }
-            
+        }
+        .background(Color(.systemBackground))
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
+
+        // MARK: - Overlay Sheet
+        .sheet(isPresented: $showPhotoOptions) {
+            VStack(spacing: 0) {
+                Text("Edit Profile Photo")
+                    .font(.headline)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showGallery = true
+                } label: {
+                    row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
+                }
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showCamera = true
+                } label: {
+                    row(icon: "camera.fill", title: "Take Photo")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding(.horizontal, 18)
+            .presentationDetents([.fraction(0.25)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(22)
+        }
+
+        // Gallery Picker
+        .photosPicker(isPresented: $showGallery, selection: $pickedItem)
+        .onChange(of: pickedItem) { _, newValue in
+            guard let newValue else { return }
+            Task {
+                if let data = try? await newValue.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    profileImage = uiImage
+                }
+            }
+        }
+
+        // Camera Sheet
+        .sheet(isPresented: $showCamera) {
+            CameraPicker(image: $profileImage)
+        }
+    }
+
+    // MARK: - Reusable Components
+    private func row(icon: String, title: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.orange.opacity(0.15))
+                Image(systemName: icon)
+                    .foregroundColor(.orange)
+                    .font(.system(size: 18, weight: .semibold))
+            }
+            .frame(width: 32, height: 32)
+
+            Text(title)
+                .foregroundColor(.primary)
             Spacer()
         }
-        .navigationTitle("Edit Profile")
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 
     private func labelRequired(_ text: String) -> some View {
@@ -163,5 +240,40 @@ struct EditProfileView: View {
         }
         .font(.subheadline)
         .foregroundColor(.secondary)
+    }
+}
+
+// MARK: - Camera Picker
+struct CameraPicker: UIViewControllerRepresentable {
+    @Environment(\.presentationMode) private var presentationMode
+    @Binding var image: UIImage?
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let vc = UIImagePickerController()
+        vc.sourceType = .camera
+        vc.cameraCaptureMode = .photo
+        vc.delegate = context.coordinator
+        return vc
+    }
+
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+
+    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
+        let parent: CameraPicker
+        init(_ parent: CameraPicker) { self.parent = parent }
+
+        func imagePickerController(_ picker: UIImagePickerController,
+                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let img = info[.originalImage] as? UIImage {
+                parent.image = img
+            }
+            parent.presentationMode.wrappedValue.dismiss()
+        }
+
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.presentationMode.wrappedValue.dismiss()
+        }
     }
 }

@@ -70,18 +70,25 @@ struct QuestView: View {
             GeometryReader { geo in
                 let top = geo.safeAreaInsets.top
                 let headerH = 100 + top
+                let overlayH: CGFloat = 156   // tinggi gabungan "Quest" + headerCard
 
-                ScrollView(.vertical, showsIndicators: false) {
-                    ZStack(alignment: .top) {
-                        HeaderBackgroundView(height: headerH)
-                            .frame(height: headerH)
-                            .padding(.top, -top)
+                    // KONTEN: SCROLL DI BAWAH HEADER
+                    ScrollView(.vertical, showsIndicators: false) {
+                        ZStack(alignment: .top) {
+                            // HEADER ORANGE: TETAP (tidak ikut scroll)
+                            HeaderBackgroundView(height: headerH)
+                                .frame(height: headerH)
+                                .ignoresSafeArea(edges: .top)
+                                .allowsHitTesting(false)
                         VStack(spacing: 0) {
+                            // spacer supaya konten mulai tepat di bibir header
+                            Color.clear
+                                .frame(height: headerH - (overlayH - 10))
+
                             Text("Quest")
                                 .font(.title)
                                 .fontWeight(.bold)
                                 .padding(.horizontal)
-                                .padding(.top, 10)
                                 .padding(.bottom, 10)
                                 .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -115,7 +122,6 @@ struct QuestView: View {
                             .padding(.bottom)
                             .offset(y: -6)
                         }
-                        .padding(.top, headerH - 156)
                     }
                 }
             }
@@ -128,6 +134,8 @@ struct QuestView: View {
             .toolbar(.hidden, for: .navigationBar)
         }
     }
+
+
 
 
     private var headerCard: some View {
@@ -364,3 +372,6 @@ struct BadgeRow: View {
     }
 }
 
+#Preview {
+    QuestView()
+}

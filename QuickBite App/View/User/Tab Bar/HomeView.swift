@@ -123,11 +123,22 @@ struct HomeView: View {
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
-                                    TopRatedRestaurantsCardView(
+                                    
+                                    NavigationLink(destination: RestaurantDetailView(
                                         imageName: "Raburi",
-                                        deliveryTime: "10–20 min",
-                                        name: "Raburi"
-                                    )
+                                        name: "Raburi",
+                                        categories: "Noodles, Japanese",
+                                        rating: 4.7,
+                                        reviewCount: 65,
+                                        pickupTime: "10-20 minutes"
+                                    )) {
+                                        TopRatedRestaurantsCardView(
+                                            imageName: "Raburi",
+                                            deliveryTime: "10–20 min",
+                                            name: "Raburi"
+                                        )
+                                    }
+                                    .buttonStyle(.plain)
                                     
                                     TopRatedRestaurantsCardView(
                                         imageName: "KPatats",

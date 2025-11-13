@@ -94,17 +94,12 @@ QuickBite shall not be liable for any indirect, incidental, special, consequenti
 We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting. Your continued use of the service after changes constitutes acceptance of the new terms.
 """
                     )
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("If you have any questions about these Terms, please contact us at")
-                            .font(.footnote)
-                            .foregroundColor(Color(uiColor: .secondaryLabel))
-                        Link("legal@quickbite.com",
-                             destination: URL(string: "mailto:legal@quickbite.com")!)
-                            .font(.footnote.weight(.semibold))
-                            .foregroundColor(brandOrange)
-                    }
-                    .padding(.top, 4)
+                    Text("If you have any questions about these Terms, please contact us at")
+                        .font(.footnote)
+                        .foregroundColor(Color(uiColor: .secondaryLabel))
+                    + Text(" legal@quickbite.com")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundColor(brandOrange)
                 }
                 .padding(.horizontal)
             }

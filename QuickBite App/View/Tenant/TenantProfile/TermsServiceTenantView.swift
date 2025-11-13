@@ -72,16 +72,14 @@ QuickBite reserves the right to suspend or terminate your access to the platform
                 )
 
                 // Contact
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("If you have any questions about these Terms, please contact us at")
-                        .font(.footnote)
-                        .foregroundColor(Color(uiColor: .secondaryLabel))
+                Text("If you have any questions about these Terms, please contact us at")
+                    .font(.footnote)
+                    .foregroundColor(Color(uiColor: .secondaryLabel))
                     Link("legal@quickbite.com",
                          destination: URL(string: "mailto:legal@quickbite.com")!)
                         .font(.footnote.weight(.semibold))
                         .tint(brandOrange)
-                }
-                .padding(.top, 4)
+               
             }
             .padding(.horizontal)
             .padding(.bottom, 24)

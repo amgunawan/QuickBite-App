@@ -95,7 +95,6 @@ struct AccountCredentialsView: View {
             }
             .scrollIndicators(.hidden)
 
-            // Footer: Continue Button with updated destination
             NavigationLink(destination: KTPVerificationView(),
                            label: {
                 OrangeButton(title: "Continue", action: {}, enabled: canContinue)

@@ -52,11 +52,10 @@ struct PayoutSetupView: View {
             }
             .scrollIndicators(.hidden)
             
-            Button(action: {
-                print("Final Registration Data Submitted!")
-            }) {
+            NavigationLink(destination: OnboardingView(),
+                           label: {
                 OrangeButton(title: "Complete Registration", action: {}, enabled: canComplete)
-            }
+            })
             .padding()
             .simultaneousGesture(TapGesture().onEnded {
                 hideKeyboard()

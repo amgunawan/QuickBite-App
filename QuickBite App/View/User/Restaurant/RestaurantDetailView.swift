@@ -132,8 +132,6 @@ struct RestaurantDetailView: View {
                     }
                     .buttonStyle(.plain)
                     
-                    // DIPERBARUI: Tambahkan Divider di antara item
-                    Divider().padding(.leading, 120)
                 }
                 
                 // Kategori 2: Donburi
@@ -471,7 +469,6 @@ struct MenuItemRow: View {
             VStack {
                 Spacer()
                 
-                // DIPERBARUI: Aksi tombol sekarang memanggil closure `onAdd`
                 Button(action: onAdd) {
                     Image(systemName: "plus")
                         .font(.system(size: 12, weight: .bold))

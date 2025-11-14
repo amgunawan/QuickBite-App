@@ -22,7 +22,7 @@ struct EditProfileView: View {
     enum Field { case fullName, phone, email }
 
     var body: some View {
-        ScrollView {
+        NavigationStack {
             VStack(spacing: 20) {
                 VStack(spacing: 8) {
                     ZStack {
@@ -156,6 +156,8 @@ struct EditProfileView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
+                
+                Spacer()
             }
         }
         .background(Color(.systemBackground))

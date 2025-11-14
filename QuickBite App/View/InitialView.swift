@@ -20,7 +20,7 @@ struct InitialView: View {
         ZStack {
             VStack {
                 if userLoggedIn {
-                    UserContentView()
+                    TenantContentView()
                 }
                 else {
                     MainFormView()

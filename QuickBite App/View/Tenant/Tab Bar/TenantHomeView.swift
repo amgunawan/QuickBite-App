@@ -9,7 +9,7 @@ import SwiftUI
 
 // MARK: - Design Tokens
 private enum UIConst {
-    static let corner: CGFloat = 14
+    static let corner: CGFloat = 16
     static let pad: CGFloat = 16
     static let brandOrange = Color(hex: "#FF9500")
     static let softCardBG  = Color.white
@@ -56,7 +56,7 @@ struct StockItem: Identifiable {
 struct TenantHomeView: View {
     @State private var showAllReviews = false
     @State private var tenantName: String = "Raburi"
-
+    
     // Wallet
     @State private var walletBalance: Double = 2_500_000
     @State private var scheduledDate: Date = Calendar.current.date(
@@ -64,12 +64,12 @@ struct TenantHomeView: View {
         value: 1,
         to: Calendar.current.startOfMonth(for: Date())
     ) ?? Date()
-
+    
     // Dashboard Stats
     @State private var totalIncome: Double = 325_000
     @State private var totalOrders: Int = 10
     @State private var pendingPickups: Int = 2
-
+    
     // Trends
     @State private var weeklySales: [DaySalesPoint] = [
         .init(day: "Mon", value: 60_000),
@@ -79,20 +79,20 @@ struct TenantHomeView: View {
         .init(day: "Fri", value: 200_000),
         .init(day: "Sat", value: 260_000)
     ]
-
+    
     // Menu + Stocks
     @State private var topMenu: [MenuItemSold] = [
         .init(index: 1, name: "Chicken Katsu Shiokara Ramen", sold: 22),
         .init(index: 2, name: "Chicken Katsu Curry Rice", sold: 14),
         .init(index: 3, name: "Katsutama Donburi", sold: 8)
     ]
-
+    
     @State private var lowStock: [StockItem] = [
         .init(index: 1, name: "Chicken Katsu Shiokara Ramen", left: 4),
         .init(index: 2, name: "Chicken Katsu Curry Rice", left: 3),
         .init(index: 3, name: "Katsutama Donbri", left: 0)
     ]
-
+    
     // Busy Hours
     @State private var busiestHours: [HourBucket] = [
         .init(hour: 10, count: 8),
@@ -104,11 +104,11 @@ struct TenantHomeView: View {
         .init(hour: 4,  count: 10),
         .init(hour: 5,  count: 9)
     ]
-
+    
     // Ratings
     @State private var ratingScore: Double = 4.8
     @State private var totalReviews: Int = 27
-
+    
     // Formatter
     private var formattedBalance: String {
         let nf = NumberFormatter()
@@ -116,21 +116,22 @@ struct TenantHomeView: View {
         nf.groupingSeparator = "."
         return "Rp " + (nf.string(from: walletBalance as NSNumber) ?? "0")
     }
-
+    
     private var formattedScheduled: String {
         let df = DateFormatter()
         df.dateFormat = "MMMM d, yyyy"
         return df.string(from: scheduledDate)
     }
-
+    
     var body: some View {
         NavigationStack {
-                ScrollView(showsIndicators: false) {
-                    ZStack(alignment: .top) {
-                        HeaderBackgroundView(height: 190)
-                            .frame(height: 80)
-                            .ignoresSafeArea(edges: .top)
-                        VStack(spacing: 14) {
+            ScrollView(showsIndicators: false) {
+                ZStack(alignment: .top) {
+                    HeaderBackgroundView(height: 160)
+                        .frame(height: 52)
+                        .ignoresSafeArea(edges: .top)
+                    VStack(spacing: 20) {
+                        VStack(spacing: 10) {
                             Text("Home")
                                 .font(.title)
                                 .fontWeight(.bold)
@@ -154,7 +155,9 @@ struct TenantHomeView: View {
                                         .accessibilityHidden(true)
                                 }
                             }
-                            
+                        }
+                        
+                        VStack(spacing: 10) {
                             // Button Scan QR Code
                             Button(action: {}) {
                                 HStack {
@@ -311,15 +314,15 @@ struct TenantHomeView: View {
                                 }
                             }
                         }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 20)
-                        .padding(.bottom, 8)
                     }
+                    .padding(.horizontal)
+                    .padding(.bottom)
                 }
-                .scrollContentBackground(.hidden)
-                .navigationDestination(isPresented: $showAllReviews) {
-                    AllReviewsTenantView()
-                }
+            }
+            .scrollContentBackground(.hidden)
+            .navigationDestination(isPresented: $showAllReviews) {
+                AllReviewsTenantView()
+            }
             
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
@@ -339,13 +342,14 @@ struct Card<Content: View>: View {
                     .stroke(UIConst.hairline, lineWidth: 1)
             )
             .clipShape(RoundedRectangle(cornerRadius: UIConst.corner))
-            .shadow(color: .black.opacity(0.03), radius: 4, x: 0, y: 2)
+            .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
+            .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
     }
 }
 
 struct MetricCard: View {
     let metric: SummaryMetrics
-
+    
     private var borderColor: Color {
         switch metric.title {
         case "Total Income": return .green
@@ -353,7 +357,7 @@ struct MetricCard: View {
         default:             return .red
         }
     }
-
+    
     var body: some View {
         VStack(spacing: 8) {
             HStack {
@@ -368,7 +372,7 @@ struct MetricCard: View {
                 }
                 Spacer()
             }
-
+            
             VStack(alignment: .center, spacing: 6) {
                 HStack(spacing: 6) {
                     Text(metric.title)
@@ -377,11 +381,11 @@ struct MetricCard: View {
                 }
                 Text(metric.value)
                     .font(.headline).fontWeight(.semibold)
-//                if !metric.subtitle.isEmpty {
-//                    Text(metric.subtitle)
-//                        .font(.caption)
-//                        .foregroundColor(.green)
-//                }
+                //                if !metric.subtitle.isEmpty {
+                //                    Text(metric.subtitle)
+                //                        .font(.caption)
+                //                        .foregroundColor(.green)
+                //                }
             }
             .multilineTextAlignment(.center)
         }
@@ -412,12 +416,12 @@ struct RatingStars: View {
 struct LineChart: View {
     let points: [DaySalesPoint]
     @State private var hoveredPoint: DaySalesPoint? = nil
-
+    
     private var maxValue: Double {
         guard let max = points.map(\.value).max() else { return 1 }
         return max == 0 ? 1 : max
     }
-
+    
     // MARK: - Currency Formatter
     private var currencyFormatter: NumberFormatter {
         let nf = NumberFormatter()
@@ -426,7 +430,7 @@ struct LineChart: View {
         nf.maximumFractionDigits = 0
         return nf
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             // MARK: - Title
@@ -442,7 +446,7 @@ struct LineChart: View {
                     .font(.caption)
                     .foregroundColor(.green)
             }
-
+            
             // MARK: - Chart
             GeometryReader { geo in
                 let chartWidth = geo.size.width - 70   // give space for y-axis
@@ -455,7 +459,7 @@ struct LineChart: View {
                         y: chartHeight - CGFloat(p.value / maxValue) * (chartHeight)
                     )
                 }
-
+                
                 HStack(alignment: .top, spacing: 5) {
                     // MARK: - Y Axis
                     VStack(alignment: .trailing, spacing: chartHeight / 8) {
@@ -467,7 +471,7 @@ struct LineChart: View {
                         }
                     }
                     .frame(width: 60)
-
+                    
                     // MARK: - Chart Body
                     ZStack(alignment: .bottomLeading) {
                         // Line Path
@@ -477,7 +481,7 @@ struct LineChart: View {
                             scaledPoints.dropFirst().forEach { path.addLine(to: $0) }
                         }
                         .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
-
+                        
                         // Dots + Tooltip
                         ForEach(Array(points.enumerated()), id: \.offset) { i, p in
                             let pt = scaledPoints[i]
@@ -490,7 +494,7 @@ struct LineChart: View {
                                         hoveredPoint = hoveredPoint?.id == p.id ? nil : p
                                     }
                                 }
-
+                            
                             // Tooltip bubble
                             if hoveredPoint?.id == p.id {
                                 VStack(spacing: 4) {
@@ -512,7 +516,7 @@ struct LineChart: View {
                                 .position(x: pt.x, y: pt.y - 25)
                             }
                         }
-
+                        
                         // X Axis Labels
                         HStack(spacing: 5) {
                             ForEach(points) { p in
@@ -553,7 +557,7 @@ struct BarChart: View {
         guard let max = items.map(\.count).max() else { return 1 }
         return max == 0 ? 1 : max
     }
-
+    
     var body: some View {
         VStack(spacing: 6) {
             HStack(alignment: .bottom, spacing: 12) {
@@ -580,7 +584,7 @@ struct BarChart: View {
                     }
                 }
             }
-
+            
             HStack {
                 Text("10 AM")
                     .font(.caption)
@@ -602,7 +606,7 @@ struct HomeSettingsRowLabel: View {
     let tint: Color
     let title: String
     var trailing: String? = nil
-
+    
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
@@ -613,7 +617,7 @@ struct HomeSettingsRowLabel: View {
                     .font(.subheadline)
             }
             .frame(width: 28, height: 28)
-
+            
             Text(title)
                 .foregroundColor(.primary)
             Spacer()

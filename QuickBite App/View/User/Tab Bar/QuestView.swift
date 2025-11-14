@@ -135,9 +135,6 @@ struct QuestView: View {
         }
     }
 
-
-
-
     private var headerCard: some View {
         HStack(spacing: 12) {
             ZStack {
@@ -176,6 +173,7 @@ struct QuestView: View {
                 .shadow(color: .black.opacity(0.03), radius: 2,  x: 0, y: 1)
         )
     }
+    
     private struct BarProgress: View {
         var value: Double
         var total: Double

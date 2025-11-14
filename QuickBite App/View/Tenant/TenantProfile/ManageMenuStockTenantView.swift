@@ -398,7 +398,7 @@ private let demoDataAssets: [MenuSectionModel] = [
     ]),
     .init(title: "Donburi", items: [
         .init(name: "Chicken Teriyaki Donburi", price: 42500, stock: 0,
-              shortDescription: "Rice bowl with teriyaki chicken.", prepMinutes: 20, imageName: "ChickenTeriyakiDonburi "),
+              shortDescription: "Rice bowl with teriyaki chicken.", prepMinutes: 20, imageName: "ChickenTeriyakiDonburi"),
         .init(name: "Chicken Katsu Curry Rice", price: 42500, stock: 0,
               shortDescription: "Katsu curry rice, medium spice.", prepMinutes: 20, imageName: "ChickenKatsuCurryRice"),
         .init(name: "Katsutama Donburi", price: 37500, stock: 9,

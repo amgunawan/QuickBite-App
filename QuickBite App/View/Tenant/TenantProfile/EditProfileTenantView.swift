@@ -193,7 +193,7 @@ struct EditProfileTenantView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 18)
+            .padding(.horizontal)
             .presentationDetents([.fraction(0.25)])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(22)

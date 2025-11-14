@@ -109,7 +109,7 @@ struct TenantProfileView: View {
                     Spacer()
                 }
 
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     Text("Store Profile")
                         .font(.title)
                         .fontWeight(.bold)
@@ -128,10 +128,10 @@ struct TenantProfileView: View {
                     .padding(.horizontal)
                     .offset(y: -10)
                     .zIndex(1)
-
+                    Spacer()
                     // === Menu List ===
                     List {
-                        Section("Store Management") {
+                        Section(header: Text("Store Management")) {
                             NavigationLink { ManageMenuStockTenantView() } label: {
                                 TenantSettingsRowLabel(systemIcon: "fork.knife", tint: .gray, title: "Manage Menu & Stock")
                             }
@@ -142,6 +142,7 @@ struct TenantProfileView: View {
                                 TenantSettingsRowLabel(systemIcon: "creditcard", tint: .gray, title: "Financial & Payouts")
                             }
                         }
+                        .foregroundColor(.black)
 
                         Section("Account & Support") {
                             NavigationLink { ChangePasswordTenantView() } label: {
@@ -163,8 +164,9 @@ struct TenantProfileView: View {
                                 TenantSettingsRowLabel(systemIcon: "gearshape", tint: .gray, title: "Manage Account")
                             }
                         }
+                        .foregroundColor(.black)
                     }
-                    .listStyle(.insetGrouped)
+                    .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .padding(.top, -20)
                 }

@@ -9,31 +9,40 @@ import SwiftUI
 import FirebaseAuth
 
 struct SignUpFormView: View {
-    let role: String
+    let role: UserRole            // .customer or .merchant
+    
+    @Environment(\.dismiss) private var dismiss
+    
     @StateObject private var viewModel = EmailCheckViewModel()
     @StateObject private var passwordVM = PasswordCheckViewModel()
+    @StateObject private var authVM = AuthenticationViewModel()
+    
     @State private var agreeTermsAndConditions = false
     @State private var showPassword = false
     
-    // Google Sign In
-    @State private var loginError = ""
-    @State private var isLoggedIn = false
-    @State private var vm = AuthenticationViewModel()
+    // Local loading & error states
+    @State private var isSubmitting: Bool = false
     
-    // Email Verification
+    // Alerts
     @State private var userVerificationModal: Bool = false
+    @State private var showErrorAlert: Bool = false
+    @State private var errorMessage: String = ""
     
     private var canContinue: Bool {
-        viewModel.isEmailValid && agreeTermsAndConditions && passwordVM.isPasswordValid
+        viewModel.isEmailValid &&
+        agreeTermsAndConditions &&
+        passwordVM.isPasswordValid &&
+        !isSubmitting
     }
     
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
-                Text("Sign up as \(role)")
+                Text("Sign up as \(role == .customer ? "user" : "merchant")")
                     .font(.title)
                     .fontWeight(.bold)
                 
+                // EMAIL
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email")
                         .font(.subheadline)
@@ -56,7 +65,7 @@ struct SignUpFormView: View {
                     )
                 }
                 
-                // Password field
+                // PASSWORD
                 HStack {
                     Image(systemName: "lock")
                         .foregroundColor(.gray)
@@ -78,9 +87,12 @@ struct SignUpFormView: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 12)
-                .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color(.systemGray4))
+                )
                 
-                // Password rules
+                // PASSWORD RULES
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your password must contain at least:")
                         .font(.subheadline)
@@ -110,6 +122,7 @@ struct SignUpFormView: View {
                     }
                 }
                 
+                // TERMS & CONDITIONS
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         agreeTermsAndConditions.toggle()
@@ -132,28 +145,41 @@ struct SignUpFormView: View {
                 }
                 .buttonStyle(.plain)
                 
+                // CONTINUE BUTTON (EMAIL SIGNUP)
                 Button(action: {
                     Task {
-                        userVerificationModal = true
+                        await handleEmailSignUp()
                     }
                 }) {
-                    Text("Continue")
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(canContinue ? Color.orange : Color(.systemGray4))
-                        .cornerRadius(24)
+                    if isSubmitting {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    } else {
+                        Text("Continue")
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
                 }
+                .background(canContinue ? Color.orange : Color(.systemGray4))
+                .cornerRadius(24)
                 .disabled(!canContinue)
                 .alert("Email Verification", isPresented: $userVerificationModal) {
-                    Button("Verified?") {
-                        
+                    Button("Back to Login") {
+                        dismiss()
                     }
                 } message: {
-                    Text("We have sent a verification email to your address. Please check your inbox.")
+                    Text("We have sent a verification email to your address. Please check your inbox and verify your account before logging in.")
+                }
+                .alert("Sign Up Failed", isPresented: $showErrorAlert) {
+                    Button("OK", role: .cancel) { }
+                } message: {
+                    Text(errorMessage)
                 }
                 
+                // Divider
                 HStack {
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                     Text("or")
@@ -162,15 +188,16 @@ struct SignUpFormView: View {
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                 }
                 
+                // GOOGLE SIGN-IN
                 Button(action: {
-                    vm.signInWithGoogle()
+                    authVM.signInWithGoogle(role: role)
                 }) {
                     HStack {
                         Image("GoogleIcon")
                             .resizable()
                             .scaledToFit()
                             .frame(width: 20, height: 20)
-                        Text("Sign in with Google")
+                        Text("Sign up with Google")
                             .fontWeight(.medium)
                             .foregroundColor(.black)
                     }
@@ -181,25 +208,33 @@ struct SignUpFormView: View {
                             .stroke(Color(.systemGray4))
                     )
                 }
+                .disabled(isSubmitting)
                 
-                if !loginError.isEmpty {
-                    Text(loginError)
-                        .foregroundColor(.red)
-                        .padding()
-                }
-                
-                NavigationLink(value: isLoggedIn) {
-                    EmptyView()
-                }
-                .navigationDestination(isPresented: $isLoggedIn) {
-                    UserContentView()
-                        .navigationBarBackButtonHidden(true)
-                }
+                // If you later add a Published error in authVM, you can show it here.
                 
                 Spacer()
             }
             .padding(.horizontal, 24)
         }
     }
+    
+    // MARK: - Helpers
+    private func handleEmailSignUp() async {
+        isSubmitting = true
+        errorMessage = ""
+        
+        do {
+            // Email & password from the local validators
+            authVM.email = viewModel.email
+            authVM.password = passwordVM.password
+            
+            try await authVM.signUp(role: role)
+            userVerificationModal = true
+        } catch {
+            errorMessage = error.localizedDescription
+            showErrorAlert = true
+        }
+        
+        isSubmitting = false
+    }
 }
-

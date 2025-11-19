@@ -13,19 +13,15 @@ import GoogleSignInSwift
 
 struct MainFormView: View {
     @State private var selectedTab = 0
-    @State private var email = ""
-    @State private var password = ""
-    @State private var showingGoogleSignInAlert = false
-    @State private var showPassword = false
     
-    // Email Password Sign In
+    // Email & password now live inside vm
+    @StateObject private var vm = AuthenticationViewModel()
+    
     @State private var showingLoginAlert = false
     @State private var alertMessage = ""
+    @State private var showPassword = false
     
-    // Google Sign In
-    @State private var loginError = ""
     @State private var isLoggedIn = false
-    @State private var vm = AuthenticationViewModel()
     
     var body: some View {
         NavigationStack {
@@ -52,7 +48,6 @@ struct MainFormView: View {
                 
                 // MARK: - Sign In Section
                 if selectedTab == 0 {
-                    // ... Sign In View remains the same ...
                     VStack(spacing: 16) {
                         // Email Field
                         VStack(alignment: .leading, spacing: 8) {
@@ -124,16 +119,25 @@ struct MainFormView: View {
                                 await signInUser()
                             }
                         }) {
-                            Text("Sign in")
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color.orange)
-                                .cornerRadius(24)
+                            if vm.isLoading {
+                                ProgressView()
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            } else {
+                                Text("Sign in")
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 12)
+                            }
                         }
+                        .background(Color.orange)
+                        .cornerRadius(24)
+                        .disabled(vm.isLoading)
                         .alert(isPresented: $showingLoginAlert) {
-                            Alert(title: Text("Sign In Failed"), message: Text(alertMessage), dismissButton: .default(Text("OK")))
+                            Alert(title: Text("Sign In Failed"),
+                                  message: Text(alertMessage),
+                                  dismissButton: .default(Text("OK")))
                         }
                         
                         // Divider
@@ -147,7 +151,7 @@ struct MainFormView: View {
                         
                         // Google Sign-In
                         Button(action: {
-                            vm.signInWithGoogle()
+                            vm.signInWithGoogle() // default role = .customer
                         }) {
                             HStack {
                                 Image("GoogleIcon")
@@ -165,25 +169,35 @@ struct MainFormView: View {
                                     .stroke(Color(.systemGray4))
                             )
                         }
+                        .disabled(vm.isLoading)
                         
-                        if !loginError.isEmpty {
-                            Text(loginError)
+                        if let error = vm.errorMessage, !error.isEmpty {
+                            Text(error)
                                 .foregroundColor(.red)
-                                .padding()
+                                .padding(.top, 4)
                         }
                         
+                        // Navigation after auth
                         NavigationLink(value: isLoggedIn) {
                             EmptyView()
                         }
                         .navigationDestination(isPresented: $isLoggedIn) {
-                            UserContentView()
-                                .navigationBarBackButtonHidden(true)
+                            // Route based on Firestore role
+                            switch vm.currentUser?.role {
+                            case .merchant:
+                                // TODO: Replace with your merchant root view
+                                TenantContentView()
+                                    .navigationBarBackButtonHidden(true)
+                            default:
+                                UserContentView()
+                                    .navigationBarBackButtonHidden(true)
+                            }
                         }
                     }
                 } else {
-
+                    // MARK: - Sign Up selector
                     VStack(spacing: 16) {
-                        NavigationLink(destination: SignUpFormView(role: "user")) {
+                        NavigationLink(destination: SignUpFormView(role: .customer)) {
                             Text("Sign up as user")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -201,7 +215,7 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        NavigationLink(destination: SignUpFormTenantView()) {
+                        NavigationLink(destination: SignUpFormView(role: .merchant)) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -216,34 +230,25 @@ struct MainFormView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
+            // When VM auth state changes, update local isLoggedIn
+            .onChange(of: vm.isAuthenticated) { newValue in
+                if newValue {
+                    isLoggedIn = true
+                }
+            }
         }
         .onTapGesture {
             hideKeyboard()
         }
     }
     
-    // ... login and signInUser functions remain the same ...
-    func login() {
-        Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
-            if let error = error {
-                loginError = error.localizedDescription
-            }
-            
-            isLoggedIn = true
-        }
-    }
-    
     func signInUser() async {
         do {
             try await vm.signInWithEmailPassword()
-            isLoggedIn = true
+            // isLoggedIn will be set by onChange(of: vm.isAuthenticated)
         } catch {
             alertMessage = error.localizedDescription
             showingLoginAlert = true
         }
     }
-}
-
-#Preview {
-    MainFormView()
 }

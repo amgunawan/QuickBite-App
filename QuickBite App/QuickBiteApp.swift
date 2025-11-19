@@ -7,6 +7,8 @@
 import SwiftUI
 import Firebase
 import GoogleSignIn
+import FirebaseCore
+import FirebaseFirestore
 
 @main
 struct QuickBiteApp: App {
@@ -29,3 +31,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         return GIDSignIn.sharedInstance.handle(url)
     }
 }
+
+//MARK: Global Firestore Instance
+
+let db = Firestore.firestore()

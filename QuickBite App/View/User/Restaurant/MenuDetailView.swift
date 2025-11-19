@@ -12,14 +12,16 @@ import SwiftUI
 // ==================================================================
 
 struct MenuDetailView: View {
+    @EnvironmentObject var cart: CartViewModel
+
     
     // Properti untuk menerima data
     let imageName: String
     let name: String
     let longDescription: String
     let salesDescription: String
-    let price: String
-    let originalPrice: String?
+    let price: Double
+    let originalPrice: Double?
     
     // State untuk memunculkan sheet
     @State private var showingOptionsSheet = false
@@ -58,15 +60,9 @@ struct MenuDetailView: View {
                     HStack(alignment: .bottom) {
                         // Harga
                         HStack(spacing: 8) {
-                            Text(price)
-                                .font(.system(size: 22, weight: .bold))
-                                .foregroundColor(.orange)
-                            
+                            Text("Rp\(formatPrice(price))").font(.system(size: 22, weight: .bold)).foregroundColor(.orange)
                             if let originalPrice = originalPrice {
-                                Text(originalPrice)
-                                    .font(.system(size: 16))
-                                    .foregroundColor(.gray)
-                                    .strikethrough()
+                                Text("Rp\(formatPrice(originalPrice))").font(.system(size: 16)).foregroundColor(.gray).strikethrough()
                             }
                         }
                         
@@ -92,16 +88,15 @@ struct MenuDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
-        
-        // Tambahkan .sheet modifier di sini
         .sheet(isPresented: $showingOptionsSheet) {
             MenuOptionsView(
                 imageName: self.imageName,
                 name: self.name,
                 salesDescription: self.salesDescription,
-                priceString: self.price,
-                originalPriceString: self.originalPrice
+                price: self.price,
+                originalPrice: self.originalPrice
             )
+            .environmentObject(cart)
         }
     }
 }
@@ -117,9 +112,10 @@ struct MenuDetailView_Previews: PreviewProvider {
                 name: "Chicken Katsu Shirokara Ramen",
                 longDescription: "Ramen noodle, chicken katsu, tamago, kizaminori, negi, narutomaki, with shirokara soupa.",
                 salesDescription: "10 terjual",
-                price: "Rp30.000",
-                originalPrice: "Rp35.000"
+                price: 30000,
+                originalPrice: 35000
             )
         }
+        .environmentObject(CartViewModel())
     }
 }

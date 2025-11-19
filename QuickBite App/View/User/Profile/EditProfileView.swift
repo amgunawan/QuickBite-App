@@ -3,7 +3,7 @@ import PhotosUI
 import UIKit
 
 struct EditProfileView: View {
-
+    
     let username: String
     @Binding var fullName: String
     @Binding var phoneCode: String
@@ -11,22 +11,22 @@ struct EditProfileView: View {
     @Binding var email: String
     let points: Int
     var onSave: () -> Void
-
+    
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
-
+    
     @State private var showPhotoOptions = false
     @State private var showCamera = false
     @State private var showGallery = false
     @State private var pickedItem: PhotosPickerItem?
     @State private var profileImage: UIImage? = nil
-
+    
     enum Field { case fullName, phone, email }
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-
+                
                 // MARK: - Avatar + Points
                 VStack(spacing: 8) {
                     ZStack {
@@ -48,7 +48,7 @@ struct EditProfileView: View {
                                 .font(.system(size: 44))
                                 .foregroundColor(.white)
                         }
-
+                        
                         VStack {
                             Spacer()
                             HStack {
@@ -66,7 +66,7 @@ struct EditProfileView: View {
                         }
                         .frame(width: 96, height: 96)
                     }
-
+                    
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
                             .foregroundColor(.orange)
@@ -76,10 +76,10 @@ struct EditProfileView: View {
                     }
                 }
                 .padding(.top, 6)
-
+                
                 // MARK: - Form
                 VStack(spacing: 14) {
-
+                    
                     // USERNAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Username")
@@ -88,7 +88,7 @@ struct EditProfileView: View {
                             .textFieldStyle(.roundedBorder)
                             .opacity(0.7)
                     }
-
+                    
                     // FULL NAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
@@ -97,7 +97,7 @@ struct EditProfileView: View {
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                                 .focused($focusedField, equals: .fullName)
-
+                            
                             if !fullName.isEmpty {
                                 Button {
                                     fullName = ""
@@ -115,7 +115,7 @@ struct EditProfileView: View {
                                         lineWidth: focusedField == .fullName ? 1.2 : 0.3)
                         )
                     }
-
+                    
                     // PHONE
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Phone Number")
@@ -128,7 +128,7 @@ struct EditProfileView: View {
                             .frame(height: 44)
                             .background(Color(.secondarySystemBackground),
                                         in: RoundedRectangle(cornerRadius: 8))
-
+                            
                             TextField("", text: $phone)
                                 .padding(10)
                                 .background(Color(.secondarySystemBackground),
@@ -149,7 +149,7 @@ struct EditProfileView: View {
                             .disabled(true)
                             .foregroundColor(.secondary)
                     }
-
+                    
                     Button {
                         onSave()
                         dismiss()
@@ -171,39 +171,39 @@ struct EditProfileView: View {
         .background(Color(.systemBackground))
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
-
+        
         .sheet(isPresented: $showPhotoOptions) {
             VStack(spacing: 0) {
                 Text("Edit Profile Photo")
                     .font(.headline)
                     .padding(.top, 18)
                     .padding(.bottom, 8)
-
+                
                 Divider()
-
+                
                 Button {
                     showPhotoOptions = false
                     showGallery = true
                 } label: {
                     row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
                 }
-
+                
                 Divider()
-
+                
                 Button {
                     showPhotoOptions = false
                     showCamera = true
                 } label: {
                     row(icon: "camera.fill", title: "Take Photo")
                 }
-
+                
                 Spacer(minLength: 0)
             }
             .padding(.horizontal, 18)
             .presentationDetents([.height(180)])
             .presentationDragIndicator(.visible)
         }
-
+        
         // Photos Picker
         .photosPicker(isPresented: $showGallery, selection: $pickedItem)
         .onChange(of: pickedItem) { _, newItem in
@@ -214,12 +214,12 @@ struct EditProfileView: View {
                 }
             }
         }
-
+        
         .sheet(isPresented: $showCamera) {
             CameraPickerViewModel(image: $profileImage)
         }
     }
-
+    
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -229,7 +229,7 @@ struct EditProfileView: View {
         .font(.subheadline)
         .foregroundColor(.secondary)
     }
-
+    
     private func row(icon: String, title: String) -> some View {
         HStack(spacing: 14) {
             ZStack {
@@ -239,10 +239,10 @@ struct EditProfileView: View {
                     .font(.system(size: 18, weight: .semibold))
             }
             .frame(width: 32, height: 32)
-
+            
             Text(title)
                 .foregroundColor(.primary)
-
+            
             Spacer()
         }
         .padding(.vertical, 12)

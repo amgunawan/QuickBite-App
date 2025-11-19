@@ -10,30 +10,30 @@ import PhotosUI
 import UIKit
 
 struct EditProfileTenantView: View {
-
+    
     let tenantusername: String
     @Binding var tenantfullName: String
     @Binding var tenantphoneCode: String
     @Binding var tenantphone: String
     @Binding var tenantemail: String
-
+    
     var onSave: () -> Void
-
+    
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
-
+    
     @State private var profileImage: UIImage? = nil
     @State private var showPhotoOptions = false
     @State private var showCamera = false
     @State private var showGallery = false
     @State private var pickedItem: PhotosPickerItem?
-
+    
     enum Field { case fullName, phone, email }
-
+    
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-
+                
                 // MARK: Avatar Section
                 VStack(spacing: 8) {
                     ZStack {
@@ -53,7 +53,7 @@ struct EditProfileTenantView: View {
                                 .font(.system(size: 44))
                                 .foregroundColor(.white)
                         }
-
+                        
                         VStack {
                             Spacer()
                             HStack {
@@ -73,9 +73,9 @@ struct EditProfileTenantView: View {
                     }
                 }
                 .padding(.top, 6)
-
+                
                 VStack(spacing: 14) {
-
+                    
                     // USERNAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Username")
@@ -84,7 +84,7 @@ struct EditProfileTenantView: View {
                             .textFieldStyle(.roundedBorder)
                             .opacity(0.7)
                     }
-
+                    
                     // FULL NAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
@@ -93,7 +93,7 @@ struct EditProfileTenantView: View {
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                                 .focused($focusedField, equals: .fullName)
-
+                            
                             if !tenantfullName.isEmpty {
                                 Button {
                                     tenantfullName = ""
@@ -111,7 +111,7 @@ struct EditProfileTenantView: View {
                                         lineWidth: focusedField == .fullName ? 1.2 : 0.3)
                         )
                     }
-
+                    
                     // PHONE (LOCKED)
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Phone Number")
@@ -124,7 +124,7 @@ struct EditProfileTenantView: View {
                             .frame(height: 44)
                             .background(Color(.secondarySystemBackground),
                                         in: RoundedRectangle(cornerRadius: 8))
-
+                            
                             TextField("", text: $tenantphone)
                                 .padding(10)
                                 .background(Color(.secondarySystemBackground),
@@ -133,7 +133,7 @@ struct EditProfileTenantView: View {
                                 .foregroundColor(.secondary)
                         }
                     }
-
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
                         TextField("", text: $tenantemail)
@@ -144,7 +144,7 @@ struct EditProfileTenantView: View {
                             .disabled(true)
                             .foregroundColor(.secondary)
                     }
-
+                    
                     Button {
                         if let data = profileImage?.jpegData(compressionQuality: 0.9) {
                             UserDefaults.standard.set(data, forKey: "tenant.avatar")
@@ -173,7 +173,7 @@ struct EditProfileTenantView: View {
         }
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
-
+        
         // PHOTO OPTIONS SHEET
         .sheet(isPresented: $showPhotoOptions) {
             VStack(spacing: 0) {
@@ -181,9 +181,9 @@ struct EditProfileTenantView: View {
                     .font(.headline)
                     .padding(.top, 18)
                     .padding(.bottom, 8)
-
+                
                 Divider()
-
+                
                 Button {
                     showPhotoOptions = false
                     showGallery = true
@@ -191,23 +191,23 @@ struct EditProfileTenantView: View {
                     row(icon: "photo.on.rectangle.angled",
                         title: "Choose from Gallery")
                 }
-
+                
                 Divider()
-
+                
                 Button {
                     showPhotoOptions = false
                     showCamera = true
                 } label: {
                     row(icon: "camera.fill", title: "Take Photo")
                 }
-
+                
                 Spacer(minLength: 0)
             }
             .padding()
             .presentationDetents([.height(180)])
             .presentationDragIndicator(.visible)
         }
-
+        
         // GALLERY PICKER
         .photosPicker(isPresented: $showGallery, selection: $pickedItem)
         .onChange(of: pickedItem) { _, newItem in
@@ -218,13 +218,13 @@ struct EditProfileTenantView: View {
                 }
             }
         }
-
+        
         // CAMERA PICKER
         .sheet(isPresented: $showCamera) {
             CameraPickerViewModel(image: $profileImage)
         }
     }
-
+    
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -233,7 +233,7 @@ struct EditProfileTenantView: View {
         .font(.subheadline)
         .foregroundColor(.secondary)
     }
-
+    
     private func row(icon: String, title: String) -> some View {
         HStack(spacing: 14) {
             ZStack {
@@ -243,10 +243,10 @@ struct EditProfileTenantView: View {
                     .font(.system(size: 18, weight: .semibold))
             }
             .frame(width: 32, height: 32)
-
+            
             Text(title)
                 .foregroundColor(.primary)
-
+            
             Spacer()
         }
         .padding(.vertical, 12)

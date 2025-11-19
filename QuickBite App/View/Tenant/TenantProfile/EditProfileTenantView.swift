@@ -1,18 +1,27 @@
+//
+//  EditProfileTenantView.swift
+//  QuickBite App
+//
+//  Created by jessica tedja on 10/11/25.
+//
+
 import SwiftUI
 import PhotosUI
 import UIKit
 
-// MARK: - Edit Profile (Tenant)
 struct EditProfileTenantView: View {
+
     let tenantusername: String
     @Binding var tenantfullName: String
     @Binding var tenantphoneCode: String
     @Binding var tenantphone: String
     @Binding var tenantemail: String
+
     var onSave: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @FocusState private var focusedField: Field?
+
     @State private var profileImage: UIImage? = nil
     @State private var showPhotoOptions = false
     @State private var showCamera = false
@@ -24,7 +33,8 @@ struct EditProfileTenantView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
-                // MARK: Profile Picture Section
+
+                // MARK: Avatar Section
                 VStack(spacing: 8) {
                     ZStack {
                         if let img = profileImage {
@@ -35,11 +45,9 @@ struct EditProfileTenantView: View {
                                 .clipShape(Circle())
                         } else {
                             Circle()
-                                .fill(
-                                    LinearGradient(colors: [.orange, .orange.opacity(0.7)],
-                                                   startPoint: .topLeading,
-                                                   endPoint: .bottomTrailing)
-                                )
+                                .fill(LinearGradient(colors: [.orange, .orange.opacity(0.7)],
+                                                     startPoint: .topLeading,
+                                                     endPoint: .bottomTrailing))
                                 .frame(width: 96, height: 96)
                             Image(systemName: "person.fill")
                                 .font(.system(size: 44))
@@ -66,8 +74,9 @@ struct EditProfileTenantView: View {
                 }
                 .padding(.top, 6)
 
-                // MARK: Form Section
                 VStack(spacing: 14) {
+
+                    // USERNAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Username")
                         TextField("", text: .constant(tenantusername))
@@ -76,6 +85,7 @@ struct EditProfileTenantView: View {
                             .opacity(0.7)
                     }
 
+                    // FULL NAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
                         HStack {
@@ -97,13 +107,12 @@ struct EditProfileTenantView: View {
                         .background(.white, in: RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(
-                                    Color.orange.opacity(0.5),
-                                    lineWidth: focusedField == .fullName ? 1.2 : 0.3
-                                )
+                                .stroke(Color.orange.opacity(0.5),
+                                        lineWidth: focusedField == .fullName ? 1.2 : 0.3)
                         )
                     }
 
+                    // PHONE (LOCKED)
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Phone Number")
                         HStack(spacing: 8) {
@@ -116,26 +125,26 @@ struct EditProfileTenantView: View {
                             .background(Color(.secondarySystemBackground),
                                         in: RoundedRectangle(cornerRadius: 8))
 
-                            TextField("82134584979", text: $tenantphone)
-                                .keyboardType(.numberPad)
-                                .focused($focusedField, equals: .phone)
+                            TextField("", text: $tenantphone)
                                 .padding(10)
                                 .background(Color(.secondarySystemBackground),
                                             in: RoundedRectangle(cornerRadius: 8))
+                                .disabled(true)
+                                .foregroundColor(.secondary)
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
-                        TextField("name@example.com", text: $tenantemail)
+                        TextField("", text: $tenantemail)
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
                             .autocorrectionDisabled()
-                            .focused($focusedField, equals: .email)
                             .textFieldStyle(.roundedBorder)
+                            .disabled(true)
+                            .foregroundColor(.secondary)
                     }
 
-                    // MARK: Save Button
                     Button {
                         if let data = profileImage?.jpegData(compressionQuality: 0.9) {
                             UserDefaults.standard.set(data, forKey: "tenant.avatar")
@@ -157,15 +166,15 @@ struct EditProfileTenantView: View {
                 .padding(.bottom, 40)
             }
         }
-        .background(Color(.systemBackground))
-        .navigationTitle("Edit Profile")
-        .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             if let data = UserDefaults.standard.data(forKey: "tenant.avatar") {
                 profileImage = UIImage(data: data)
             }
         }
+        .navigationTitle("Edit Profile")
+        .navigationBarTitleDisplayMode(.inline)
 
+        // PHOTO OPTIONS SHEET
         .sheet(isPresented: $showPhotoOptions) {
             VStack(spacing: 0) {
                 Text("Edit Profile Photo")
@@ -179,7 +188,8 @@ struct EditProfileTenantView: View {
                     showPhotoOptions = false
                     showGallery = true
                 } label: {
-                    row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
+                    row(icon: "photo.on.rectangle.angled",
+                        title: "Choose from Gallery")
                 }
 
                 Divider()
@@ -193,31 +203,28 @@ struct EditProfileTenantView: View {
 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal)
-            .presentationDetents([.fraction(0.25)])
+            .padding()
+            .presentationDetents([.height(180)])
             .presentationDragIndicator(.visible)
-            .presentationCornerRadius(22)
         }
 
-        // Gallery Picker
+        // GALLERY PICKER
         .photosPicker(isPresented: $showGallery, selection: $pickedItem)
-        .onChange(of: pickedItem) { _, newValue in
-            guard let newValue else { return }
+        .onChange(of: pickedItem) { _, newItem in
             Task {
-                if let data = try? await newValue.loadTransferable(type: Data.self),
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
                     profileImage = uiImage
                 }
             }
         }
 
-        // Camera Sheet
+        // CAMERA PICKER
         .sheet(isPresented: $showCamera) {
-            TenantCameraPicker(image: $profileImage)
+            CameraPickerViewModel(image: $profileImage)
         }
     }
 
-    // MARK: - Helper Components
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -239,47 +246,10 @@ struct EditProfileTenantView: View {
 
             Text(title)
                 .foregroundColor(.primary)
+
             Spacer()
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
     }
-}
-
-struct TenantCameraPicker: UIViewControllerRepresentable {
-    @Environment(\.presentationMode) private var presentationMode
-    @Binding var image: UIImage?
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-
-    func makeUIViewController(context: Context) -> UIImagePickerController {
-        let vc = UIImagePickerController()
-        vc.sourceType = .camera
-        vc.cameraCaptureMode = .photo
-        vc.delegate = context.coordinator
-        return vc
-    }
-
-    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
-
-    final class Coordinator: NSObject, UINavigationControllerDelegate, UIImagePickerControllerDelegate {
-        let parent: TenantCameraPicker
-        init(_ parent: TenantCameraPicker) { self.parent = parent }
-
-        func imagePickerController(_ picker: UIImagePickerController,
-                                   didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
-            if let img = info[.originalImage] as? UIImage {
-                parent.image = img
-            }
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-
-        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
-            parent.presentationMode.wrappedValue.dismiss()
-        }
-    }
-}
-
-#Preview {
-    TenantContentView()
 }

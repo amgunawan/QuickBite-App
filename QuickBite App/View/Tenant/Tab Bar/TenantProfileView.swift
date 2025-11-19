@@ -91,13 +91,17 @@ struct TenantProfileCard: View {
 
 struct TenantProfileView: View {
     @State private var tenantusername = "sharontan1"
-    @State private var tenantemail = "sharontan1@gmail.com"
+    @State private var tenantemail =
+            UserDefaults.standard.string(forKey: "tenant.email") ?? "sharontan1@gmail.com"
     @State private var tenantlanguage = "English"
 
     @State private var showEditProfile = false
-    @State private var tenantfullName = "Sharon Tan"
-    @State private var tenantphoneCode = "+62"
-    @State private var tenantphone = "82134584979"
+    @State private var tenantfullName =
+            UserDefaults.standard.string(forKey: "tenant.fullName") ?? "Sharon Tan"
+    @State private var tenantphoneCode =
+            UserDefaults.standard.string(forKey: "tenant.phoneCode") ?? "+62"
+    @State private var tenantphone =
+            UserDefaults.standard.string(forKey: "tenant.phone") ?? "82134584979"
 
     @State private var tenantProfileImage: UIImage? = nil
 
@@ -186,9 +190,13 @@ struct TenantProfileView: View {
                 )
             }
         }
-        .onAppear { reloadAvatar() }
-        .onChange(of: showEditProfile) { _, open in
-            if !open { reloadAvatar() }
+        .onAppear {
+            reloadAvatar()
+            
+            // === FIX: RELOAD FULL NAME ===
+            if let savedName = UserDefaults.standard.string(forKey: "tenant.fullName") {
+                tenantfullName = savedName
+            }
         }
     }
 

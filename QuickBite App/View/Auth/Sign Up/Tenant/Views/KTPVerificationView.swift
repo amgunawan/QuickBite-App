@@ -65,9 +65,10 @@ struct KTPVerificationView: View {
                                 }
                             }) {
                                 VStack(spacing: 8) {
-                                    Image(systemName: "cloud.upload.fill")
+                                    Image(systemName: "arrow.up.circle")
                                         .resizable()
-                                        .frame(width: 40, height: 30)
+                                        .scaledToFit()
+                                        .frame(width: 40, height: 40)
                                         .foregroundColor(.secondary)
                                     
                                     Text("Click here to upload KTP photo")

@@ -125,40 +125,57 @@ struct TenantHomeView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                ZStack(alignment: .top) {
-                    HeaderBackgroundView(height: 160)
-                        .frame(height: 52)
-                        .ignoresSafeArea(edges: .top)
-                    VStack(spacing: 20) {
-                        VStack(spacing: 10) {
-                            Text("Home")
-                                .font(.title)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            // Header Card
-                            Card {
-                                HStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text("Welcome, \(tenantName)!")
-                                            .font(.title3).fontWeight(.bold)
-                                        Text("It's a great day to serve delicious bites!")
-                                            .font(.subheadline)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Spacer()
-                                    Image("Raburi")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 62, height: 62)
-                                        .cornerRadius(8)
-                                        .accessibilityHidden(true)
-                                }
+            ZStack(alignment: .top) {
+                
+                // === Background Header fixed ===
+                VStack(spacing: 0) {
+                    HeaderBackgroundView(height: 120)  // sama dengan profile view
+                    Spacer()
+                }
+                
+                VStack(spacing: 0) {
+                    
+                    // === Title fixed ===
+                    Text("Home")
+                        .font(.title)
+                        .fontWeight(.bold)
+                        .foregroundColor(.black)
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    // === Fixed Header Card (mengikuti profile view) ===
+                    Card {
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Welcome, \(tenantName)!")
+                                    .font(.title3).fontWeight(.bold)
+                                
+                                Text("It's a great day to serve delicious bites!")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
                             }
+                            Spacer()
+                            Image("Raburi")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 62, height: 62)
+                                .cornerRadius(8)
                         }
-                        
-                        VStack(spacing: 10) {
-                            // Button Scan QR Code
+                    }
+                    .padding(.horizontal)
+                    .offset(y: -10)       // sama seperti profile card
+                    .zIndex(1)
+                    
+                    // === Scrollable CONTENT ===
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 16) {
+                            
+                            // ======================
+                            // ALL YOUR CONTENT BELOW
+                            // ======================
+                            
+                            // Scan Button
                             Button(action: {}) {
                                 HStack {
                                     Text("Scan Order QR")
@@ -174,370 +191,380 @@ struct TenantHomeView: View {
                                 .cornerRadius(UIConst.corner)
                             }
                             
-                            // Wallet Card
-                            ZStack {
-                                RoundedRectangle(cornerRadius: UIConst.corner)
-                                    .fill(UIConst.brandOrange)
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Total Wallet Balance")
-                                        .font(.headline)
-                                        .foregroundColor(.white)
-                                    Text(formattedBalance)
-                                        .font(.title2).fontWeight(.bold)
-                                        .foregroundColor(.white)
-                                    Divider().frame(height: 1).background(Color.white)
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "calendar")
-                                        Text("Scheduled for \(formattedScheduled)")
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.white)
-                                    Text("Transferred automatically to your registered account.")
-                                        .font(.caption2)
-                                        .foregroundColor(.white.opacity(0.9))
-                                }
-                                .padding()
-                            }
+                            // Wallet
+                            walletCard
                             
-                            // Performance Overview
-                            Card {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Today's Performance Overview")
-                                        .font(.headline)
-                                    HStack(spacing: 6) {
-                                        MetricCard(metric: .init(title: "Total Income",
-                                                                 value: "Rp \(Int(totalIncome))",
-                                                                 subtitle: "↑ 1.3% Up from yesterday",
-                                                                 icon: "creditcard"))
-                                        MetricCard(metric: .init(title: "Total Orders",
-                                                                 value: "\(totalOrders) orders",
-                                                                 subtitle: "↑ 4.3% Up from yesterday",
-                                                                 icon: "cart"))
-                                        MetricCard(metric: .init(title: "Pending Orders",
-                                                                 value: "\(pendingPickups) orders",
-                                                                 subtitle: "",
-                                                                 icon: "clock"))
-                                    }
-                                }
-                            }
+                            // Performance
+                            performanceSection
                             
                             // Weekly Sales
-                            Card {
-                                LineChart(points: weeklySales)
-                            }
+                            Card { LineChart(points: weeklySales) }
                             
                             // Rating
-                            Card {
-                                VStack(alignment: .leading, spacing: 5) {
-                                    HStack {
-                                        Text("Customer Rating")
-                                            .font(.headline)
-                                        Spacer()
-                                        Button("See All") { showAllReviews = true }
-                                            .font(.subheadline)
-                                    }
-                                    HStack(spacing: 5) {
-                                        Text(String(format: "%.1f", ratingScore))
-                                            .font(.system(size: 40, weight: .bold))
-                                            .foregroundColor(UIConst.brandOrange)
-                                        Text("/ 5")
-                                            .font(.title3)
-                                            .foregroundColor(.secondary)
-                                    }
-                                    Text("(Based on \(totalReviews) reviews)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                    RatingStars(rating: ratingScore, size: 25)
-                                }
-                            }
+                            ratingSection
                             
-                            // Top 3 Menu
-                            Card {
-                                VStack(alignment: .leading, spacing: 10) {
-                                    Text("Top 3 Menu Items")
-                                        .font(.headline)
-                                    HStack {
-                                        Text("No").frame(width: 30).foregroundColor(UIConst.brandOrange)
-                                        Text("Menu").frame(maxWidth: .infinity, alignment: .leading).foregroundColor(UIConst.brandOrange)
-                                        Text("Sold").frame(width: 50, alignment: .trailing).foregroundColor(UIConst.brandOrange)
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    Divider()
-                                    ForEach(topMenu) { item in
-                                        HStack {
-                                            Text("\(item.index).").frame(width: 30).font(.footnote)
-                                            Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
-                                                .font(.footnote)
-                                            Text("\(item.sold)").font(.footnote).frame(width: 50, alignment: .trailing)
-                                        }
-                                        Divider()
-                                    }
-                                }
-                            }
+                            // Top Menu
+                            topMenuSection
                             
-                            // Busiest Hours
+                            // Busy Hours
                             Card {
                                 VStack(alignment: .leading, spacing: 12) {
                                     Text("Order Busiest Hours Heatmap")
                                         .font(.headline)
                                     BarChart(items: busiestHours)
-                                    
                                 }
                             }
                             
                             // Low Stock
-                            Card {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    HStack {
-                                        Text("Low Stock Items").font(.headline)
-                                        Spacer()
-                                        Button("See All") {}
-                                            .font(.subheadline)
-                                    }
-                                    HStack {
-                                        Text("No").frame(width: 30).foregroundColor(UIConst.brandOrange)
-                                        Text("Menu").frame(maxWidth: .infinity, alignment: .leading).foregroundColor(UIConst.brandOrange)
-                                        Text("Stock Left").frame(width: 80, alignment: .trailing).foregroundColor(UIConst.brandOrange)
-                                    }
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    Divider()
-                                    ForEach(lowStock) { s in
-                                        HStack {
-                                            Text("\(s.index).").frame(width: 30).font(.footnote)
-                                            Text(s.name).frame(maxWidth: .infinity, alignment: .leading).font(.footnote)
-                                            Text("\(s.left)").frame(width: 80, alignment: .trailing).font(.footnote)
-                                        }
-                                        Divider()
-                                    }
-                                }
-                            }
+                            lowStockSection
+                            
                         }
+                        .padding(.horizontal)
+                        .padding(.top, 10)
+                        .padding(.bottom, 30)
                     }
-                    .padding(.horizontal)
-                    .padding(.bottom)
+                    .scrollContentBackground(.hidden)
                 }
             }
-            .scrollContentBackground(.hidden)
+            .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $showAllReviews) {
                 AllReviewsTenantView()
             }
-            
-            .toolbarBackground(.hidden, for: .navigationBar)
-            .navigationBarTitleDisplayMode(.inline)
-        }
-    }
-}
-
-// MARK: - Components
-struct Card<Content: View>: View {
-    @ViewBuilder let content: () -> Content
-    var body: some View {
-        content()
-            .padding(UIConst.pad)
-            .background(UIConst.softCardBG)
-            .overlay(
-                RoundedRectangle(cornerRadius: UIConst.corner)
-                    .stroke(UIConst.hairline, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: UIConst.corner))
-            .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
-            .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
-    }
-}
-
-struct MetricCard: View {
-    let metric: SummaryMetrics
-    
-    private var borderColor: Color {
-        switch metric.title {
-        case "Total Income": return .green
-        case "Total Orders": return .orange
-        default:             return .red
         }
     }
     
-    var body: some View {
-        VStack(spacing: 8) {
-            HStack {
-                Spacer()
-                ZStack {
-                    Circle()
-                        .fill(borderColor.opacity(0.15))
-                        .frame(width: 30, height: 30)
-                    Image(systemName: metric.icon)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(borderColor)
-                }
-                Spacer()
-            }
+    
+    // MARK: Wallet Card
+    private var walletCard: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: UIConst.corner)
+                .fill(UIConst.brandOrange)
             
-            VStack(alignment: .center, spacing: 6) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Total Wallet Balance").font(.headline).foregroundColor(.white)
+                Text(formattedBalance).font(.title2).fontWeight(.bold).foregroundColor(.white)
+                Divider().background(Color.white)
                 HStack(spacing: 6) {
-                    Text(metric.title)
-                        .font(.footnote)
-                        .foregroundColor(.secondary)
+                    Image(systemName: "calendar")
+                    Text("Scheduled for \(formattedScheduled)")
                 }
-                Text(metric.value)
-                    .font(.headline).fontWeight(.semibold)
-                //                if !metric.subtitle.isEmpty {
-                //                    Text(metric.subtitle)
-                //                        .font(.caption)
-                //                        .foregroundColor(.green)
-                //                }
+                .font(.caption)
+                .foregroundColor(.white)
+                Text("Transferred automatically to your registered account.")
+                    .font(.caption2)
+                    .foregroundColor(.white.opacity(0.9))
             }
-            .multilineTextAlignment(.center)
+            .padding()
         }
-        .padding(.vertical, 12)
-        .frame(minHeight: 110)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(borderColor.opacity(0.5), lineWidth: 1)
-        )
     }
-}
-
-struct RatingStars: View {
-    let rating: Double
-    let size: CGFloat
-    var body: some View {
-        HStack(spacing: 3) {
-            ForEach(0..<5, id: \.self) { i in
-                Image(systemName: i < Int(round(rating)) ? "star.fill" : "star")
-                    .font(.system(size: size))
-                    .foregroundColor(UIConst.brandOrange)
+    private var performanceSection: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Today's Performance Overview")
+                    .font(.headline)
+                
+                HStack(spacing: 6) {
+                    MetricCard(metric: .init(title: "Total Income", value: "Rp \(Int(totalIncome))", subtitle: "", icon: "creditcard"))
+                    MetricCard(metric: .init(title: "Total Orders", value: "\(totalOrders) orders", subtitle: "", icon: "cart"))
+                    MetricCard(metric: .init(title: "Pending Orders", value: "\(pendingPickups) orders", subtitle: "", icon: "clock"))
+                }
             }
         }
     }
-}
-
-// MARK: - LineChart
-struct LineChart: View {
-    let points: [DaySalesPoint]
-    @State private var hoveredPoint: DaySalesPoint? = nil
     
-    private var maxValue: Double {
-        guard let max = points.map(\.value).max() else { return 1 }
-        return max == 0 ? 1 : max
-    }
-    
-    // MARK: - Currency Formatter
-    private var currencyFormatter: NumberFormatter {
-        let nf = NumberFormatter()
-        nf.numberStyle = .decimal
-        nf.groupingSeparator = "."
-        nf.maximumFractionDigits = 0
-        return nf
-    }
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // MARK: - Title
-            Text("Weekly Performance Sales Trends")
-                .font(.headline)
-                .padding(.bottom, 1)
-            
-            HStack(spacing: 4) {
-                Image(systemName: "arrow.up.right")
-                    .font(.caption)
-                    .foregroundColor(.green)
-                Text("Up 12% compared to last week")
-                    .font(.caption)
-                    .foregroundColor(.green)
-            }
-            
-            // MARK: - Chart
-            GeometryReader { geo in
-                let chartWidth = geo.size.width - 70   // give space for y-axis
-                let chartHeight = geo.size.height - 30 // keep Rp0 visible
-                let stepX = chartWidth / CGFloat(points.count-1)
-                
-                let scaledPoints = points.enumerated().map { i, p in
-                    CGPoint(
-                        x: CGFloat(i) * stepX,
-                        y: chartHeight - CGFloat(p.value / maxValue) * (chartHeight)
-                    )
+    private var ratingSection: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 5) {
+                HStack {
+                    Text("Customer Rating").font(.headline)
+                    Spacer()
+                    Button("See All") { showAllReviews = true }
+                        .font(.subheadline)
                 }
                 
-                HStack(alignment: .top, spacing: 5) {
-                    // MARK: - Y Axis
-                    VStack(alignment: .trailing, spacing: chartHeight / 8) {
-                        ForEach((0...4).reversed(), id: \.self) { i in
-                            let value = maxValue / 4 * Double(i)
-                            Text("Rp\(currencyFormatter.string(from: NSNumber(value: value)) ?? "0")")
-                                .font(.caption2)
-                                .foregroundColor(.secondary)
-                        }
+                HStack(spacing: 5) {
+                    Text(String(format: "%.1f", ratingScore))
+                        .font(.system(size: 40, weight: .bold))
+                        .foregroundColor(UIConst.brandOrange)
+                    Text("/ 5").font(.title3).foregroundColor(.secondary)
+                }
+                
+                Text("(Based on \(totalReviews) reviews)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+                RatingStars(rating: ratingScore, size: 25)
+            }
+        }
+    }
+    
+    private var topMenuSection: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 10) {
+                Text("Top 3 Menu Items").font(.headline)
+                
+                HStack {
+                    Text("No").frame(width: 30)
+                    Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Sold").frame(width: 50, alignment: .trailing)
+                }
+                .font(.caption)
+                .foregroundColor(UIConst.brandOrange)
+                
+                Divider()
+                
+                ForEach(topMenu) { item in
+                    HStack {
+                        Text("\(item.index).").frame(width: 30)
+                        Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
+                        Text("\(item.sold)").frame(width: 50, alignment: .trailing)
                     }
-                    .frame(width: 60)
+                    Divider()
+                }
+            }
+        }
+    }
+    
+    private var lowStockSection: some View {
+        Card {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Low Stock Items").font(.headline)
+                    Spacer()
+                    Button("See All") {}.font(.subheadline)
+                }
+                
+                HStack {
+                    Text("No").frame(width: 30)
+                    Text("Menu").frame(maxWidth: .infinity, alignment: .leading)
+                    Text("Stock Left").frame(width: 80, alignment: .trailing)
+                }
+                .font(.caption)
+                .foregroundColor(UIConst.brandOrange)
+                
+                Divider()
+                
+                ForEach(lowStock) { s in
+                    HStack {
+                        Text("\(s.index).").frame(width: 30)
+                        Text(s.name).frame(maxWidth: .infinity, alignment: .leading)
+                        Text("\(s.left)").frame(width: 80, alignment: .trailing)
+                    }
+                    Divider()
+                }
+            }
+        }
+    }
+    
+    
+    // MARK: - Components
+    struct Card<Content: View>: View {
+        @ViewBuilder let content: () -> Content
+        var body: some View {
+            content()
+                .padding(UIConst.pad)
+                .background(UIConst.softCardBG)
+                .overlay(
+                    RoundedRectangle(cornerRadius: UIConst.corner)
+                        .stroke(UIConst.hairline, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: UIConst.corner))
+                .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
+                .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
+        }
+    }
+    
+    struct MetricCard: View {
+        let metric: SummaryMetrics
+        
+        private var borderColor: Color {
+            switch metric.title {
+            case "Total Income": return .green
+            case "Total Orders": return .orange
+            default:             return .red
+            }
+        }
+        
+        var body: some View {
+            VStack(spacing: 8) {
+                HStack {
+                    Spacer()
+                    ZStack {
+                        Circle()
+                            .fill(borderColor.opacity(0.15))
+                            .frame(width: 30, height: 30)
+                        Image(systemName: metric.icon)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(borderColor)
+                    }
+                    Spacer()
+                }
+                
+                VStack(alignment: .center, spacing: 6) {
+                    HStack(spacing: 6) {
+                        Text(metric.title)
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                    }
+                    Text(metric.value)
+                        .font(.headline).fontWeight(.semibold)
+                    //                if !metric.subtitle.isEmpty {
+                    //                    Text(metric.subtitle)
+                    //                        .font(.caption)
+                    //                        .foregroundColor(.green)
+                    //                }
+                }
+                .multilineTextAlignment(.center)
+            }
+            .padding(.vertical, 12)
+            .frame(minHeight: 110)
+            .overlay(
+                RoundedRectangle(cornerRadius: 12)
+                    .stroke(borderColor.opacity(0.5), lineWidth: 1)
+            )
+        }
+    }
+    
+    struct RatingStars: View {
+        let rating: Double
+        let size: CGFloat
+        var body: some View {
+            HStack(spacing: 3) {
+                ForEach(0..<5, id: \.self) { i in
+                    Image(systemName: i < Int(round(rating)) ? "star.fill" : "star")
+                        .font(.system(size: size))
+                        .foregroundColor(UIConst.brandOrange)
+                }
+            }
+        }
+    }
+    
+    // MARK: - LineChart
+    struct LineChart: View {
+        let points: [DaySalesPoint]
+        @State private var hoveredPoint: DaySalesPoint? = nil
+        
+        private var maxValue: Double {
+            guard let max = points.map(\.value).max() else { return 1 }
+            return max == 0 ? 1 : max
+        }
+        
+        // MARK: - Currency Formatter
+        private var currencyFormatter: NumberFormatter {
+            let nf = NumberFormatter()
+            nf.numberStyle = .decimal
+            nf.groupingSeparator = "."
+            nf.maximumFractionDigits = 0
+            return nf
+        }
+        
+        var body: some View {
+            VStack(alignment: .leading, spacing: 8) {
+                // MARK: - Title
+                Text("Weekly Performance Sales Trends")
+                    .font(.headline)
+                    .padding(.bottom, 1)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "arrow.up.right")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                    Text("Up 12% compared to last week")
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+                
+                // MARK: - Chart
+                GeometryReader { geo in
+                    let chartWidth = geo.size.width - 70   // give space for y-axis
+                    let chartHeight = geo.size.height - 30 // keep Rp0 visible
+                    let stepX = chartWidth / CGFloat(points.count-1)
                     
-                    // MARK: - Chart Body
-                    ZStack(alignment: .bottomLeading) {
-                        // Line Path
-                        Path { path in
-                            guard let first = scaledPoints.first else { return }
-                            path.move(to: first)
-                            scaledPoints.dropFirst().forEach { path.addLine(to: $0) }
-                        }
-                        .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
-                        
-                        // Dots + Tooltip
-                        ForEach(Array(points.enumerated()), id: \.offset) { i, p in
-                            let pt = scaledPoints[i]
-                            Circle()
-                                .fill(Color.orange)
-                                .frame(width: 7, height: 7)
-                                .position(pt)
-                                .onTapGesture {
-                                    withAnimation(.easeInOut) {
-                                        hoveredPoint = hoveredPoint?.id == p.id ? nil : p
-                                    }
-                                }
-                            
-                            // Tooltip bubble
-                            if hoveredPoint?.id == p.id {
-                                VStack(spacing: 4) {
-                                    Text("Rp \(currencyFormatter.string(from: NSNumber(value: p.value)) ?? "0")")
-                                        .font(.caption2)
-                                        .fontWeight(.medium)
-                                        .padding(6)
-                                        .background(Color.white)
-                                        .cornerRadius(6)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6)
-                                                .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-                                        )
-                                        .shadow(radius: 2)
-                                    Triangle()
-                                        .fill(Color.white)
-                                        .frame(width: 8, height: 5)
-                                }
-                                .position(x: pt.x, y: pt.y - 25)
-                            }
-                        }
-                        
-                        // X Axis Labels
-                        HStack(spacing: 5) {
-                            ForEach(points) { p in
-                                Text(p.day)
+                    let scaledPoints = points.enumerated().map { i, p in
+                        CGPoint(
+                            x: CGFloat(i) * stepX,
+                            y: chartHeight - CGFloat(p.value / maxValue) * (chartHeight)
+                        )
+                    }
+                    
+                    HStack(alignment: .top, spacing: 5) {
+                        // MARK: - Y Axis
+                        VStack(alignment: .trailing, spacing: chartHeight / 8) {
+                            ForEach((0...4).reversed(), id: \.self) { i in
+                                let value = maxValue / 4 * Double(i)
+                                Text("Rp\(currencyFormatter.string(from: NSNumber(value: value)) ?? "0")")
                                     .font(.caption2)
                                     .foregroundColor(.secondary)
-                                    .frame(maxWidth: .infinity)
                             }
                         }
-                        .frame(maxHeight: .infinity, alignment: .bottom)
+                        .frame(width: 60)
+                        
+                        // MARK: - Chart Body
+                        ZStack(alignment: .bottomLeading) {
+                            // Line Path
+                            Path { path in
+                                guard let first = scaledPoints.first else { return }
+                                path.move(to: first)
+                                scaledPoints.dropFirst().forEach { path.addLine(to: $0) }
+                            }
+                            .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
+                            
+                            // Dots + Tooltip
+                            ForEach(Array(points.enumerated()), id: \.offset) { i, p in
+                                let pt = scaledPoints[i]
+                                Circle()
+                                    .fill(Color.orange)
+                                    .frame(width: 7, height: 7)
+                                    .position(pt)
+                                    .onTapGesture {
+                                        withAnimation(.easeInOut) {
+                                            hoveredPoint = hoveredPoint?.id == p.id ? nil : p
+                                        }
+                                    }
+                                
+                                // Tooltip bubble
+                                if hoveredPoint?.id == p.id {
+                                    VStack(spacing: 4) {
+                                        Text("Rp \(currencyFormatter.string(from: NSNumber(value: p.value)) ?? "0")")
+                                            .font(.caption2)
+                                            .fontWeight(.medium)
+                                            .padding(6)
+                                            .background(Color.white)
+                                            .cornerRadius(6)
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 6)
+                                                    .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
+                                            )
+                                            .shadow(radius: 2)
+                                        Triangle()
+                                            .fill(Color.white)
+                                            .frame(width: 8, height: 5)
+                                    }
+                                    .position(x: pt.x, y: pt.y - 25)
+                                }
+                            }
+                            
+                            // X Axis Labels
+                            HStack(spacing: 5) {
+                                ForEach(points) { p in
+                                    Text(p.day)
+                                        .font(.caption2)
+                                        .foregroundColor(.secondary)
+                                        .frame(maxWidth: .infinity)
+                                }
+                            }
+                            .frame(maxHeight: .infinity, alignment: .bottom)
+                        }
+                        .frame(width: chartWidth)
                     }
-                    .frame(width: chartWidth)
                 }
+                .frame(height: 200)
             }
-            .frame(height: 200)
+            .padding(.horizontal, 8)
+            .padding(.top, 4)
         }
-        .padding(.horizontal, 8)
-        .padding(.top, 4)
     }
 }
-
 // MARK: - Triangle (Tooltip Pointer)
 struct Triangle: Shape {
     func path(in rect: CGRect) -> Path {
@@ -657,11 +684,10 @@ private struct HomeHeaderBackgroundView: View {
 // MARK: - Helpers
 extension Calendar {
     func startOfMonth(for date: Date) -> Date {
-        let comps = dateComponents([.year, .month], from: date)
-        return self.date(from: comps) ?? date
+        let components = dateComponents([.year, .month], from: date)
+        return self.date(from: components) ?? date
     }
 }
-
 #Preview {
     TenantHomeView()
 }

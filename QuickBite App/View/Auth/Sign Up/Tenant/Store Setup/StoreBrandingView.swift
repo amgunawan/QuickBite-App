@@ -1,3 +1,10 @@
+//
+//  StoreBrandingView.swift
+//  QuickBite
+//
+//  Created by student on 13/11/25.
+//
+
 import SwiftUI
 import PhotosUI
 

@@ -1,3 +1,10 @@
+//
+//  EditMenuTenantView.swift
+//  QuickBite App
+//
+//  Created by jessica tedja on 10/11/25.
+//
+
 import SwiftUI
 
 struct EditMenuTenantView: View {
@@ -12,6 +19,8 @@ struct EditMenuTenantView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+
+                // === HEADER ===
                 HStack {
                     Text("Edit Item")
                         .font(.headline)
@@ -26,9 +35,10 @@ struct EditMenuTenantView: View {
                 .padding()
                 .background(Color(.systemBackground))
                 .zIndex(2)
-                
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 20) {
+
+                // === CONTENT ===
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 22) {
 
                         itemPictureSection
                         Divider()
@@ -38,14 +48,14 @@ struct EditMenuTenantView: View {
 
                         customizationSection
 
-                        Spacer(minLength: 120)
+                        Spacer(minLength: 150)
                     }
                     .padding(.horizontal, 16)
                     .padding(.top, 12)
                 }
-                .zIndex(1)
             }
 
+            // === SAVE BUTTON ===
             .safeAreaInset(edge: .bottom) {
                 VStack {
                     Button {
@@ -68,88 +78,126 @@ struct EditMenuTenantView: View {
     }
 }
 
+// MARK: - SECTIONS
 private extension EditMenuTenantView {
+
+    // ============================
+    //      ITEM PICTURE SECTION
+    // ============================
     var itemPictureSection: some View {
         VStack(alignment: .leading, spacing: 14) {
 
             Text("Item Picture")
-                .font(.subheadline.weight(.semibold))
+                .font(.system(size: 17, weight: .semibold))
 
             HStack(alignment: .top, spacing: 14) {
 
+                // Preview
                 Image(item.imageName)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 90, height: 90)
+                    .frame(width: 98, height: 98)
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 10) {
-                    Button(action: {}) {
-                        HStack {
+
+                    // Top Row
+                    HStack(spacing: 10) {
+                        Button(action: {}) {
                             Text("Choose File")
-                                .font(.caption.weight(.semibold))
+                                .font(.system(size: 13, weight: .semibold))
                                 .foregroundColor(.orange)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(Color.orange.opacity(0.15))
+                                )
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 14)
-                        .background(
-                            Capsule()
-                                .fill(Color.orange.opacity(0.15))
-                        )
+                        .fixedSize()
+
+                        Text("katsu_shirokara.JPG")
+                            .font(.system(size: 13))
+                            .foregroundColor(.gray)
+                            .lineLimit(1)
                     }
-                    .fixedSize()
 
+                    Text("A clear, square image looks best")
+                        .font(.system(size: 13))
+                        .foregroundColor(.secondary)
 
-                    // STOCK
+                    // Stock
                     HStack(spacing: 6) {
                         Text("Current Stock:")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 15))
 
                         Stepper(value: $item.stock, in: 0...999) {
                             Text("\(item.stock)")
+                                .font(.system(size: 16))
+                                .frame(width: 45)
                         }
                         .labelsHidden()
-                        .frame(width: 100)
                     }
+                    .padding(.top, 4)
+
                 }
+
+                Spacer()
             }
         }
     }
+
+    // ============================
+    //      ITEM INFORMATION
+    // ============================
     var itemInformationSection: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Item Information")
-                .font(.subheadline.weight(.semibold))
 
-            // NAME
+            // Item Name
             VStack(alignment: .leading, spacing: 6) {
                 Text("Item Name")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                TextField("Item name", text: $item.name)
-                    .padding(10)
+                TextField("Enter name", text: $item.name)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(Color(.secondarySystemBackground))
                     )
+                    .font(.system(size: 15))
             }
 
-            // DESCRIPTION
+            // Description
             VStack(alignment: .leading, spacing: 6) {
                 Text("Short description")
                     .font(.caption)
                     .foregroundColor(.secondary)
 
-                TextEditor(text: $item.shortDescription)
-                    .frame(minHeight: 90)
-                    .padding(8)
-                    .background(
-                        RoundedRectangle(cornerRadius: 8)
-                            .fill(Color(.secondarySystemBackground))
-                    )
+                ZStack(alignment: .topLeading) {
+                    if item.shortDescription.isEmpty {
+                        Text("Enter short description...")
+                            .foregroundColor(.gray.opacity(0.5))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .font(.system(size: 15))
+                    }
+
+                    TextEditor(text: $item.shortDescription)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .frame(minHeight: 90)
+                        .font(.system(size: 15))
+                        .background(Color.clear)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.secondarySystemBackground))
+                )
             }
 
+            // Price + Prep Time
             HStack(spacing: 12) {
 
                 VStack(alignment: .leading, spacing: 6) {
@@ -161,7 +209,7 @@ private extension EditMenuTenantView {
                         .keyboardType(.numberPad)
                         .padding(10)
                         .background(
-                            RoundedRectangle(cornerRadius: 8)
+                            RoundedRectangle(cornerRadius: 10)
                                 .fill(Color(.secondarySystemBackground))
                         )
                 }
@@ -184,7 +232,7 @@ private extension EditMenuTenantView {
                     }
                     .padding(10)
                     .background(
-                        RoundedRectangle(cornerRadius: 8)
+                        RoundedRectangle(cornerRadius: 10)
                             .fill(Color(.secondarySystemBackground))
                     )
                 }
@@ -206,6 +254,9 @@ private extension EditMenuTenantView {
         }
     }
 
+    // ============================
+    //      CUSTOMIZATION
+    // ============================
     var customizationSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Customization Options")

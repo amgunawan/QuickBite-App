@@ -84,18 +84,21 @@ private extension EditMenuTenantView {
                     .clipShape(RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 10) {
-
-                    // Choose File button
                     Button(action: {}) {
                         HStack {
                             Text("Choose File")
                                 .font(.caption.weight(.semibold))
-                            Spacer(minLength: 0)
+                                .foregroundColor(.orange)
                         }
-                        .padding(.horizontal, 14)
                         .padding(.vertical, 8)
-                        .background(Color.orange.opacity(0.15), in: Capsule())
+                        .padding(.horizontal, 14)
+                        .background(
+                            Capsule()
+                                .fill(Color.orange.opacity(0.15))
+                        )
                     }
+                    .fixedSize()
+
 
                     // STOCK
                     HStack(spacing: 6) {

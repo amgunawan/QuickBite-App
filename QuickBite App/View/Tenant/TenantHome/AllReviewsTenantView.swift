@@ -308,6 +308,20 @@ struct AllReviewsTenantView: View {
         }
     }
 }
+struct RatingStars: View {
+    let rating: Double
+    let size: CGFloat
+
+    var body: some View {
+        HStack(spacing: 3) {
+            ForEach(0..<5, id: \.self) { i in
+                Image(systemName: i < Int(round(rating)) ? "star.fill" : "star")
+                    .font(.system(size: size))
+                    .foregroundColor(Color(hex: "#FF9500"))
+            }
+        }
+    }
+}
 
 // MARK: - Preview
 #Preview {

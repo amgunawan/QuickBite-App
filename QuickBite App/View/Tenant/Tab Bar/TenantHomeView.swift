@@ -7,6 +7,11 @@
 
 import SwiftUI
 
+enum TenantHomeDestination: Hashable {
+    case allReviews
+    case manageStock
+}
+
 // MARK: - Design Tokens
 private enum UIConst {
     static let corner: CGFloat = 16
@@ -55,6 +60,7 @@ struct StockItem: Identifiable {
 // MARK: - TenantHomeView
 struct TenantHomeView: View {
     @State private var showAllReviews = false
+    @State private var showManageStock = false
     @State private var tenantName: String = "Raburi"
     
     // Wallet
@@ -123,8 +129,10 @@ struct TenantHomeView: View {
         return df.string(from: scheduledDate)
     }
     
+    @State private var navPath = NavigationPath()
+    
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navPath) {
             ZStack(alignment: .top) {
                 
                 // === Background Header fixed ===
@@ -227,9 +235,17 @@ struct TenantHomeView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
-            .navigationDestination(isPresented: $showAllReviews) {
-                AllReviewsTenantView()
+            .navigationDestination(for: TenantHomeDestination.self) { destination in
+                switch destination {
+
+                case .allReviews:
+                    AllReviewsTenantView()
+
+                case .manageStock:
+                    ManageMenuStockTenantView()
+                }
             }
+
         }
     }
     
@@ -278,7 +294,7 @@ struct TenantHomeView: View {
                 HStack {
                     Text("Customer Rating").font(.headline)
                     Spacer()
-                    Button("See All") { showAllReviews = true }
+                    Button("See All") { navPath.append(TenantHomeDestination.allReviews) }
                         .font(.subheadline)
                 }
                 
@@ -331,7 +347,7 @@ struct TenantHomeView: View {
                 HStack {
                     Text("Low Stock Items").font(.headline)
                     Spacer()
-                    Button("See All") {}.font(.subheadline)
+                    Button("See All") { navPath.append(TenantHomeDestination.manageStock) }.font(.subheadline)
                 }
                 
                 HStack {

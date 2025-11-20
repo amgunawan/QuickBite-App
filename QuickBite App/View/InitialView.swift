@@ -15,7 +15,7 @@ struct InitialView: View {
     
     @StateObject private var authVM = AuthenticationViewModel()
     @State private var showSignInView: Bool = false
-    
+
     var body: some View {
         ZStack {
             VStack {

@@ -79,7 +79,6 @@ struct QuestView: View {
                         .fontWeight(.bold)
                         .foregroundColor(.black)
                         .padding(.horizontal)
-                        .padding(.top, 5)
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     
@@ -117,7 +116,7 @@ struct QuestView: View {
                             }
                         }
                         
-                        Spacer().frame(height: 40)
+                        Spacer()
                     }
                     .padding(.horizontal)
                 }

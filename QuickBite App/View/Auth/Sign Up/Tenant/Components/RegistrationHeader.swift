@@ -58,7 +58,7 @@ struct RegistrationHeader: View {
     }
     
     private func progressWidth(totalWidth: CGFloat) -> CGFloat {
-        let maxSteps = 4
+        let maxSteps = 3
         let percentage = CGFloat(step) / CGFloat(maxSteps)
         return totalWidth * percentage
     }

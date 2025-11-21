@@ -23,19 +23,31 @@ struct StoreLocationDetailsView: View {
                                title: "Store & Location Details",
                                subtitle: "Enter your primary business informations and location.")
             
-            Form {
-                Section {
-                    TextField("Store Name (e.g., Raburi Japanese Food)", text: $storeName)
-                    
+            VStack(spacing: 0) {
+                TextField("Store Name", text: $storeName)
+                    .padding(.horizontal)
+                    .frame(height: 50)
+                
+                Divider()
+                
+                HStack {
                     Picker("Location", selection: $selectedLocation) {
                         Text("Select your merchant area").tag("")
                         ForEach(locations, id: \.self) { loc in
                             Text(loc).tag(loc)
                         }
                     }
+                    .pickerStyle(.menu)
+                    .frame(height: 50)
+                    .tint(.orange)
+                    
+                    Spacer()
                 }
             }
-            .frame(height: 150)
+            .background(Color.white)
+            .cornerRadius(12)
+            .shadow(color: Color.black.opacity(0.05), radius: 5, x: 0, y: 2)
+            .padding(.horizontal)
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("Food Category (Choose up to 2)")
@@ -83,10 +95,10 @@ struct StoreLocationDetailsView: View {
                 }
             }
             
-            NavigationLink(destination: AccountCredentialsView(),
-                           label: {
-                OrangeButton(title: "Continue", action: {}, enabled: canContinue)
+            NavigationLink(destination: KTPVerificationView(), label: {
+                OrangeButton(title: "Continue", enabled: canContinue)
             })
+            .disabled(!canContinue)
             .simultaneousGesture(TapGesture().onEnded {
                 hideKeyboard()
             })

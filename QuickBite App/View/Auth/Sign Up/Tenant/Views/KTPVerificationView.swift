@@ -13,7 +13,7 @@ struct KTPVerificationView: View {
     var body: some View {
         VStack(spacing: 20) {
             
-            RegistrationHeader(step: 3,
+            RegistrationHeader(step: 2,
                                title: "KTP Verification",
                                subtitle: "Please upload a clear image of your KTP (Kartu Tanda Penduduk) for identity verification")
             
@@ -101,7 +101,7 @@ struct KTPVerificationView: View {
             
             NavigationLink(destination: PayoutSetupView(),
                            label: {
-                OrangeButton(title: "Continue", action: {}, enabled: isKtpUploaded)
+                OrangeButton(title: "Continue", enabled: isKtpUploaded)
             })
             .padding()
         }

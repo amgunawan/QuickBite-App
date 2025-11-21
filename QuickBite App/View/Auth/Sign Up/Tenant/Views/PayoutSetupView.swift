@@ -16,7 +16,7 @@ struct PayoutSetupView: View {
     var body: some View {
         VStack(spacing: 20) {
             
-            RegistrationHeader(step: 4,
+            RegistrationHeader(step: 3,
                                title: "Payout & QRIS Setup",
                                subtitle: "Please provide your bank details for daily payouts and your QRIS identifier")
             
@@ -54,7 +54,7 @@ struct PayoutSetupView: View {
             
             NavigationLink(destination: OnboardingView(),
                            label: {
-                OrangeButton(title: "Complete Registration", action: {}, enabled: canComplete)
+                OrangeButton(title: "Complete Registration", enabled: canComplete)
             })
             .padding()
             .simultaneousGesture(TapGesture().onEnded {

@@ -201,7 +201,7 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        NavigationLink(destination: SignUpFormTenantView()) {
+                        NavigationLink(destination: SignUpFormView(role: "merchant")) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)

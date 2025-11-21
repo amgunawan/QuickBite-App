@@ -41,7 +41,7 @@ struct SignUpFormTenantView: View {
             Spacer()
             
             NavigationLink(destination: StoreLocationDetailsView()) {
-                Text("Start Registration")
+                Text("Start Now")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)

@@ -48,7 +48,7 @@ struct ConfirmationView: View {
             .padding(.bottom, 40)
             
             NavigationLink(destination: StoreBrandingView(), label: {
-                OrangeButton(title: "Start Menu Setup", action: {}, enabled: true)
+                OrangeButton(title: "Start Menu Setup", enabled: true)
             })
             .padding(.horizontal, 60)
             Spacer()

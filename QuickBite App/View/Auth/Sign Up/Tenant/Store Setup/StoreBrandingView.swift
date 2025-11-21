@@ -169,7 +169,7 @@ struct StoreBrandingView: View {
             
             NavigationLink(destination: MenuSetupView(),
                            label: {
-                OrangeButton(title: "Continue to Menu Setup", action: {}, enabled: canContinue)
+                OrangeButton(title: "Continue to Menu Setup", enabled: canContinue)
             })
             .padding()
         }

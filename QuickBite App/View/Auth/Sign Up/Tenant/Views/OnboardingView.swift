@@ -24,8 +24,8 @@ struct OnboardingView: View {
             
             Spacer()
             
-            NavigationLink(destination: TenantProfileView()) {
-                OrangeButton(title: "Go to Dashboard", action: {}, enabled: true)
+            NavigationLink(destination: TenantContentView()) {
+                OrangeButton(title: "Go to Dashboard", enabled: true)
             }
             .padding(.horizontal)
         }

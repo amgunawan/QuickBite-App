@@ -14,6 +14,7 @@ struct SignUpFormView: View {
     @StateObject private var passwordVM = PasswordCheckViewModel()
     @State private var agreeTermsAndConditions = false
     @State private var showPassword = false
+    @State private var goNextScreen = false
     
     // Google Sign In
     @State private var loginError = ""
@@ -148,7 +149,7 @@ struct SignUpFormView: View {
                 .disabled(!canContinue)
                 .alert("Email Verification", isPresented: $userVerificationModal) {
                     Button("Verified?") {
-                        
+                        goNextScreen = true
                     }
                 } message: {
                     Text("We have sent a verification email to your address. Please check your inbox.")
@@ -191,9 +192,14 @@ struct SignUpFormView: View {
                 NavigationLink(value: isLoggedIn) {
                     EmptyView()
                 }
-                .navigationDestination(isPresented: $isLoggedIn) {
-                    UserContentView()
-                        .navigationBarBackButtonHidden(true)
+                .navigationDestination(isPresented: $goNextScreen) {
+                    if role == "user" {
+                        UserContentView()
+                            .navigationBarBackButtonHidden(true)
+                    } else {
+                        SignUpFormTenantView()
+                            .navigationBarBackButtonHidden(true)
+                    }
                 }
                 
                 Spacer()

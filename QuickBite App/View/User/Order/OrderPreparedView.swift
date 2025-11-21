@@ -10,7 +10,7 @@ import SwiftUI
 struct OrderPreparedView: View {
     // MARK: - States (Dummy Data)
     @State private var mealCount: Int = 1
-    @State private var mealName: String = "Chicken Katsu Shiokara Ramen"
+    @State private var mealName: String = "Chicken Katsu Shirokara Ramen"
     @State private var price: Double = 35_000
     @State private var discount: Double = 5_000
     @State private var serviceFee: Double = 2_500
@@ -28,9 +28,8 @@ struct OrderPreparedView: View {
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading) {
-
                 // MARK: - Title Section
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: 0) {
                     Text("\(mealCount) meal to pick up")
                         .font(.title)
                         .fontWeight(.semibold)
@@ -39,7 +38,9 @@ struct OrderPreparedView: View {
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
+                
                 Divider()
+                    .padding(.vertical, 4)
 
                 // MARK: - Reminder Banner
                 HStack(spacing: 8) {
@@ -53,7 +54,7 @@ struct OrderPreparedView: View {
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, 4)
                 
 
                 // MARK: - Order Details
@@ -78,7 +79,7 @@ struct OrderPreparedView: View {
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, 4)
 
                 // MARK: - Order in Preparation Section
                 VStack(spacing: 6) {
@@ -101,7 +102,7 @@ struct OrderPreparedView: View {
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, 4)
               
                 // MARK: - Restaurant Info
                 VStack(alignment: .leading, spacing: 6) {
@@ -134,7 +135,7 @@ struct OrderPreparedView: View {
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, 4)
 
                 // MARK: - Things to Note
                 VStack(alignment: .leading, spacing: 6) {
@@ -169,7 +170,7 @@ struct OrderPreparedView: View {
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
-                    .padding(.vertical, 1)
+                    .padding(.vertical, 4)
 
                 // MARK: - Order Summary
                 VStack(alignment: .leading, spacing: 6) {
@@ -186,7 +187,10 @@ struct OrderPreparedView: View {
                             .fontWeight(.semibold)
                     }
                     .font(.subheadline)
+                    
                     Divider()
+                        .padding(.vertical, 4)
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         summaryRow(label: "Order number", value: orderNumber)
                         summaryRow(label: "Order date", value: orderDate)
@@ -196,22 +200,21 @@ struct OrderPreparedView: View {
                     .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
+                
+                .padding(.vertical, 4)
 
                 // MARK: - Buy Again Button
                 Button(action: {}) {
                     Text("Buy Again")
-                        .font(.headline)
+                        .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 12)
                         .background(Color(hex: "#FF9500"))
-                        .cornerRadius(30)
-                        .padding(.horizontal)
+                        .cornerRadius(24)
                 }
-                .padding(.top, 4)
-                .padding(.bottom, 30)
+                .padding(.horizontal)
             }
-            .padding(.top)
         }
         .navigationBarBackButtonHidden(false)
     }

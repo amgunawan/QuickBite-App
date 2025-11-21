@@ -1,345 +1,252 @@
 import SwiftUI
 import PhotosUI
 
-// --- Reusable Components ---
-
-enum Weekday: String, CaseIterable, Identifiable {
-    case monday, tuesday, wednesday, thursday, friday, saturday, sunday
-    var id: String { rawValue }
-    var label: String {
-        switch self {
-        case .monday: "Monday"
-        case .tuesday: "Tuesday"
-        case .wednesday: "Wednesday"
-        case .thursday: "Thursday"
-        case .friday: "Friday"
-        case .saturday: "Saturday"
-        case .sunday: "Sunday"
-        }
-    }
-}
-
-struct OrangeCheckSquareStyle: ToggleStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        Button {
-            configuration.isOn.toggle()
-        } label: {
-            HStack(spacing: 12) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 6, style: .continuous)
-                        .strokeBorder(Color.orange.opacity(configuration.isOn ? 0 : 0.5), lineWidth: 1)
-                        .background(
-                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(configuration.isOn ? Color.orange : Color.clear)
-                        )
-                        .frame(width: 22, height: 22)
-                    if configuration.isOn {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                    }
-                }
-                configuration.label
-                    .font(.body)
-                    .foregroundColor(.primary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-struct WeeklyOpeningDaysView: View {
-    @Binding var openDays: Set<Weekday>
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Choose Store Opening Days")
-                .font(.headline)
-                .padding(.bottom, 4)
-
-            ForEach(Weekday.allCases) { day in
-                Toggle(isOn: Binding(
-                    get: { openDays.contains(day) },
-                    set: { isOn in
-                        if isOn { openDays.insert(day) } else { openDays.remove(day) }
-                    }
-                )) {
-                    Text(day.label)
-                }
-                .toggleStyle(OrangeCheckSquareStyle())
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-struct WeeklyScheduleView: View {
-    @Environment(\.dismiss) private var dismiss
-    @Binding var openDays: Set<Weekday>
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                WeeklyOpeningDaysView(openDays: $openDays)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 20)
-        }
-        .navigationTitle("Weekly Schedule")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    dismiss()
-                }
-                .foregroundColor(.orange)
-                .font(.headline)
-            }
-        }
-    }
-}
-
-struct GroupBoxRow<Content: View>: View {
-    @ViewBuilder var content: Content
-    var body: some View {
-        VStack(spacing: 0) {
-            content
-                .padding(.horizontal, 16)
-                .frame(height: 48)
-            Divider().padding(.leading, 16)
-        }
-        .background(Color(.systemBackground))
-    }
-}
-
-struct TimePickerSheet: View {
-    let title: String
-    @Binding var date: Date
-    var body: some View {
-        VStack {
-            Capsule().fill(Color.secondary.opacity(0.35))
-                .frame(width: 36, height: 5)
-                .padding(.top, 8)
-            Text(title).font(.headline).padding(.top, 6)
-            DatePicker("", selection: $date, displayedComponents: .hourAndMinute)
-                .datePickerStyle(.wheel).labelsHidden()
-                .frame(height: 200).padding(.top, 8)
-            Spacer(minLength: 0)
-        }
-        .padding(.bottom, 10)
-        .background(Color(.systemBackground))
-        .toolbar(.hidden, for: .tabBar)
-    }
-}
-
-// --- Main View ---
-
 struct EditStoreDetailsTenantView: View {
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var isDirty = false
-    private func markDirty() { isDirty = true }
-
+    
+    // MARK: - Initial Existing Values
+    @State private var bannerPickedItem: PhotosPickerItem? = nil
+    @State private var iconPickedItem: PhotosPickerItem? = nil
+    
     @State private var bannerImage: UIImage? = nil
     @State private var iconImage: UIImage? = nil
-    @State private var bannerPickedItem: PhotosPickerItem?
-    @State private var iconPickedItem: PhotosPickerItem?
+    
     @State private var bannerFileName: String = ""
     @State private var iconFileName: String = ""
-
-    @State private var open24Hours = false
-    @State private var openingTime: Date = Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!
-    @State private var closingTime: Date = Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())!
-
-    @State private var openDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday]
-
+    
+    @State private var open24Hours: Bool = false
+    @State private var openingTime: Date =
+        Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date())!
+    @State private var closingTime: Date =
+        Calendar.current.date(bySettingHour: 17, minute: 0, second: 0, of: Date())!
+    
+    @State private var openDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday]
+    
     @State private var showOpeningPicker = false
     @State private var showClosingPicker = false
-
+    
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 8) {
-
-                Group {
-                    Text("Store Banner").font(.headline)
-                    Text("This will appear on the top of your store profile")
-                        .font(.footnote).foregroundColor(.secondary)
-
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.secondarySystemBackground))
-                        if let img = bannerImage {
-                            Image(uiImage: img)
-                                .resizable()
-                                .scaledToFill()
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        } else { Text(" ") }
-                    }
-                    .frame(height: 120)
-
-                    HStack(spacing: 10) {
-                        PhotosPicker(selection: $bannerPickedItem, matching: .images) {
-                            pillButton("Choose File")
-                        }
-                        Text(bannerFileName.isEmpty ? " " : bannerFileName)
-                            .font(.subheadline).foregroundColor(.secondary)
-                            .lineLimit(1).truncationMode(.middle)
-                        Spacer()
-                    }
-                }
-
-                Group {
-                    Text("Search Menu Icon").font(.headline)
-
-                    HStack(alignment: .top, spacing: 12) {
+        VStack(spacing: 20) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    
+                    // MARK: Store Banner
+                    Group {
+                        Text("Store Banner").font(.headline)
+                        Text("This will appear on the top of your store profile")
+                            .font(.footnote)
+                            .foregroundColor(.secondary)
+                        
                         ZStack {
-                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            RoundedRectangle(cornerRadius: 12)
                                 .fill(Color(.secondarySystemBackground))
-                            if let img = iconImage {
+                            
+                            if let img = bannerImage {
                                 Image(uiImage: img)
                                     .resizable()
                                     .scaledToFill()
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-                        }
-                        .frame(width: 64, height: 64)
-
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 10) {
-                                PhotosPicker(selection: $iconPickedItem, matching: .images) {
-                                    pillButton("Choose File")
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                            } else {
+                                VStack {
+                                    Image(systemName: "photo.fill.on.rectangle.fill")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 40, height: 30)
+                                        .foregroundColor(.secondary)
+                                    Text("Upload Banner (16:9)")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
                                 }
-                                Text(iconFileName.isEmpty ? " " : iconFileName)
-                                    .font(.subheadline).foregroundColor(.secondary)
-                                    .lineLimit(1).truncationMode(.middle)
                             }
-
-                            Text("A clear, square image for search results")
-                                .font(.footnote).foregroundColor(.secondary)
                         }
-                        Spacer()
+                        .frame(height: 130)
+                        
+                        HStack {
+                            PhotosPicker(selection: $bannerPickedItem, matching: .images) {
+                                pillButton("Choose File")
+                            }
+                            Text(bannerFileName.isEmpty ? "No file chosen" : bannerFileName)
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                            Spacer()
+                        }
                     }
-                }
-                
-                VStack(spacing: 0) {
-                    GroupBoxRow {
-                        Toggle(isOn: $open24Hours) { Text("Open 24 Hours") }
-                            .onChange(of: open24Hours) { _,_ in markDirty() }
+                    
+                    // MARK: Search Menu Icon
+                    Group {
+                        Text("Search Menu Icon").font(.headline)
+                        
+                        HStack(spacing: 12) {
+                            ZStack {
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(Color(.secondarySystemBackground))
+                                
+                                if let img = iconImage {
+                                    Image(uiImage: img)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                } else {
+                                    Image(systemName: "photo.fill")
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            .frame(width: 64, height: 64)
+                            
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    PhotosPicker(selection: $iconPickedItem, matching: .images) {
+                                        pillButton("Choose File")
+                                    }
+                                    
+                                    Text(iconFileName.isEmpty ? "No file chosen" : iconFileName)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                }
+                                
+                                Text("A clear, square image for search results")
+                                    .font(.footnote)
+                                    .foregroundColor(.secondary)
+                            }
+                            Spacer()
+                        }
                     }
-
-                    if !open24Hours {
+                    
+                    // MARK: Operational Hours
+                    Text("Operational Hours").font(.headline)
+                    
+                    VStack(spacing: 0) {
+                        GroupBoxRow {
+                            Toggle("Open 24 Hours", isOn: $open24Hours)
+                        }
+                        
                         GroupBoxRow {
                             HStack {
                                 Text("Opening Time")
+                                    .foregroundColor(open24Hours ? .secondary : .primary)
                                 Spacer()
-                                Button(formatTime(openingTime)) { showOpeningPicker = true }
-                                    .font(.callout.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                Button(formatTime(openingTime)) {
+                                    showOpeningPicker = true
+                                }
+                                .font(.callout.weight(.semibold))
+                                .foregroundColor(open24Hours ? .gray : .orange)
+                                .disabled(open24Hours)
                             }
                         }
+                        
                         GroupBoxRow {
                             HStack {
                                 Text("Closing Time")
+                                    .foregroundColor(open24Hours ? .secondary : .primary)
                                 Spacer()
-                                Button(formatTime(closingTime)) { showClosingPicker = true }
-                                    .font(.callout.weight(.semibold))
-                                    .foregroundColor(.orange)
+                                Button(formatTime(closingTime)) {
+                                    showClosingPicker = true
+                                }
+                                .font(.callout.weight(.semibold))
+                                .foregroundColor(open24Hours ? .gray : .orange)
+                                .disabled(open24Hours)
                             }
                         }
-                    }
-
-                    NavigationLink {
-                        WeeklyScheduleView(openDays: $openDays)
-                    } label: {
-                        HStack {
-                            Text("Weekly Schedule")
-                            Spacer()
-                            Image(systemName: "chevron.right").foregroundColor(.secondary)
+                        
+                        NavigationLink {
+                            WeeklyScheduleView(openDays: $openDays)
+                        } label: {
+                            HStack {
+                                Text("Weekly Schedule")
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 16)
+                            .frame(height: 48)
                         }
-                        .padding(.horizontal, 16)
-                        .frame(height: 48)
+                        .background(Color(.systemBackground))
                     }
-                    .background(Color(.systemBackground))
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color(.systemBackground))
+                            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                    )
+                    
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(Color(.systemBackground))
-                        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
             }
-            .padding(16)
-            .padding(.bottom, 16)
-        }
-        .background(Color(.systemBackground).ignoresSafeArea())
-        .navigationTitle("Edit Store Details")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(false)
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button("Save") {
-                    dismiss()
-                }
-                .foregroundColor(isDirty ? .orange : .secondary)
-                .disabled(!isDirty)
+            .navigationTitle("Edit Store Details")
+            .navigationBarTitleDisplayMode(.inline)
+            
+            // MARK: Save button
+            Button(action: {
+                print("Save changes tapped")
+            }) {
+                Text("Save Changes")
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .font(.headline)
+                    .cornerRadius(12)
             }
+            .padding(.horizontal)
+            .padding(.bottom, 10)
         }
-        .toolbar(.hidden, for: .tabBar)
-
         .onChange(of: bannerPickedItem) { _, newValue in
-            guard let newValue else { return }
-            Task {
-                if let data = try? await newValue.loadTransferable(type: Data.self),
-                   let uiimg = UIImage(data: data) {
-                    bannerImage = uiimg
-                    bannerFileName = await fileName(from: newValue) ?? "selected_banner.png"
-                    markDirty()
-                }
-            }
+            handlePhotoPicker(item: newValue,
+                              image: $bannerImage,
+                              fileName: $bannerFileName)
         }
         .onChange(of: iconPickedItem) { _, newValue in
-            guard let newValue else { return }
-            Task {
-                if let data = try? await newValue.loadTransferable(type: Data.self),
-                   let uiimg = UIImage(data: data) {
-                    iconImage = uiimg
-                    iconFileName = await fileName(from: newValue) ?? "selected_icon.png"
-                    markDirty()
-                }
-            }
+            handlePhotoPicker(item: newValue,
+                              image: $iconImage,
+                              fileName: $iconFileName)
         }
-        .onChange(of: openingTime) { _,_ in markDirty() }
-        .onChange(of: closingTime) { _,_ in markDirty() }
-        .onChange(of: openDays) { _,_ in markDirty() }
         .sheet(isPresented: $showOpeningPicker) {
             TimePickerSheet(title: "Opening Time", date: $openingTime)
                 .presentationDetents([.height(320)])
-                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showClosingPicker) {
             TimePickerSheet(title: "Closing Time", date: $closingTime)
                 .presentationDetents([.height(320)])
-                .presentationDragIndicator(.visible)
         }
     }
-
+    
+    // MARK: Helpers
     private func pillButton(_ title: String) -> some View {
         Text(title)
             .font(.subheadline.weight(.semibold))
-            .padding(.horizontal, 14).padding(.vertical, 8)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
             .background(Capsule().fill(Color.orange.opacity(0.15)))
             .foregroundColor(.orange)
     }
-
-    private func formatTime(_ date: Date) -> String {
-        let f = DateFormatter(); f.dateFormat = "h:mm a"; return f.string(from: date)
+    
+    private func formatTime(_ d: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "h:mm a"
+        return f.string(from: d)
     }
-
-    private func fileName(from item: PhotosPickerItem) async -> String? {
-        await item.itemIdentifier
+    
+    private func handlePhotoPicker(
+        item: PhotosPickerItem?,
+        image: Binding<UIImage?>,
+        fileName: Binding<String>
+    ) {
+        guard let item else { return }
+        
+        Task {
+            if let data = try? await item.loadTransferable(type: Data.self),
+               let uiimg = UIImage(data: data) {
+                image.wrappedValue = uiimg
+                fileName.wrappedValue = await item.itemIdentifier ?? "selected_file.png"
+            }
+        }
     }
 }
 
 #Preview {
-    NavigationStack { EditStoreDetailsTenantView() }
+    NavigationView {
+        EditStoreDetailsTenantView()
+    }
 }

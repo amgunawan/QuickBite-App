@@ -54,7 +54,6 @@ struct ManageMenuStockTenantView: View {
     @State private var showAddSection = false
 
     var body: some View {
-        NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
 
@@ -95,7 +94,6 @@ struct ManageMenuStockTenantView: View {
             }
             .navigationTitle("Manage Menu & Stock")
             .navigationBarTitleDisplayMode(.inline)
-        }
 
         // SHEET — EDIT PAGE
         .sheet(isPresented: $showEditSheet) {

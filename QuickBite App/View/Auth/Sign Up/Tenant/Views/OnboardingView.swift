@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    @State private var goToDashboard = false
+    
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -26,10 +28,38 @@ struct OnboardingView: View {
             
             NavigationLink(destination: TenantContentView()) {
                 OrangeButton(title: "Go to Dashboard", enabled: true)
+        NavigationStack {
+            VStack(spacing: 32) {
+                Spacer()
+                
+                Image(systemName: "checkmark.seal.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 80, height: 80)
+                    .foregroundColor(.orange)
+                
+                Text("Your Store is All Set Up!")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Spacer()
+                
+                // BUTTON
+                OrangeButton(
+                    title: "Go to Dashboard",
+                    action: {
+                        goToDashboard = true
+                    },
+                    enabled: true
+                )
+                .padding(.horizontal)
             }
-            .padding(.horizontal)
+            .padding(.vertical)
+            
+            .navigationDestination(isPresented: $goToDashboard) {
+                TenantContentView()
+            }
         }
-        .padding(.vertical)
     }
 }
 

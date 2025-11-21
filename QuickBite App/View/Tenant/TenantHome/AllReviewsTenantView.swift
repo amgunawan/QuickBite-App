@@ -91,7 +91,6 @@ struct AllReviewsTenantView: View {
 
     // MARK: - Body
     var body: some View {
-        NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
 
@@ -305,7 +304,7 @@ struct AllReviewsTenantView: View {
             .navigationTitle("All Reviews")
             .navigationBarTitleDisplayMode(.inline)
             .background(Color.white)
-        }
+        
     }
 }
 struct RatingStars: View {

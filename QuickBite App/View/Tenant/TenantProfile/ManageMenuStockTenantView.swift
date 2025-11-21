@@ -13,20 +13,30 @@ enum StockStatus: String, Codable {
     case outOfStock = "Out of Stock"
 }
 
+// IMPORTANT — TIDAK ADA customizationGroups DI SINI
 struct MenuItem: Identifiable, Hashable {
-    let id = UUID()
+    var id = UUID()
     var name: String
     var price: Int
     var stock: Int
     var shortDescription: String
     var prepMinutes: Int
     var imageName: String
-
+    var imageFileName: String = "default.jpg"
+    var customizationGroups: [CustomizationGroup] = []
     var status: StockStatus {
         if stock <= 0 { return .outOfStock }
         if stock <= 5 { return .lowStock }
         return .inStock
     }
+    static func == (lhs: MenuItem, rhs: MenuItem) -> Bool {
+           return lhs.id == rhs.id
+       }
+
+       // MARK: - Hashable Manual
+       func hash(into hasher: inout Hasher) {
+           hasher.combine(id)
+       }
 }
 
 struct MenuSectionModel: Identifiable, Hashable {
@@ -55,7 +65,6 @@ struct ManageMenuStockTenantView: View {
                             onAddItem: { addItem(in: secIdx) }
                         ) {
                             VStack(spacing: 10) {
-
                                 ForEach(Array(section.items.enumerated()), id: \.element.id) { rowIdx, item in
                                     
                                     MenuRow(item: item) {
@@ -88,7 +97,7 @@ struct ManageMenuStockTenantView: View {
             .navigationBarTitleDisplayMode(.inline)
         }
 
-        // SHEET EDIT ITEM
+        // SHEET — EDIT PAGE
         .sheet(isPresented: $showEditSheet) {
             if let (sec, row) = editingPath {
                 EditMenuTenantView(
@@ -105,7 +114,7 @@ struct ManageMenuStockTenantView: View {
             }
         }
 
-        // ADD SECTION ALERT
+        // POPUP ADD SECTION
         .alert("Add New Section", isPresented: $showAddSection) {
             Button("Add") {
                 sections.append(.init(title: "New Section", items: []))
@@ -169,16 +178,13 @@ private struct MenuRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
 
-            // IMAGE
             Image(item.imageName)
                 .resizable()
                 .scaledToFill()
                 .frame(width: 72, height: 72)
                 .clipShape(RoundedRectangle(cornerRadius: 12))
-                .contentShape(Rectangle())
                 .allowsHitTesting(false)
 
-            // TEXTS
             VStack(alignment: .leading, spacing: 6) {
 
                 Text(item.name)
@@ -194,10 +200,7 @@ private struct MenuRow: View {
 
             Spacer()
 
-            // EDIT BUTTON
-            Button(action: {
-                onEdit()
-            }) {
+            Button(action: { onEdit() }) {
                 Text("Edit")
                     .font(.caption.weight(.semibold))
                     .foregroundColor(.orange)
@@ -205,9 +208,7 @@ private struct MenuRow: View {
                     .padding(.vertical, 6)
                     .background(Color.orange.opacity(0.15), in: Capsule())
             }
-            .buttonStyle(.plain)
         }
-        .contentShape(Rectangle())
     }
 }
 
@@ -237,6 +238,7 @@ private func formatRupiah(_ value: Int) -> String {
     return f.string(from: NSNumber(value: value)) ?? "\(value)"
 }
 
+// --- TEMP DATA ---
 private let demoDataAssets: [MenuSectionModel] = [
     MenuSectionModel(title: "Shirokara Ramen", items: [
         MenuItem(
@@ -247,7 +249,6 @@ private let demoDataAssets: [MenuSectionModel] = [
             prepMinutes: 15,
             imageName: "ChickenKatsuShirokaraRamen"
         ),
-
         MenuItem(
             name: "Chicken Teriyaki Shirokara Ramen",
             price: 35000,
@@ -267,7 +268,6 @@ private let demoDataAssets: [MenuSectionModel] = [
             prepMinutes: 20,
             imageName: "ChickenTeriyakiDonburi"
         ),
-
         MenuItem(
             name: "Chicken Katsu Curry Rice",
             price: 42500,
@@ -276,7 +276,6 @@ private let demoDataAssets: [MenuSectionModel] = [
             prepMinutes: 20,
             imageName: "ChickenKatsuCurryRice"
         ),
-
         MenuItem(
             name: "Katsutama Donburi",
             price: 37500,
@@ -285,7 +284,6 @@ private let demoDataAssets: [MenuSectionModel] = [
             prepMinutes: 20,
             imageName: "KatsutamaDonburi"
         ),
-        
         MenuItem(
             name: "Chicken Katsu Donburi",
             price: 37500,
@@ -296,7 +294,6 @@ private let demoDataAssets: [MenuSectionModel] = [
         )
     ])
 ]
-
 
 #Preview {
     ManageMenuStockTenantView()

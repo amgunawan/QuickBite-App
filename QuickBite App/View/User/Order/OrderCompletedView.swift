@@ -52,6 +52,7 @@ struct OrderCompletedView: View {
                     .padding(.top, 4)
                     
                     Divider()
+                        .padding(.vertical, 4)
                     
                     // MARK: - Picked up section
                     VStack(spacing: 0) {
@@ -77,26 +78,8 @@ struct OrderCompletedView: View {
                     Rectangle()
                         .fill(Color.orange.opacity(0.3))
                         .frame(height: 8)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, 4)
                     
-                    // MARK: - Rating section
-//                    VStack(spacing: 6) {
-//                        Text("How was your experience?")
-//                            .font(.subheadline)
-//                            .padding(.top, 5)
-//                            .frame(maxWidth: .infinity, alignment: .center)
-//                        Button { showReviewView = true} label: {
-//                            HStack(spacing: 12) {
-//                                ForEach(0..<5) { _ in
-//                                    Image(systemName: "star")
-//                                        .font(.title2)
-//                                        .foregroundColor(Color(.systemGray4))
-//                                }
-//                            }
-//                        }
-//                        .padding(.bottom, 5)
-//                        .padding(.horizontal)
-//                    }
                     VStack(spacing: 6) {
                         Text("How was your experience?")
                             .font(.subheadline)
@@ -130,7 +113,7 @@ struct OrderCompletedView: View {
                     Rectangle()
                         .fill(Color.orange.opacity(0.3))
                         .frame(height: 8)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, 4)
                     
                     // MARK: - Order Details
                     VStack(spacing: 6) {
@@ -154,7 +137,7 @@ struct OrderCompletedView: View {
                     Rectangle()
                         .fill(Color.orange.opacity(0.3))
                         .frame(height: 8)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, 4)
                     
                     // MARK: - Restaurant Info
                     VStack(alignment: .leading, spacing: 6) {
@@ -187,7 +170,7 @@ struct OrderCompletedView: View {
                     Rectangle()
                         .fill(Color.orange.opacity(0.3))
                         .frame(height: 8)
-                        .padding(.vertical, 1)
+                        .padding(.vertical, 4)
                     
                     // MARK: - Order Summary
                     VStack(alignment: .leading, spacing: 6) {
@@ -206,6 +189,7 @@ struct OrderCompletedView: View {
                         }
                         
                         Divider()
+                            .padding(.vertical, 4)
                         
                         VStack(spacing: 6) {
                             summaryRow("Order number", orderNumber)
@@ -216,42 +200,44 @@ struct OrderCompletedView: View {
                         
                     }
                     .padding(.horizontal)
+                    
                     Divider()
+                        .padding(.vertical, 4)
+                    
                     // MARK: - Earned Points
                     Text("You've earned 10 points!")
                         .font(.subheadline)
                         .padding(.horizontal)
-                        .padding(.top, 2)
-                    
-                    
+                        .padding(.vertical, 4)
+                                        
                     // MARK: - Buttons
-                    HStack(spacing: 12) {
+                    HStack() {
                         if didSubmitReview == false {
                             Button { showReviewView = true } label: {
                                 Text("Write a Review")
-                                    .font(.headline)
+                                    .fontWeight(.medium)
                                     .foregroundColor(.orange)
                                     .frame(maxWidth: .infinity)
-                                    .padding()
+                                    .padding(.vertical, 12)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 30)
+                                        RoundedRectangle(cornerRadius: 24)
                                             .stroke(Color.orange, lineWidth: 1)
                                     )
                             }
                         }
+                        
                         Button(action: {}) {
                             Text("Buy Again")
-                                .font(.headline)
+                                .fontWeight(.medium)
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
-                                .padding()
+                                .padding(.vertical, 12)
                                 .background(Color(hex: "#FF9500"))
-                                .cornerRadius(30)
+                                .cornerRadius(24)
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.top, 4)
-                    .padding(.bottom, 30)
+                    .padding(.bottom)
                 }
             }
             .scrollContentBackground(.hidden)
@@ -269,7 +255,9 @@ struct OrderCompletedView: View {
                     .font(.headline)
                     //.padding(.top, 10)
                     .padding(.bottom, 8)
+                
                 Divider()
+                    .padding(.vertical, 4)
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Picked Up")

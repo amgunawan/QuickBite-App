@@ -10,20 +10,42 @@ import AVFoundation
 
 struct ScanQRCodeView: View {
     @Environment(\.dismiss) private var dismiss
+    
     @State private var isFlashOn = false
-    @State private var goToActivity = false     // Trigger navigate
+    @State private var goToActivity = false
+    
+    // === SCAN RESULT ===
+    @State private var scannedOrder: OrderCardViewData? = nil
+    @State private var showOrderSheet = false
+
+    // MARK: - Handle QR Result
+    func handleScannedCode(_ code: String) {
+        print("QR Detected: \(code)")
+        
+        // === SEMENTARA: Hardcoded Example ===
+        // Nanti tinggal ganti jadi lookup ke Firestore atau fetch order ID
+        if code == "AngelaMeliaQR" {
+            scannedOrder = OrderCardViewData(
+                name: "Angela Melia",
+                pickupTime: "12:00 PM",
+                items: ["1x Chicken Katsu Shirokara Ramen"],
+                total: "Rp 83.000"
+            )
+            showOrderSheet = true
+        }
+    }
 
     var body: some View {
         NavigationStack {
             ZStack {
+                // === CAMERA PREVIEW QR ===
                 CameraPreviewView(isFlashOn: isFlashOn) { scannedValue in
-                    print("QR Detected: \(scannedValue)")
-                    goToActivity = true
+                    handleScannedCode(scannedValue)
                 }
                 .ignoresSafeArea()
 
                 VStack {
-                    // Top bar
+                    // === TOP BAR ===
                     HStack {
                         Button(action: { dismiss() }) {
                             Image(systemName: "chevron.left")
@@ -55,6 +77,7 @@ struct ScanQRCodeView: View {
 
                     Spacer()
 
+                    // === SCAN FRAME ===
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.white, lineWidth: 4)
                         .frame(width: 280, height: 280)
@@ -64,15 +87,38 @@ struct ScanQRCodeView: View {
                 }
             }
             .navigationBarBackButtonHidden(true)
-            .toolbar(.hidden, for: .tabBar)    // Hide tab bar di halaman scan
+            .toolbar(.hidden, for: .tabBar)
 
-            // === Navigate ke halaman Activity ===
+            
+            // === BOTTOM SHEET: ORDER FOUND ===
+            .sheet(isPresented: $showOrderSheet) {
+                if let order = scannedOrder {
+                    OrderFoundSheet(
+                        order: order,
+                        onCancel: {
+                            showOrderSheet = false
+                        },
+                        onConfirm: {
+                            // TODO: Pindahkan ke history
+                            showOrderSheet = false
+                            goToActivity = true
+                        }
+                    )
+                    .presentationDetents([.height(420)])
+                    .presentationDragIndicator(.visible)
+                }
+            }
+
+            
+            // === NAVIGATE TO ACTIVITY ===
             .navigationDestination(isPresented: $goToActivity) {
-                TenantActivityView()     // <-- Langsung ke Activity (Sementara nanti harusnya ke History dan lgsg status jd complete)
+                TenantActivityView()
             }
         }
     }
 }
+
+
 
 #Preview {
     ScanQRCodeView()

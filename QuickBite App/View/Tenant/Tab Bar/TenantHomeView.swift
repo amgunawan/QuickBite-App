@@ -12,14 +12,6 @@ enum TenantHomeDestination: Hashable {
     case manageStock
 }
 
-private enum UIConst {
-    static let corner: CGFloat = 16
-    static let pad: CGFloat = 16
-    static let brandOrange = Color(hex: "#FF9500")
-    static let softCardBG  = Color.white
-    static let hairline    = Color(.systemGray5)
-}
-
 struct SummaryMetrics: Identifiable {
     let id = UUID()
     let title: String

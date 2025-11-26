@@ -9,6 +9,7 @@ import Firebase
 import GoogleSignIn
 import FirebaseCore
 import FirebaseFirestore
+import FirebaseStorage
 
 @main
 struct QuickBiteApp: App {

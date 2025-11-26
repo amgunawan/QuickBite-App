@@ -28,7 +28,7 @@ struct StoreBrandingView: View {
     var body: some View {
         VStack(spacing: 20) {
             
-            RegistrationHeader(step: 1,
+            MenuHeader(step: 1,
                                title: "Build your Quickbite Store",
                                subtitle: "Configure your store's menu and branding")
             

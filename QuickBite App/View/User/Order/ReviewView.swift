@@ -6,15 +6,24 @@
 //
 
 import SwiftUI
+import PhotosUI
 
 struct ReviewView: View {
     // MARK: - Bindings from OrderCompletedView
     @Binding var rating: Int
     @Binding var didSubmit: Bool
+    var onSubmit: ((Int) -> Void)? = nil
 
     // MARK: - Local States
     @State private var reviewText: String = ""
     @State private var selectedImage: UIImage? = nil
+    
+    // MARK: - Photo Picker States
+    @State private var showPhotoOptions = false
+    @State private var showCamera = false
+    @State private var showGallery = false
+    @State private var pickedItem: PhotosPickerItem?
+    
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -53,9 +62,7 @@ struct ReviewView: View {
                                 Image(systemName: i <= rating ? "star.fill" : "star")
                                     .font(.title2)
                                     .foregroundColor(i <= rating ? .yellow : Color(.systemGray4))
-                                    .onTapGesture {
-                                        rating = i
-                                    }
+                                    .onTapGesture { rating = i }
                             }
                         }
                     }
@@ -66,14 +73,25 @@ struct ReviewView: View {
                         Text("Add Photo(s)")
                             .font(.subheadline)
 
-                        Button {
-                            // Photo logic nanti
-                        } label: {
+                        Button { showPhotoOptions = true } label: {
+                            
                             VStack(spacing: 6) {
-                                Image(systemName: "camera")
-                                    .font(.title3)
-                                Text("Photo")
-                                    .font(.footnote)
+                                if let selectedImage {
+                                    Image(uiImage: selectedImage)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(height: 90)
+                                        .clipped()
+                                        .cornerRadius(10)
+
+                                } else {
+                                    Image(systemName: "camera")
+                                        .font(.title3)
+                                        .foregroundColor(.gray)
+                                    Text("Photo")
+                                        .font(.footnote)
+                                        .foregroundColor(.gray)
+                                }
                             }
                             .frame(maxWidth: .infinity, minHeight: 80)
                             .overlay(
@@ -109,6 +127,7 @@ struct ReviewView: View {
             // MARK: - Send Button
             Button(action: {
                 didSubmit = true
+                onSubmit?(rating)
                 dismiss()
             }) {
                 Text("Send")
@@ -125,6 +144,73 @@ struct ReviewView: View {
             .navigationTitle("Review the Restaurant")
             .navigationBarTitleDisplayMode(.inline)
         }
+        // MARK: - Photo Options Sheet
+        .sheet(isPresented: $showPhotoOptions) {
+
+            VStack(spacing: 0) {
+
+                Text("Add Photo")
+                    .font(.headline)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showGallery = true
+                } label: {
+                    sheetRow(icon: "photo.on.rectangle.angled",
+                             title: "Choose from Gallery")
+                }
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showCamera = true
+                } label: {
+                    sheetRow(icon: "camera.fill",
+                             title: "Take Photo")
+                }
+
+                Spacer(minLength: 0)
+
+            }
+            .padding(.horizontal, 18)
+            .presentationDetents([.fraction(0.25)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(22)
+        }
+
+
+        // MARK: - Gallery Picker
+        .photosPicker(isPresented: $showGallery, selection: $pickedItem)
+        .onChange(of: pickedItem) {
+            Task {
+                if let newItem = pickedItem,
+                   let data = try? await newItem.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    selectedImage = uiImage
+                }
+            }
+        }
+
+        // MARK: - CAMERA (your existing CameraPicker)
+        .sheet(isPresented: $showCamera) {
+            CameraPickerViewModel(image: $selectedImage)   // <-- use your own CameraPicker
+        }
+    }
+    // MARK: - Bottom Sheet Row Component
+    private func sheetRow(icon: String, title: String) -> some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(.orange)
+            Text(title)
+                .foregroundColor(.primary)
+            Spacer()
+        }
+        .padding(.vertical, 12)
     }
 }
 

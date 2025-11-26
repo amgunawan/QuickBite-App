@@ -1,13 +1,13 @@
 //
-//  OrderPreparedView.swift
+//  OrderPickUpView.swift
 //  QuickBite
 //
-//  Created by student on 13/11/25.
+//  Created by student on 26/11/25.
 //
 
 import SwiftUI
 
-struct OrderPreparedView: View {
+struct OrderPickUpView: View {
     // MARK: - States (Dummy Data)
     @State private var mealCount: Int = 1
     @State private var mealName: String = "Chicken Katsu Shirokara Ramen"
@@ -81,17 +81,16 @@ struct OrderPreparedView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - Order in Preparation Section
+                // MARK: - Order Pick Up Section
                 VStack(spacing: 6) {
-                    Text("Order in Preparation")
+                    Text("Scan QR at Restaurant")
                         .font(.headline)
-                    Image("Prepared")
+                    Image("PickUpQR")
                         .resizable()
                         .scaledToFit()
                         .frame(height: 180)
                         .padding(.top, 6)
-
-                    Text("The restaurant is preparing your order.\nThe QR code will appear when it’s ready.")
+                    Text("Take a screenshot of this QR code to pick up\nyour meal when the network is poor.")
                         .multilineTextAlignment(.center)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
@@ -224,5 +223,5 @@ struct OrderPreparedView: View {
 }
 
 #Preview {
-    OrderPreparedView()
+    OrderPickUpView()
 }

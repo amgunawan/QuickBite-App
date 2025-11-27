@@ -7,9 +7,6 @@
 
 import SwiftUI
 
-// ==================================================================
-// --- VIEW (UI Only) ---
-// ==================================================================
 
 struct RestaurantDetailView: View {
     
@@ -25,6 +22,11 @@ struct RestaurantDetailView: View {
     
     @StateObject private var cart = CartViewModel()
     
+    @State private var isGroupOrderActive = false
+    @State private var showingGroupCart = false
+    
+    @State private var groupName = "Angela's Group"
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
@@ -38,7 +40,10 @@ struct RestaurantDetailView: View {
                         categories: categories,
                         rating: rating,
                         reviewCount: reviewCount,
-                        pickupTime: pickupTime
+                        pickupTime: pickupTime,
+                        isGroupOrderActive: $isGroupOrderActive,
+                        groupName: $groupName
+                        
                     )
                     .padding(.horizontal)
                     
@@ -118,7 +123,11 @@ struct RestaurantDetailView: View {
             }
             
             // MARK: - Checkout Bar
-            if !cart.items.isEmpty {
+            if isGroupOrderActive {
+                // Tampilkan Bar Khusus Grup (Screenshot 1)
+                GroupOrderBottomBar(cart: cart, showGroupCart: $showingGroupCart)
+            } else if !cart.items.isEmpty {
+                // Tampilkan Bar Checkout Biasa
                 CheckoutBarView(showCart: $showingCart)
             }
         }
@@ -138,6 +147,9 @@ struct RestaurantDetailView: View {
         .sheet(isPresented: $showingCart) {
             CartListView()
                 .environmentObject(cart)
+        }
+        .sheet(isPresented: $showingGroupCart) {
+            GroupCartView().environmentObject(cart)
         }
         .scrollIndicators(.hidden)
     }
@@ -228,20 +240,80 @@ struct CheckoutBarView: View {
             .buttonStyle(.plain)
             
             Button(action: {
-                            showCart = true
-                        }) {
-                            Text("View Cart")
-                                .font(.system(size: 16, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 32)
-                                .padding(.vertical, 12)
-                                .background(Color.orange)
-                                .cornerRadius(50)
-                        }
+                showCart = true
+            }) {
+                Text("View Cart")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 32)
+                    .padding(.vertical, 12)
+                    .background(Color.orange)
+                    .cornerRadius(50)
+            }
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(Color.white)
+    }
+}
+
+struct GroupOrderBottomBar: View {
+    @ObservedObject var cart: CartViewModel
+    @Binding var showGroupCart: Bool
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // Ikon Basket (Orange Outline) dengan Badge
+            ZStack(alignment: .topTrailing) {
+                Image(systemName: "basket")
+                    .font(.system(size: 28))
+                    .foregroundColor(.orange)
+                
+                // Hitung total item (misal +1 item user lain sbg dummy)
+                let totalItems = cart.totalItemCount // + user lain jika ada
+                if totalItems > 0 {
+                    Text("\(totalItems)")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundColor(.white)
+                        .frame(width: 16, height: 16)
+                        .background(Color.orange)
+                        .clipShape(Circle())
+                        .offset(x: 6, y: -6)
+                }
+            }
+            .padding(.leading, 8)
+            
+            Spacer()
+            
+            // Text Total Harga (User saja)
+            // Menggunakan Group untuk menghindari error type check pada + operator
+            Group {
+                Text("Rp\(formatPrice(cart.totalPrice))")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundColor(.orange)
+                Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
+                    .font(.caption)
+                    .foregroundColor(.orange)
+            }
+            
+            Spacer()
+            
+            // Tombol View Cart
+            Button(action: {
+                showGroupCart = true
+            }) {
+                Text("View Cart")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(Color.orange)
+                    .cornerRadius(25)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, 10)
+        .background(Color.white.shadow(color: .black.opacity(0.1), radius: 10, y: -5))
     }
 }
 
@@ -265,6 +337,10 @@ struct InfoView: View {
     let reviewCount: Int
     let pickupTime: String
     
+    @Binding var isGroupOrderActive: Bool
+    @Binding var groupName: String
+    
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
@@ -273,10 +349,11 @@ struct InfoView: View {
                     Text(categories).font(.body).foregroundColor(.gray)
                 }
                 Spacer()
-                NavigationLink(destination: GroupOrderView( restaurantName: name)) {
-                                    GroupOrderButton()
-                                }
-                                .padding(.top, 4)            }
+                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName)) {
+                    GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
+
+                }
+                .padding(.top, 4)          }
             HStack(spacing: 4) {
                 Image(systemName: "star.fill").foregroundColor(.yellow)
                 Text(String(format: "%.1f", rating))
@@ -308,21 +385,16 @@ struct InfoView: View {
 
 // MARK: - Group Order Button
 struct GroupOrderButton: View {
+    let title: String
+    
     var body: some View {
         HStack(spacing: 8) {
             Image(systemName: "person.2.fill")
-            Text("Group Order")
-                .font(.system(size: 14, weight: .semibold))
+            Text(title).font(.system(size: 14, weight: .semibold))
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 10)
-        .background(Color.orange.opacity(0.08))
-        .foregroundColor(.orange)
-        .cornerRadius(20)
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(Color.orange, lineWidth: 1.5)
-        )
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(Color.orange.opacity(0.08)).foregroundColor(.orange).cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange, lineWidth: 1.5))
     }
 }
 

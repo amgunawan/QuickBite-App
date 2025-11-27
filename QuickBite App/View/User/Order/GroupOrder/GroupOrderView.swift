@@ -16,7 +16,7 @@ struct GroupOrderView: View {
         UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
     ]
     
-    @State private var groupName: String = "Angela's Group"
+
     @State private var isEditingGroupName: Bool = false
     @FocusState private var isGroupNameFocused: Bool
     
@@ -26,6 +26,9 @@ struct GroupOrderView: View {
     @State private var orderDeadline: Date?
     @State private var showDeadlineSheet = false
     
+    @Binding var isGroupOrderActive: Bool
+    @Binding var groupName: String
+
     
     var body: some View {
         VStack(spacing: 0) {
@@ -128,6 +131,7 @@ struct GroupOrderView: View {
                                 title: "Order Deadline",
                                 // Tampilkan deadline jika ada, atau default text
                                 subtitle: orderDeadline != nil ? "Today, " + orderDeadline!.formatted(date: .omitted, time: .shortened) : "No deadline set"
+
                             )
                         }
                         .buttonStyle(.plain)
@@ -187,15 +191,16 @@ struct GroupOrderView: View {
             //tombol create
             VStack {
                 Button(action: {
-                    print("Group order created with \(groupMembers.count) members")
+                    print("Group order created: \(groupName)")
+                    
+                    isGroupOrderActive = true // Set state di parent jadi true
+                    dismiss()
                 }) {
                     Text("Create Group Order")
-                        .font(.headline)
-                    // Ubah warna teks berdasarkan jumlah anggota
+                        .fontWeight(.medium)
                         .foregroundColor(groupMembers.count > 1 ? .white : .gray)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                    // Ubah warna background berdasarkan jumlah anggota
+                        .padding(.vertical, 12)
                         .background(groupMembers.count > 1 ? Color.orange : Color(.systemGray5))
                         .cornerRadius(30)
                 }
@@ -207,28 +212,19 @@ struct GroupOrderView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            // Custom Title View (Title + Subtitle) di tengah
-            ToolbarItem(placement: .principal) {
-                VStack(spacing: 0) {
-                    Text("Group Order")
-                        .font(.headline)
-                        .foregroundColor(.black)
-                    Text(restaurantName)
-                        .font(.caption)
-                        .foregroundColor(.gray)
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 0) {
+                            Text("Group Order").font(.headline).foregroundColor(.black)
+                            Text(restaurantName).font(.caption).foregroundColor(.gray)
+                        }
+                    }
                 }
-            }
-
-        }
         .sheet(isPresented: $showBillingSheet) {
             BillingOptionSheet(selectedOption: $selectedBillingOption)
         }
         .sheet(isPresented: $showDeadlineSheet) {
-            OrderDeadlineSheet(onSave: { date in
-                self.orderDeadline = date
-                print("Deadline saved in GroupOrderView: \(date)")
-            })
-        }
+                    OrderDeadlineSheet(initialDate: orderDeadline, onSave: { date in self.orderDeadline = date })
+                }
     }
 }
 
@@ -287,7 +283,7 @@ struct TopRoundedCorner: Shape {
 struct GroupOrderView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            GroupOrderView(restaurantName: "Raburi")
+            GroupOrderView(restaurantName: "Raburi", isGroupOrderActive: .constant(false), groupName: .constant("Angela's Group"))
         }
     }
 }

@@ -65,6 +65,9 @@ struct HomeView: View {
                                 }
                                 .padding(.horizontal)
                             }
+                            .onAppear {
+                                viewModel.fetchCuisineTypes()
+                            }
                         }
                         
                         // Today's Limited Deals

@@ -273,7 +273,8 @@ struct OrderConfirmationView: View {
             PickUpTimeView(selectedTime: $selectedTime)
         }
         .navigationDestination(isPresented: $navigateToCompleted) {
-            OrderCompletedView()
+            OrderCompletedView(userRating: 0,
+                               didSubmitReview: false)
                 .navigationBarBackButtonHidden(true)
         }
     }
@@ -286,3 +287,4 @@ struct OrderConfirmationView_Previews: PreviewProvider {
         }
     }
 }
+

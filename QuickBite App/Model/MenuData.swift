@@ -33,36 +33,36 @@ struct OptionCategory: Codable, Identifiable {
     }
 }
 
-struct MenuItemData: Codable, Identifiable {
-    let id: String
-    let name: String
-    let description: String
-    let price: Double
-    let defaultStock: Int
-    let prepTimeMinutes: Int
-    let category: String
-    let imageUrl: String
-    let options: [OptionCategory]
-    
-    enum CodingKeys: String, CodingKey {
-        case id = "item_id"
-        case name
-        case description
-        case price
-        case defaultStock = "default_stock"
-        case prepTimeMinutes = "prep_time_minutes"
-        case category
-        case imageUrl = "image_url"
-        case options
-    }
-    
-    var salesDescription: String { return "Tersedia \(defaultStock)" }
-    var originalPrice: Double? { return nil }
-    var longDescription: String { return description }
-}
+//struct MenuItemData: Codable, Identifiable {
+//    let id: String
+//    let name: String
+//    let description: String
+//    let price: Double
+//    let defaultStock: Int
+//    let prepTimeMinutes: Int
+//    let category: String
+//    let imageUrl: String
+//    let options: [OptionCategory]
+//    
+//    enum CodingKeys: String, CodingKey {
+//        case id = "item_id"
+//        case name
+//        case description
+//        case price
+//        case defaultStock = "default_stock"
+//        case prepTimeMinutes = "prep_time_minutes"
+//        case category
+//        case imageUrl = "image_url"
+//        case options
+//    }
+//    
+//    var salesDescription: String { return "Tersedia \(defaultStock)" }
+//    var originalPrice: Double? { return nil }
+//    var longDescription: String { return description }
+//}
 
-struct MenuCategoryData: Identifiable {
-    let id = UUID()
-    let title: String
-    var items: [MenuItemData]
-}
+//struct MenuCategoryData: Identifiable {
+//    let id = UUID()
+//    let title: String
+//    var items: [MenuItemData]
+//}

@@ -12,16 +12,6 @@ enum TenantHomeDestination: Hashable {
     case manageStock
 }
 
-// MARK: - Design Tokens
-private enum UIConst {
-    static let corner: CGFloat = 16
-    static let pad: CGFloat = 16
-    static let brandOrange = Color(hex: "#FF9500")
-    static let softCardBG  = Color.white
-    static let hairline    = Color(.systemGray5)
-}
-
-// MARK: - Models
 struct SummaryMetrics: Identifiable {
     let id = UUID()
     let title: String
@@ -57,7 +47,6 @@ struct StockItem: Identifiable {
 }
 
 
-// MARK: - TenantHomeView
 struct TenantHomeView: View {
     @State private var showAllReviews = false
     @State private var showManageStock = false
@@ -184,7 +173,7 @@ struct TenantHomeView: View {
                             // ======================
                             
                             // Scan Button
-                            Button(action: {}) {
+                            NavigationLink(destination: ScanQRCodeView()) {
                                 HStack {
                                     Text("Scan Order QR")
                                         .font(.headline)
@@ -198,6 +187,7 @@ struct TenantHomeView: View {
                                 .background(Color.green)
                                 .cornerRadius(UIConst.corner)
                             }
+
                             
                             // Wallet
                             walletCard

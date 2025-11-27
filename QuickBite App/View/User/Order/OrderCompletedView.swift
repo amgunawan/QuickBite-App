@@ -31,8 +31,8 @@ struct OrderCompletedView: View {
     // MARK: Sheet State
     @State private var showPickedDetails = false
     @State private var showReviewView: Bool = false
-    @State private var userRating: Int = 0
-    @State private var didSubmitReview: Bool = false
+    @State var userRating: Int
+    @State var didSubmitReview: Bool
 
     var body: some View {
         NavigationStack {
@@ -301,5 +301,6 @@ struct OrderCompletedView: View {
 }
 
 #Preview {
-    OrderCompletedView()
+    OrderCompletedView(userRating: 0,
+                       didSubmitReview: false)
 }

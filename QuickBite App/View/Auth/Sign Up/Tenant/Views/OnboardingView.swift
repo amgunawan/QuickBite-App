@@ -8,8 +8,7 @@
 import SwiftUI
 
 struct OnboardingView: View {
-    @State private var goToDashboard = false
-    
+
     var body: some View {
         VStack(spacing: 32) {
             Spacer()
@@ -81,6 +80,16 @@ struct OnboardingView: View {
                 
                 Spacer()
             }
+
+                NavigationLink(destination: TenantContentView()) {
+                    OrangeButton(
+                        title: "Go to Dashboard",
+                        enabled: true
+                    )
+                }
+                .padding(.horizontal)
+            }
+            .padding(.vertical)
         }
     }
 }
@@ -88,3 +97,4 @@ struct OnboardingView: View {
 #Preview {
     OnboardingView()
 }
+

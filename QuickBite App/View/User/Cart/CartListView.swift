@@ -12,8 +12,8 @@ struct CartListView: View {
     @Environment(\.dismiss) var dismiss
     
     @State private var showingCart = false
-    
     @State private var itemToEdit: CartItem?
+    @State private var showOrderConfirmation = false
     
     var body: some View {
         NavigationStack {
@@ -37,7 +37,9 @@ struct CartListView: View {
                     .padding(.bottom, 100) // Ruang untuk footer
                 }
                 
-                CartFooterView(showCart: $showingCart)
+                CartFooterView(showCart: $showingCart, onCheckout: {
+                    showOrderConfirmation = true
+                })
             }
             .navigationTitle("My Cart")
             .navigationBarTitleDisplayMode(.inline)
@@ -61,6 +63,24 @@ struct CartListView: View {
                 )
                 .environmentObject(cart)
             }
+            .fullScreenCover(isPresented: $showOrderConfirmation) {
+                            NavigationStack {
+                                OrderConfirmationView()
+                                    .environmentObject(cart)
+                                    .toolbar {
+                                        // Tombol Back Manual untuk menutup Full Screen Cover
+                                        ToolbarItem(placement: .navigationBarLeading) {
+                                            Button(action: {
+                                                showOrderConfirmation = false
+                                            }) {
+                                                Image(systemName: "chevron.left")
+                                                    .font(.system(size: 16, weight: .bold))
+                                                    .foregroundColor(.black)
+                                            }
+                                        }
+                                    }
+                            }
+                        }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -156,9 +176,9 @@ struct CartItemRow: View {
 // --- Sub-View: Footer Keranjang ---
 struct CartFooterView: View {
     @EnvironmentObject var cart: CartViewModel
-    
     @Binding var showCart: Bool
-    
+    var onCheckout: () -> Void
+
     var body: some View {
         VStack {
             Divider()
@@ -208,16 +228,17 @@ struct CartFooterView: View {
                 
                 
                 // Tombol Checkout
-                Button(action: { print("Navigasi ke halaman Checkout") }) {
-                    Text("Checkout")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 32)
-                        .padding(.vertical, 12)
-                        .background(Color.orange)
-                        .cornerRadius(50)
-                }
-                
+                Button(action: {
+                                    onCheckout()
+                                }) {
+                                    Text("Checkout")
+                                        .font(.system(size: 16, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 24)
+                                        .padding(.vertical, 12)
+                                        .background(Color.orange)
+                                        .cornerRadius(20)
+                                }
             }
             .padding(.horizontal)
             .background(Color.white)

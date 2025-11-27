@@ -384,7 +384,13 @@ struct NoteEntrySheetView: View {
                 note = tempNote
                 dismiss()
             }) {
-                Text("Confirm").font(.system(size: 18, weight: .bold)).foregroundColor(.white).frame(maxWidth: .infinity).padding().background(Color.orange).cornerRadius(50)
+                Text("Confirm")
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.orange)
+                    .cornerRadius(24)
             }
             Spacer()
         }
@@ -412,7 +418,13 @@ struct BottomButtonView: View {
     var body: some View {
         Button(action: action) {
             // Gunakan buttonText
-            Text("\(buttonText) - \(price)").font(.system(size: 18, weight: .bold)).foregroundColor(.white).frame(maxWidth: .infinity).padding().background(Color.orange).cornerRadius(50)
+            Text("\(buttonText) - \(price)")
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.orange)
+                .cornerRadius(24)
         }.padding().background(Color.white)
 
     }

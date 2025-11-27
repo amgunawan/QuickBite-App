@@ -22,6 +22,8 @@ struct OrderConfirmationView: View {
         isWarning: false
     )
     
+    @State private var navigateToCompleted = false
+    
     var body: some View {
         VStack(spacing: 0) {
             // Konten Scrollable
@@ -149,7 +151,6 @@ struct OrderConfirmationView: View {
                                     }
                                 }
                             }
-                            Divider()
                         }
                     }
                     .padding()
@@ -185,7 +186,7 @@ struct OrderConfirmationView: View {
                             Button("Add More") {
                                 dismiss()
                             }
-                            .font(.system(size: 14, weight: .bold))
+                            .font(.system(size: 14, weight: .medium))
                             .foregroundColor(.white)
                             .padding(.horizontal, 16)
                             .padding(.vertical, 8)
@@ -196,7 +197,7 @@ struct OrderConfirmationView: View {
                     .padding()
                     
                     Rectangle().fill(Color.orange.opacity(0.3)).frame(height: 8)
-
+                    
                     // 5. Payment Summary
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Payment Summary")
@@ -248,9 +249,10 @@ struct OrderConfirmationView: View {
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
                     }
-                                
+                    
                     Button(action: {
-                        print("Order Placed!")
+                        cart.clearCart()
+                        navigateToCompleted = true
                     }) {
                         Text("Buy Now")
                             .font(.headline)
@@ -270,21 +272,10 @@ struct OrderConfirmationView: View {
         .sheet(isPresented: $showingTimeSheet) {
             PickUpTimeView(selectedTime: $selectedTime)
         }
-    }
-}
-
-// Helper Component
-struct SummaryRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack {
-            Text(title)
-            Spacer()
-            Text(value).fontWeight(.medium)
+        .navigationDestination(isPresented: $navigateToCompleted) {
+            OrderCompletedView()
+                .navigationBarBackButtonHidden(true)
         }
-        .font(.system(size: 14))
     }
 }
 

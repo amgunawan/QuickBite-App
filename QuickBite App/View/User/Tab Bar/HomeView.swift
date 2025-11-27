@@ -15,6 +15,7 @@ extension View {
 
 struct HomeView: View {
     @State private var searchText: String = ""
+    @StateObject private var viewModel = CuisineTypeViewModel()
     
     var body: some View {
         NavigationView {
@@ -45,7 +46,7 @@ struct HomeView: View {
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
-                                    ForEach(["Snacks", "Rice", "Noodles", "Chicken", "Korean", "Japanese", "Beverages", "Chinese", "Western"], id: \.self) { item in
+                                    ForEach(viewModel.cuisineTypes, id: \.self) { item in
                                         NavigationLink(destination: FoodCategoryView(categoryName: item)) {
                                             VStack {
                                                 Image(item)

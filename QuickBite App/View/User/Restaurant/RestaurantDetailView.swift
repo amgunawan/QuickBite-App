@@ -13,7 +13,7 @@ import SwiftUI
 
 struct RestaurantDetailView: View {
     
-    let imageName: String
+    let imageURL: String
     let name: String
     let categories: String
     let rating: Double
@@ -22,6 +22,7 @@ struct RestaurantDetailView: View {
     
     @State private var selectedItemForOptions: MenuItemData?
     @State private var showingCart = false
+    @StateObject private var topRatedVM = TopRatedRestaurantsViewModel()
     
     @StateObject private var cart = CartViewModel()
     
@@ -30,7 +31,7 @@ struct RestaurantDetailView: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                     
-                    HeaderView(imageName: imageName)
+                    HeaderView(imageURL: imageURL)
                         .padding(.bottom)
                     
                     InfoView(
@@ -247,13 +248,26 @@ struct CheckoutBarView: View {
 
 // MARK: - Header
 struct HeaderView: View {
-    let imageName: String
+    let imageURL: String
+
     var body: some View {
-        Image(imageName)
-            .resizable()
-            .scaledToFill()
+        if let url = URL(string: imageURL) {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                Rectangle()
+                    .fill(.gray.opacity(0.2))
+                    .overlay(ProgressView())
+            }
             .frame(height: 220)
             .clipped()
+        } else {
+            Rectangle()
+                .fill(.gray.opacity(0.2))
+                .frame(height: 220)
+        }
     }
 }
 
@@ -445,22 +459,6 @@ struct MenuItemRow: View {
                     }
                 }
             }
-        }
-    }
-}
-
-// MARK: - PREVIEW
-struct RestaurantDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        NavigationStack {
-            RestaurantDetailView(
-                imageName: "Raburi",
-                name: "Raburi",
-                categories: "Noodles, Japanese",
-                rating: 4.7,
-                reviewCount: 65,
-                pickupTime: "10-20 minutes"
-            )
         }
     }
 }

@@ -37,6 +37,7 @@ class TopRatedRestaurantsViewModel: ObservableObject {
                     rating: data["rating"] as? Double ?? 0.0,
                     reviewCount: data["review_count"] as? Int ?? 0,
                     bannerURL: data["banner_url"] as? String,   // masih GS URL
+                    searchURL: data["search_url"] as? String,
                     cuisineType: data["cuisine_type"] as? [String] ?? []
                 )
                 
@@ -53,22 +54,30 @@ class TopRatedRestaurantsViewModel: ObservableObject {
         }
     }
     
-    // GS URL Converter (SAMA PERSIS seperti di RestaurantsViewModel)
+    // GS URL Converter
     private func convertAllGSURLs() {
         for index in topRestaurants.indices {
+            
+            // Convert bannerURL
             if let gsURL = topRestaurants[index].bannerURL,
                gsURL.starts(with: "gs://") {
                 
                 let ref = storage.reference(forURL: gsURL)
-                
-                ref.downloadURL { url, error in
-                    if let error = error {
-                        print("Error converting gsURL:", error.localizedDescription)
-                        return
-                    }
-                    
+                ref.downloadURL { url, _ in
                     DispatchQueue.main.async {
                         self.topRestaurants[index].bannerURL = url?.absoluteString
+                    }
+                }
+            }
+            
+            // Convert searchURL
+            if let gsURL = topRestaurants[index].searchURL,
+               gsURL.starts(with: "gs://") {
+                
+                let ref = storage.reference(forURL: gsURL)
+                ref.downloadURL { url, _ in
+                    DispatchQueue.main.async {
+                        self.topRestaurants[index].searchURL = url?.absoluteString
                     }
                 }
             }

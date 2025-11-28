@@ -13,5 +13,6 @@ struct Restaurant: Identifiable, Codable {
     var rating: Double
     var reviewCount: Int
     var bannerURL: String?
+    var searchURL: String?
     var cuisineType: [String]
 }

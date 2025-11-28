@@ -14,7 +14,6 @@ import SwiftUI
 struct MenuDetailView: View {
     @EnvironmentObject var cart: CartViewModel
 
-    
     // Properti untuk menerima data
     let imageName: String
     let name: String

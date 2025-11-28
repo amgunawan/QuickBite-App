@@ -132,7 +132,7 @@ struct HomeView: View {
                                     
                                     ForEach(topRatedVM.topRestaurants) { restaurant in
                                         NavigationLink(destination: RestaurantDetailView(
-                                            imageName: restaurant.bannerURL ?? "",
+                                            imageURL: restaurant.searchURL ?? "",
                                             name: restaurant.name,
                                             categories: restaurant.cuisineType.joined(separator: ", "),
                                             rating: restaurant.rating,
@@ -161,14 +161,8 @@ struct HomeView: View {
                         
                         // All Restaurants
                         VStack(alignment: .leading) {
-                            HStack {
-                                Text("All Restaurants")
-                                    .font(.headline)
-                                
-                                Spacer()
-                                
-                                Image(systemName: "arrow.down")
-                            }
+                            Text("All Restaurants")
+                                .font(.headline)
                             
                             ScrollView(.vertical, showsIndicators: false) {
                                 let columns = [

@@ -15,7 +15,8 @@ extension View {
 
 struct HomeView: View {
     @State private var searchText: String = ""
-    @StateObject private var viewModel = CuisineTypeViewModel()
+    @StateObject private var cuisineTypeVM = CuisineTypeViewModel()
+    @StateObject private var restaurantVM = RestaurantsViewModel()
     
     var body: some View {
         NavigationView {
@@ -46,7 +47,7 @@ struct HomeView: View {
                             
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
-                                    ForEach(viewModel.cuisineTypes, id: \.self) { item in
+                                    ForEach(cuisineTypeVM.cuisineTypes, id: \.self) { item in
                                         NavigationLink(destination: FoodCategoryView(categoryName: item)) {
                                             VStack {
                                                 Image(item)
@@ -66,7 +67,7 @@ struct HomeView: View {
                                 .padding(.horizontal)
                             }
                             .onAppear {
-                                viewModel.fetchCuisineTypes()
+                                cuisineTypeVM.fetchCuisineTypes()
                             }
                         }
                         
@@ -184,29 +185,17 @@ struct HomeView: View {
                                 ]
                                 
                                 LazyVGrid(columns: columns, spacing: 16) {
-                                    AllRestaurantsCardView(
-                                        imageName: "KayaBoys",
-                                        deliveryTime: "<10 min",
-                                        name: "Kaya Boys"
-                                    )
-                                    
-                                    AllRestaurantsCardView(
-                                        imageName: "KPatats",
-                                        deliveryTime: "<10 min",
-                                        name: "King Patats"
-                                    )
-                                    
-                                    AllRestaurantsCardView(
-                                        imageName: "MadameLiy",
-                                        deliveryTime: "10–20 min",
-                                        name: "Madame Liy"
-                                    )
-                                    
-                                    AllRestaurantsCardView(
-                                        imageName: "Raburi",
-                                        deliveryTime: "10–20 min",
-                                        name: "Raburi"
-                                    )
+                                    ForEach(restaurantVM.restaurants) { r in
+                                        AllRestaurantsCardView(
+                                            imageURL: r.bannerURL,
+                                            deliveryTime: "<10 min",
+                                            name: r.name,
+                                            rating: String(format: "%.1f", r.rating),
+                                            reviewCount: r.reviewCount == 0
+                                                ? "No rating"
+                                                : "\(r.reviewCount) ratings"
+                                        )
+                                    }
                                 }
                             }
                         }

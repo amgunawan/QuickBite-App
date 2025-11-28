@@ -8,26 +8,47 @@
 import SwiftUI
 
 struct AllRestaurantsCardView: View {
-    var imageName: String
+    var imageURL: String?
     var deliveryTime: String
     var name: String
-    var rating: String = "4.7"
-    var reviewCount: String = "50+ rating"
+    var rating: String
+    var reviewCount: String
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Gambar persegi dengan rasio 1:1 mengikuti lebar kartu
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
+            
+            // Load image from URL
+            if let imageURL = imageURL,
+               let url = URL(string: imageURL) {
+                
+                AsyncImage(url: url) { image in
+                    image
+                        .resizable()
+                        .scaledToFill()
+                } placeholder: {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .overlay(
+                            ProgressView()
+                        )
+                }
                 .aspectRatio(1, contentMode: .fill)
-                .frame(maxWidth: .infinity)
                 .clipShape(
                     RoundedCorners(radius: 12, corners: [.topLeft, .topRight])
                 )
-                .clipped()
+                
+            } else {
+                // fallback
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .aspectRatio(1, contentMode: .fill)
+                    .clipShape(
+                        RoundedCorners(radius: 12, corners: [.topLeft, .topRight])
+                    )
+            }
             
             VStack(alignment: .leading, spacing: 4) {
+                
                 Text(deliveryTime)
                     .font(.caption)
                     .foregroundColor(.gray)
@@ -37,15 +58,12 @@ struct AllRestaurantsCardView: View {
                     .fontWeight(.semibold)
                     .lineLimit(2)
                     .multilineTextAlignment(.leading)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .fixedSize(horizontal: false, vertical: true)
-                
-                Spacer(minLength: 0)
                 
                 HStack(spacing: 4) {
                     Image(systemName: "star.fill")
                         .foregroundColor(.yellow)
                         .font(.caption)
+                    
                     Text("\(rating) • \(reviewCount)")
                         .font(.caption)
                         .foregroundColor(.gray)

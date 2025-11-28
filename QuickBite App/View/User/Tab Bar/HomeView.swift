@@ -17,6 +17,7 @@ struct HomeView: View {
     @State private var searchText: String = ""
     @StateObject private var cuisineTypeVM = CuisineTypeViewModel()
     @StateObject private var restaurantVM = RestaurantsViewModel()
+    @StateObject private var topRatedVM = TopRatedRestaurantsViewModel()
     
     var body: some View {
         NavigationView {
@@ -129,41 +130,32 @@ struct HomeView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: 16) {
                                     
-                                    NavigationLink(destination: RestaurantDetailView(
-                                        imageName: "Raburi",
-                                        name: "Raburi",
-                                        categories: "Noodles, Japanese",
-                                        rating: 4.7,
-                                        reviewCount: 65,
-                                        pickupTime: "10-20 minutes"
-                                    )) {
-                                        TopRatedRestaurantsCardView(
-                                            imageName: "Raburi",
-                                            deliveryTime: "10–20 min",
-                                            name: "Raburi"
-                                        )
+                                    ForEach(topRatedVM.topRestaurants) { restaurant in
+                                        NavigationLink(destination: RestaurantDetailView(
+                                            imageName: restaurant.bannerURL ?? "",
+                                            name: restaurant.name,
+                                            categories: restaurant.cuisineType.joined(separator: ", "),
+                                            rating: restaurant.rating,
+                                            reviewCount: restaurant.reviewCount,
+                                            pickupTime: "10–20 minutes"
+                                        )) {
+                                            TopRatedRestaurantsCardView(
+                                                imageURL: restaurant.bannerURL,
+                                                deliveryTime: "10–20 min",
+                                                name: restaurant.name,
+                                                rating: String(format: "%.1f", restaurant.rating),
+                                                reviewCount: restaurant.reviewCount == 0
+                                                    ? "No rating"
+                                                    : "\(restaurant.reviewCount) ratings"
+                                            )
+                                        }
+                                        .buttonStyle(.plain)
                                     }
-                                    .buttonStyle(.plain)
-                                    
-                                    TopRatedRestaurantsCardView(
-                                        imageName: "KPatats",
-                                        deliveryTime: "<10 min",
-                                        name: "King Patats"
-                                    )
-                                    
-                                    TopRatedRestaurantsCardView(
-                                        imageName: "MadameLiy",
-                                        deliveryTime: "10–20 min",
-                                        name: "Madame Liy"
-                                    )
-                                    
-                                    TopRatedRestaurantsCardView(
-                                        imageName: "KayaBoys",
-                                        deliveryTime: "<10 min",
-                                        name: "Kaya Boys"
-                                    )
                                 }
                                 .padding(.horizontal)
+                            }
+                            .onAppear {
+                                topRatedVM.fetchTopRated()
                             }
                         }
                         

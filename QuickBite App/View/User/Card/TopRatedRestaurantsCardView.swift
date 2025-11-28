@@ -8,11 +8,11 @@
 import SwiftUI
 
 struct TopRatedRestaurantsCardView: View {
-    var imageName: String
+    var imageURL: String?
     var deliveryTime: String
     var name: String
-    var rating: String = "4.7"
-    var reviewCount: String = "50+ rating"
+    var rating: String
+    var reviewCount: String
     
     var cardWidth: CGFloat = 140
     
@@ -26,15 +26,35 @@ struct TopRatedRestaurantsCardView: View {
                 )
             
             VStack(alignment: .leading, spacing: 8) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: cardWidth, height: cardWidth)
+                
+                // MARK: - IMAGE
+                if let imageURL = imageURL,
+                   let url = URL(string: imageURL) {
+                    
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .overlay(ProgressView())
+                    }
+                    .aspectRatio(1, contentMode: .fill)
                     .clipShape(
                         RoundedCorners(radius: 12, corners: [.topLeft, .topRight])
                     )
-                    .clipped()
+                    
+                } else {
+                    Rectangle()
+                        .fill(Color.gray.opacity(0.2))
+                        .aspectRatio(1, contentMode: .fill)
+                        .clipShape(
+                            RoundedCorners(radius: 12, corners: [.topLeft, .topRight])
+                        )
+                }
                 
+                // MARK: - TEXT CONTENT
                 VStack(alignment: .leading, spacing: 4) {
                     Text(deliveryTime)
                         .font(.caption)
@@ -46,7 +66,6 @@ struct TopRatedRestaurantsCardView: View {
                         .lineLimit(2)
                         .multilineTextAlignment(.leading)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .fixedSize(horizontal: false, vertical: true)
                     
                     Spacer(minLength: 0)
                     
@@ -54,6 +73,7 @@ struct TopRatedRestaurantsCardView: View {
                         Image(systemName: "star.fill")
                             .foregroundColor(.yellow)
                             .font(.caption)
+                        
                         Text("\(rating) • \(reviewCount)")
                             .font(.caption)
                             .foregroundColor(.gray)

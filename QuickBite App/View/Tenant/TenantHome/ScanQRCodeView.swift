@@ -23,7 +23,6 @@ struct ScanQRCodeView: View {
         print("QR Detected: \(code)")
         
         // === SEMENTARA: Hardcoded Example ===
-        // Nanti tinggal ganti jadi lookup ke Firestore atau fetch order ID
         if code == "AngelaMeliaQR" {
             scannedOrder = OrderCardViewData(
                 name: "Angela Melia",
@@ -38,13 +37,16 @@ struct ScanQRCodeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                // === CAMERA PREVIEW QR ===
+
+                // === FULL SCREEN CAMERA ===
                 CameraPreviewView(isFlashOn: isFlashOn) { scannedValue in
                     handleScannedCode(scannedValue)
                 }
-                .ignoresSafeArea()
+                .ignoresSafeArea() // <-- tetap dipakai
 
+                // === OVERLAY UI ===
                 VStack {
+
                     // === TOP BAR ===
                     HStack {
                         Button(action: { dismiss() }) {
@@ -77,7 +79,7 @@ struct ScanQRCodeView: View {
 
                     Spacer()
 
-                    // === SCAN FRAME ===
+                    // === WHITE SCAN FRAME ===
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.white, lineWidth: 4)
                         .frame(width: 280, height: 280)
@@ -86,11 +88,13 @@ struct ScanQRCodeView: View {
                     Spacer()
                 }
             }
+            // === FIX: REMOVE WHITE BOTTOM AREA ===
+            .ignoresSafeArea()    // <-- Yang paling penting, DI SINI!
+            
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
 
-            
-            // === BOTTOM SHEET: ORDER FOUND ===
+            // === BOTTOM SHEET ===
             .sheet(isPresented: $showOrderSheet) {
                 if let order = scannedOrder {
                     OrderFoundSheet(
@@ -99,7 +103,6 @@ struct ScanQRCodeView: View {
                             showOrderSheet = false
                         },
                         onConfirm: {
-                            // TODO: Pindahkan ke history
                             showOrderSheet = false
                             goToActivity = true
                         }
@@ -109,16 +112,12 @@ struct ScanQRCodeView: View {
                 }
             }
 
-            
-            // === NAVIGATE TO ACTIVITY ===
             .navigationDestination(isPresented: $goToActivity) {
                 TenantActivityView()
             }
         }
     }
 }
-
-
 
 #Preview {
     ScanQRCodeView()

@@ -63,9 +63,9 @@ struct BillingOptionSheet: View {
             Spacer()
         }
         .padding(.horizontal, 24)
-        .presentationDetents([.height(300)]) // Tinggi sheet disesuaikan
-        .presentationDragIndicator(.visible)
+        .presentationDetents([.height(300)]) 
         .background(Color.white)
+        .presentationDragIndicator(.visible)
     }
 }
 

@@ -10,33 +10,66 @@ import SwiftUI
 struct OrderDeadlineSheet: View {
     @Environment(\.dismiss) var dismiss
     
+    // Action closure to pass the selected date back to the parent
     var onSave: (Date) -> Void
     
-    // State dummy untuk keperluan tampilan (bisa diganti Binding nanti)
-    @State private var selectedDate = Date()
-    @State private var showTimePicker = false
+    // State for local selection
+    @State private var selectedDate: Date
+    // REMOVED: showTimePicker state is no longer needed
+    // @State private var showTimePicker = false
     
-    // Formatter untuk menampilkan waktu
-    private var timeFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        return formatter
+    // Init to accept initial date
+    init(initialDate: Date? = nil, onSave: @escaping (Date) -> Void) {
+        self.onSave = onSave
+        // Initialize selectedDate with initialDate or current date
+        let start = initialDate ?? Date()
+        _selectedDate = State(initialValue: start)
     }
     
-    init(initialDate: Date? = nil, onSave: @escaping (Date) -> Void) {
-            self.onSave = onSave
-            // Initialize selectedDate with initialDate or current date
-            _selectedDate = State(initialValue: initialDate ?? Date())
+    // REMOVED: timeFormatter is no longer needed for the button label
+    
+    // Helper to calculate closing time for today (e.g., 10:00 PM)
+    private var closingTimeToday: Date {
+        let calendar = Calendar.current
+        let now = Date()
+        // Set closing time to 10:00 PM (22:00) today
+        // You can change '22' to whatever hour the restaurant closes
+        if let closeDate = calendar.date(bySettingHour: 22, minute: 0, second: 0, of: now) {
+            // Safety check: If 'now' is somehow already past 10 PM,
+            // return 'now' + 1 minute so the range isn't invalid (min > max).
+            return closeDate > now ? closeDate : now.addingTimeInterval(60)
         }
+        return now.addingTimeInterval(60) // Fallback
+    }
+    
+    // Define Valid Range
+    private var validDateRange: ClosedRange<Date> {
+        let now = Date()
+        let end = closingTimeToday
+        
+        // Check if we are already past closing time
+        if now > end {
+            return now...now.addingTimeInterval(60)
+        } else {
+            // Normal operation: Now until Closing Time
+            return now...end
+        }
+    }
+    
+    // Check if Restaurant is Closed
+    private var isRestaurantClosed: Bool {
+        return Date() > closingTimeToday
+    }
+    
     var body: some View {
         VStack(spacing: 24) {
             
             // Title & Description
             VStack(alignment: .leading, spacing: 8) {
                 Text("Set a deadline for members to add items")
-                    .font(.title3.bold()) // Bold title
+                    .font(.title3.bold())
                     .foregroundColor(.black)
-                    .padding(.top, 30)
+                    
                 
                 Text("We'll give you a little reminder to place the order when the deadline's getting close. Feel free to adjust it if your members need a bit more time.")
                     .font(.subheadline)
@@ -45,9 +78,11 @@ struct OrderDeadlineSheet: View {
                     .lineSpacing(2)
             }
             .padding(.horizontal)
+            .padding(.top, 30)
             
             // Inputs (Date & Time)
             VStack(spacing: 16) {
+                // Date Input (Static "Today")
                 HStack(spacing: 12) {
                     Image(systemName: "calendar")
                         .font(.system(size: 20))
@@ -58,53 +93,39 @@ struct OrderDeadlineSheet: View {
                     Spacer()
                 }
                 .padding()
-                .background(Color.gray.opacity(0.2))
+                .background(Color(.systemGray6))
                 .cornerRadius(8)
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .stroke(Color(.systemGray4), lineWidth: 1.5)
                 )
                 
-                // Time Input (Button to toggle picker)
-                VStack(spacing: 0) {
-                    Button(action: {
-                        withAnimation {
-                            showTimePicker.toggle()
-                        }
-                    }) {
-                        HStack(spacing: 12) {
-                            Image(systemName: "clock") // Icon jam orange sesuai gambar
-                                .font(.system(size: 20))
-                                .foregroundColor(.orange)
-                            // Menampilkan waktu yang dipilih atau teks default jika perlu
-                            Text(timeFormatter.string(from: selectedDate))
-                                .font(.system(size: 16))
-                                .foregroundColor(.black)
-                            Spacer()
-                        }
-                        .padding()
-                        .background(Color.white)
-                        .cornerRadius(8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(showTimePicker ? Color.orange : Color(.systemGray4), lineWidth: 1.5)
-                        )
+                // Time Picker (Always Visible)
+                if isRestaurantClosed {
+                    // Show message if closed
+                    HStack {
+                        Image(systemName: "clock")
+                            .font(.system(size: 20))
+                            .foregroundColor(.gray)
+                        Text("Restaurant Closed")
+                            .font(.system(size: 16))
+                            .foregroundColor(.red)
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
-                    
-                    // Hour Picker (Wheel Style)
-                
-                    if showTimePicker {
-                        Divider()
-                            .padding(.top,10)
-                        
-                        DatePicker("", selection: $selectedDate, displayedComponents: .hourAndMinute)
-                            .datePickerStyle(.wheel)
-                            .labelsHidden()
-                            .transition(.opacity.combined(with: .move(edge: .top)))
-                        
-                        Divider()
-                    }
+                    .padding()
+                    .background(Color.white)
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color(.systemGray5), lineWidth: 1.5)
+                    )
+                } else {
+                    // Show DatePicker directly
+                    DatePicker("", selection: $selectedDate, in: validDateRange, displayedComponents: .hourAndMinute)
+                        .datePickerStyle(.wheel)
+                        .labelsHidden()
+                        .frame(maxHeight: 150) // Limit height to keep it compact
+                        .clipped()
                 }
             }
             .padding(.horizontal)
@@ -115,29 +136,29 @@ struct OrderDeadlineSheet: View {
             VStack(spacing: 12) {
                 // Set Deadline Button
                 Button(action: {
-                    // Call the onSave closure with the selected date
                     onSave(selectedDate)
                     dismiss()
                 }) {
                     Text("Set deadline")
-                        .font(.headline)
+                        .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange)
+                        .padding(.vertical, 12)
+                        .background(isRestaurantClosed ? Color.gray : Color.orange)
                         .cornerRadius(30)
                 }
+                .disabled(isRestaurantClosed)
                 
                 // Continue without deadline Button
                 Button(action: {
                     dismiss()
                 }) {
                     Text("Continue without deadline")
-                        .font(.headline)
+                        .fontWeight(.medium)
                         .foregroundColor(.orange)
                         .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Color.orange.opacity(0.1)) // Light orange background
+                        .padding(.vertical, 12)
+                        .background(Color.orange.opacity(0.1))
                         .cornerRadius(30)
                 }
             }
@@ -145,16 +166,15 @@ struct OrderDeadlineSheet: View {
             .padding(.bottom, 10)
         }
         .background(Color.white)
-        .presentationDetents([showTimePicker ? .large : .height(480)])
-        .presentationCornerRadius(24)
-        .presentationDragIndicator(.visible) // Kita buat handle manual
+        // Fixed height detent since picker is always visible
+        .presentationDetents([.height(530)])
+        .presentationCornerRadius(50)
+        .presentationDragIndicator(.visible)
     }
 }
 
 struct OrderDeadlineSheet_Previews: PreviewProvider {
     static var previews: some View {
-        OrderDeadlineSheet(onSave: { date in
-            print("Deadline saved: \(date)")
-        })
+        OrderDeadlineSheet(onSave: { _ in })
     }
 }

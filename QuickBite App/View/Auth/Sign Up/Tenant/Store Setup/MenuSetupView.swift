@@ -15,7 +15,7 @@ struct MenuSetupView: View {
     // MARK: - UI States
     @State private var newSectionName: String = ""
     @State private var showAddItemOverlay = false
-    @State private var editingIndex: (sec: Int, row: Int)? = nil      // 🔥 UPDATED
+    @State private var editingIndex: (sec: Int, row: Int)? = nil
 
     var body: some View {
         VStack(spacing: 20) {
@@ -39,12 +39,12 @@ struct MenuSetupView: View {
                         emptyMenuPlaceholder
                     }
 
-                    // MARK: - RENDER ALL SECTIONS (NO CARD) 🔥 UPDATED
+                    // MARK: - RENDER ALL SECTIONS (NO CARD)
                     ForEach(sections.indices, id: \.self) { secIdx in
                         simpleSectionView(secIdx)
                     }
 
-                    // MARK: - ADD NEW SECTION (ONLY IF > 0) 🔥 UPDATED
+                    // MARK: - ADD NEW SECTION (ONLY IF > 0)
                     if !sections.isEmpty {
                         Button {
                             sections.append(MenuSectionModel(title: "", items: []))
@@ -164,7 +164,7 @@ struct MenuSetupView: View {
         )
     }
 
-    // MARK: - ADD DUMMY ITEM (Direct Add Item) 🔥 UPDATED
+    // MARK: - ADD DUMMY ITEM (Direct Add Item)
     private func addItem(in secIdx: Int) {
 
         let newItem = MenuItem(

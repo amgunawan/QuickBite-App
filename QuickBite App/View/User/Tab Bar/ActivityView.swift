@@ -100,23 +100,17 @@ struct ActivityView: View {
                                             .foregroundColor(.green)
                                     }
 
-                                    // CARD → clickable only if SUDAH rating
-                                    if order.rating != nil {
-                                        NavigationLink(
-                                            destination: OrderCompletedView(userRating: order.rating ?? 0,
-                                                                            didSubmitReview: order.rating != nil)
-                                                .onAppear {
-                                                    // kirim rating ke halaman completed
-                                                    // nanti kamu isi logicnya
-                                                }
-                                        ) {
-                                            orderCard(order: order)
-                                        }
-                                        .foregroundColor(.primary)
-                                    } else {
-                                        // Belum rating → non clickable card
+                                    NavigationLink(
+                                        destination: OrderCompletedView(userRating: order.rating ?? 0,
+                                                                        didSubmitReview: order.rating != nil)
+                                            .onAppear {
+                                                // kirim rating ke halaman completed
+                                                // nanti kamu isi logicnya
+                                            }
+                                    ) {
                                         orderCard(order: order)
                                     }
+                                    .foregroundColor(.primary)
 
                                     // MARK: - GIVE US RATING SECTION
                                     if order.rating == nil {

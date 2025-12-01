@@ -92,6 +92,7 @@ extension AddMenuItemOverlay {
                         Image(uiImage: img)
                             .resizable()
                             .scaledToFill()
+                            .frame(width: 98, height: 98)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
                         Image(systemName: "photo.fill")
@@ -377,7 +378,7 @@ extension AddMenuItemOverlay {
     // MARK: LOGIC FUNCTIONS
     private func addNewSection() {
         let newGroup = CustomizationGroup(
-            title: "New Section",
+            title: "",
             selectionType: "Choose 1",
             options: []
         )
@@ -387,7 +388,7 @@ extension AddMenuItemOverlay {
     private func addOption(to group: CustomizationGroup) {
         if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
             customizationGroups[idx].options.append(
-                CustomizationOption(name: "New Option", additionalPrice: 0)
+                CustomizationOption(name: "", additionalPrice: 0)
             )
         }
     }

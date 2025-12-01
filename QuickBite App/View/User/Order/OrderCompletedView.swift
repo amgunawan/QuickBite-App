@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct OrderCompletedView: View {
-
+    
     // MARK: - Dummy Data
     @State private var mealCount: Int = 1
     @State private var mealName: String = "Chicken Katsu Shiokara Ramen"
@@ -19,21 +19,23 @@ struct OrderCompletedView: View {
     @State private var orderNumber: String = "000000000000001"
     @State private var orderDate: String = "Fri Oct 24, 2025 10:00 AM"
     @State private var paymentMethod: String = "BCA"
-
+    
     @State private var restaurantName: String = "Raburi"
     @State private var restaurantCategory: String = "Noodles, Japanese"
     @State private var rating: Double = 4.7
     @State private var reviewCount: Int = 65
     @State private var estTime: String = "10–20 min"
-
+    
     @State private var pickedTime: String = "Fri Oct 24, 2025 10:30 PM"
-
+    
     // MARK: Sheet State
     @State private var showPickedDetails = false
     @State private var showReviewView: Bool = false
     @State var userRating: Int
     @State var didSubmitReview: Bool
-
+    
+    @State private var tempRating: Int = 0
+    
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
@@ -84,19 +86,24 @@ struct OrderCompletedView: View {
                         Text("How was your experience?")
                             .font(.subheadline)
                             .frame(maxWidth: .infinity, alignment: .center)
-
+                        
                         if didSubmitReview == false {
-                            // BEFORE submitting review → show tappable stars
-                            Button { showReviewView = true } label: {
-                                HStack(spacing: 12) {
-                                    ForEach(1...5, id: \.self) { i in
-                                        Image(systemName: "star")
-                                            .font(.title2)
-                                            .foregroundColor(Color(.systemGray4))
-                                    }
+                            // BEFORE submitting review → semua bintang abu-abu,
+                            // tapi klik bintang mengirim nilai ke ReviewView via tempRating
+                            HStack(spacing: 12) {
+                                ForEach(1...5, id: \.self) { i in
+                                    Image(systemName: "star")
+                                        .font(.title2)
+                                        .foregroundColor(Color(.systemGray4))
+                                        .onTapGesture {
+                                            tempRating = i          // ⬅️ kirim nilai awal ke ReviewView
+                                            showReviewView = true   // ⬅️ buka halaman review
+                                        }
                                 }
                             }
-                        } else {
+                        }
+                        
+                        else {
                             // AFTER submitting review → show yellow stars
                             HStack(spacing: 12) {
                                 ForEach(1...5, id: \.self) { i in
@@ -209,32 +216,16 @@ struct OrderCompletedView: View {
                         .font(.subheadline)
                         .padding(.horizontal)
                         .padding(.vertical, 4)
-                                        
+                    
                     // MARK: - Buttons
-                    HStack() {
-                        if didSubmitReview == false {
-                            Button { showReviewView = true } label: {
-                                Text("Write a Review")
-                                    .fontWeight(.medium)
-                                    .foregroundColor(.orange)
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 12)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 24)
-                                            .stroke(Color.orange, lineWidth: 1)
-                                    )
-                            }
-                        }
-                        
-                        Button(action: {}) {
-                            Text("Buy Again")
-                                .fontWeight(.medium)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                                .background(Color(hex: "#FF9500"))
-                                .cornerRadius(24)
-                        }
+                    Button(action: {}) {
+                        Text("Buy Again")
+                            .fontWeight(.medium)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color(hex: "#FF9500"))
+                            .cornerRadius(24)
                     }
                     .padding(.horizontal)
                     .padding(.bottom)
@@ -242,7 +233,23 @@ struct OrderCompletedView: View {
             }
             .scrollContentBackground(.hidden)
             .navigationDestination(isPresented: $showReviewView) {
-                ReviewView(rating: $userRating, didSubmit: $didSubmitReview)}
+                ReviewView(
+                    rating: Binding(
+                        get: { tempRating },
+                        set: { tempRating = $0 }
+                    ),
+                    didSubmit: Binding(
+                        get: { didSubmitReview },
+                        set: { didSubmitReview = $0 }
+                    ),
+                    onSubmit: { finalRating in
+                        // HANYA saat user tekan Send:
+                        userRating = finalRating      // simpan rating permanen
+                        didSubmitReview = true        // ubah state ke "sudah review"
+                    }
+                )
+            }
+            
             .toolbarBackground(.hidden, for: .navigationBar)
             .navigationBarTitleDisplayMode(.inline)
         }
@@ -253,20 +260,20 @@ struct OrderCompletedView: View {
                 // Sheet Header
                 Text("Pick Up Details")
                     .font(.headline)
-                    //.padding(.top, 10)
+                //.padding(.top, 10)
                     .padding(.bottom, 8)
                 
                 Divider()
                     .padding(.vertical, 4)
-
+                
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Picked Up")
                         .font(.subheadline)
-
+                    
                     keyValue("Quantity", "\(mealCount)")
                     keyValue("Seller", restaurantName)
                     keyValue("Time picked up", pickedTime)
-
+                    
                 }
                 .padding(.horizontal)
                 .padding(.top, 10)
@@ -276,7 +283,7 @@ struct OrderCompletedView: View {
             .presentationCornerRadius(22)
         }
     }
-
+    
     // MARK: Summary Row ViewBuilder
     private func summaryRow(_ key: String, _ value: String) -> some View {
         HStack {
@@ -287,7 +294,7 @@ struct OrderCompletedView: View {
         }
         .font(.subheadline)
     }
-
+    
     // MARK: Key Value for Sheet
     private func keyValue(_ key: String, _ value: String) -> some View {
         HStack {

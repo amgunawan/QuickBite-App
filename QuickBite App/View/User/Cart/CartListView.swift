@@ -190,7 +190,7 @@ struct CartFooterView: View {
                 }) {
                     HStack(spacing: 16) {
                         ZStack(alignment: .topTrailing) {
-                            Image(systemName: "cart")
+                            Image(systemName: "basket")
                                 .font(.system(size: 24))
                                 .foregroundColor(.orange)
                                 .padding(.top, 2)

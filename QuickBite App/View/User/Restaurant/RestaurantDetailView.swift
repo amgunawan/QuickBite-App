@@ -28,6 +28,10 @@ struct RestaurantDetailView: View {
     
     @State private var groupName = "Angela's Group"
     
+    @State private var groupMembers: [UserMember] = [
+            UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
+        ]
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
@@ -43,7 +47,8 @@ struct RestaurantDetailView: View {
                         reviewCount: reviewCount,
                         pickupTime: pickupTime,
                         isGroupOrderActive: $isGroupOrderActive,
-                        groupName: $groupName
+                        groupName: $groupName,
+                        groupMembers: $groupMembers
                         
                     )
                     .padding(.horizontal)
@@ -205,7 +210,7 @@ struct CheckoutBarView: View {
             Button(action: { showCart = true }) {
                 HStack(spacing: 16) {
                     ZStack(alignment: .topTrailing) {
-                        Image(systemName: "cart")
+                        Image(systemName: "basket")
                             .font(.system(size: 24))
                             .foregroundColor(.orange)
                             .padding(.top, 2)
@@ -244,7 +249,7 @@ struct CheckoutBarView: View {
                 showCart = true
             }) {
                 Text("View Cart")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 12)
@@ -265,48 +270,52 @@ struct GroupOrderBottomBar: View {
     var body: some View {
         HStack(spacing: 16) {
             // Ikon Basket (Orange Outline) dengan Badge
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "basket")
-                    .font(.system(size: 28))
-                    .foregroundColor(.orange)
+            Button(action: { showGroupCart = true }) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "basket")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                        .padding(.top, 2)
+                        .padding(.trailing, 2)
+                    
+                    // Hitung total item (misal +1 item user lain sbg dummy)
+                    let totalItems = cart.totalItemCount // + user lain jika ada
+                    if totalItems > 0 {
+                        Text("\(totalItems)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Color.orange)
+                            .clipShape(Circle())
+                            .offset(x: 8, y: -8)
+                    }
+                }
+                .frame(width: 44, height: 44)
                 
-                // Hitung total item (misal +1 item user lain sbg dummy)
-                let totalItems = cart.totalItemCount // + user lain jika ada
-                if totalItems > 0 {
-                    Text("\(totalItems)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 16, height: 16)
-                        .background(Color.orange)
-                        .clipShape(Circle())
-                        .offset(x: 6, y: -6)
+                Spacer()
+                
+                // Text Total Harga (User saja)
+                // Menggunakan Group untuk menghindari error type check pada + operator
+                VStack(alignment: .trailing) {
+                    Text("Rp\(formatPrice(cart.totalPrice))")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.orange)
+                    
+                    Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
+                        .font(.system(size:14))
+                        .foregroundColor(.orange)
                 }
             }
-            .padding(.leading, 8)
-            
-            Spacer()
-            
-            // Text Total Harga (User saja)
-            // Menggunakan Group untuk menghindari error type check pada + operator
-            Group {
-                Text("Rp\(formatPrice(cart.totalPrice))")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.orange)
-                Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
-            
-            Spacer()
-            
+            .buttonStyle(.plain)
+                        
             // Tombol View Cart
             Button(action: {
                 showGroupCart = true
             }) {
                 Text("View Cart")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 32)
                     .padding(.vertical, 12)
                     .background(Color.orange)
                     .cornerRadius(25)
@@ -314,7 +323,7 @@ struct GroupOrderBottomBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(Color.white.shadow(color: .black.opacity(0.1), radius: 10, y: -5))
+        .background(Color.white)
     }
 }
 
@@ -353,8 +362,8 @@ struct InfoView: View {
     
     @Binding var isGroupOrderActive: Bool
     @Binding var groupName: String
-    
-    
+    @Binding var groupMembers: [UserMember]
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top) {
@@ -363,9 +372,8 @@ struct InfoView: View {
                     Text(categories).font(.body).foregroundColor(.gray)
                 }
                 Spacer()
-                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName)) {
+                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName, groupMembers: $groupMembers)) {
                     GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
-
                 }
                 .padding(.top, 4)          }
             HStack(spacing: 4) {
@@ -531,6 +539,21 @@ struct MenuItemRow: View {
                     }
                 }
             }
+        }
+    }
+}
+
+struct RestaurantDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        NavigationStack {
+            RestaurantDetailView(
+                imageURL: "Raburi",
+                name: "Raburi",
+                categories: "Noodles, Japanese",
+                rating: 4.7,
+                reviewCount: 65,
+                pickupTime: "10-20 minutes"
+            )
         }
     }
 }

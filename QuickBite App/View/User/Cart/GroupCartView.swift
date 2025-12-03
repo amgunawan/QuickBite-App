@@ -11,13 +11,17 @@ struct GroupCartView: View {
     @EnvironmentObject var cart: CartViewModel
     @Environment(\.dismiss) var dismiss
     
-    // Dummy Data untuk anggota lain
+    // Dummy Data untuk anggota lain (Simulasi)
     let members = [
         UserMember(name: "Heidy Mudita", username: "@hsutedjo", initial: "H", color: .blue),
         UserMember(name: "Sharon Tan", username: "@sharontan", initial: "S", color: .yellow)
     ]
     
+    // 🔥 DIPERBARUI: State untuk navigasi ke OrderConfirmationView (jika menggunakan .navigationDestination)
+    @State private var showOrderConfirmation = false
+    
     var body: some View {
+        // Menggunakan NavigationStack agar bisa push ke OrderConfirmationView
         NavigationStack {
             ZStack(alignment: .bottom) {
                 ScrollView {
@@ -85,7 +89,7 @@ struct GroupCartView: View {
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing) {
-                                    Text("Rp42.500") // Dummy
+                                    Text("Rp42.500") // Dummy price
                                         .font(.headline)
                                         .foregroundColor(.orange)
                                     Text("1 menu")
@@ -146,6 +150,12 @@ struct GroupCartView: View {
                                     }
                                 }
                                 Spacer()
+                                
+                                Button("Remove member") {
+                                    // Action remove
+                                }
+                                .font(.caption)
+                                .foregroundColor(.red)
                             }
                             
                             // Waiting box
@@ -165,7 +175,7 @@ struct GroupCartView: View {
                             .background(
                                 RoundedRectangle(cornerRadius: 12)
                                     .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
-                                    .foregroundColor(.gray)
+                                    .foregroundColor(.gray.opacity(0.5))
                             )
                         }
                         .padding(.horizontal)
@@ -181,17 +191,20 @@ struct GroupCartView: View {
                         // Icon Basket with Badge
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "basket")
-                                .font(.system(size: 28))
+                                .font(.system(size: 24))
                                 .foregroundColor(.orange)
                             
                             // Total items (User + Dummy)
-                            Text("\(cart.totalItemCount + 1)")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 16, height: 16)
-                                .background(Color.orange)
-                                .clipShape(Circle())
-                                .offset(x: 6, y: -6)
+                            let totalGroupItems = cart.totalItemCount + 1 // +1 dummy from Heidy
+                            if totalGroupItems > 0 {
+                                Text("\(totalGroupItems)")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundColor(.white)
+                                    .frame(width: 16, height: 16)
+                                    .background(Color.orange)
+                                    .clipShape(Circle())
+                                    .offset(x: 6, y: -6)
+                            }
                         }
                         .padding(.trailing, 8)
                         
@@ -199,20 +212,20 @@ struct GroupCartView: View {
                         
                         // Total Price Info
                         VStack(alignment: .trailing) {
+                            // Harga User
                             Text("Rp\(formatPrice(cart.totalPrice))")
-                                .font(.title3)
-                                .fontWeight(.bold)
+                                .font(.headline)
                                 .foregroundColor(.orange)
                             
-                            Text("(Total: \(formatPrice(cart.totalPrice + 42500)))") // Dummy total
+                            // Total Group (Dummy calculation: User + 42.500)
+                            Text("(Total: Rp\(formatPrice(cart.totalPrice + 42500)))")
                                 .font(.caption)
                                 .foregroundColor(.orange)
                         }
                         
-                        // Checkout Button
-                        Button(action: {
-                            // Action Checkout
-                        }) {
+                        // 🔥 DIPERBARUI: Checkout Button menggunakan NavigationLink (Push)
+                        // Ini meniru perilaku CartListView normal Anda
+                        NavigationLink(destination: OrderConfirmationView().environmentObject(cart)) {
                             Text("Checkout")
                                 .font(.headline)
                                 .foregroundColor(.white)
@@ -228,12 +241,18 @@ struct GroupCartView: View {
             }
             .navigationTitle("Angela's Group")
             .navigationBarTitleDisplayMode(.inline)
-            
-            
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundColor(.black)
+                    }
+                }
+            }
         }
     }
 }
-
 
 // Component: User Avatar
 struct UserAvatar: View {
@@ -248,7 +267,7 @@ struct UserAvatar: View {
                 .fontWeight(.bold)
                 .foregroundColor(isCurrentUser ? Color(red: 0.9, green: 0.4, blue: 0.1) : .white)
                 .frame(width: 50, height: 50)
-                .background(isCurrentUser ? Color.orange.opacity(0.2) : color.opacity(0.5))
+                .background(isCurrentUser ? Color.orange.opacity(0.2) : color.opacity(0.8))
                 .clipShape(Circle())
                 .overlay(
                     Circle().stroke(isCurrentUser ? Color.orange : Color.clear, lineWidth: 1)
@@ -262,6 +281,7 @@ struct UserAvatar: View {
                     .background(Color.red)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                    .offset(x: 0, y: 0)
             }
         }
     }
@@ -286,6 +306,7 @@ struct GroupCartItemRow: View {
                         .font(.system(size: 14, weight: .semibold))
                         .lineLimit(1)
                     Spacer()
+                    // Tombol Change (Belum ada aksi)
                     Button("Change") {}
                         .font(.caption)
                         .foregroundColor(.blue)
@@ -301,16 +322,17 @@ struct GroupCartItemRow: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.orange)
                     if item.baseOriginalPrice != nil {
-                        Text("Rp\(formatPrice(item.originalPrice))")
+                         Text("Rp\(formatPrice(item.originalPrice))")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .strikethrough()
                     }
                     Spacer()
                     
-                    // Mini Stepper
+                    // Mini Stepper Display (Static for now)
                     HStack(spacing: 8) {
                         Image(systemName: "minus.square")
+                            .foregroundColor(.gray)
                         Text("\(item.quantity)")
                             .font(.subheadline)
                         Image(systemName: "plus.square.fill")

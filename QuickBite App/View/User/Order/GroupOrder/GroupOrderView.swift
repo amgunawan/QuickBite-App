@@ -12,11 +12,6 @@ struct GroupOrderView: View {
     
     let restaurantName: String
     
-    @State private var groupMembers: [UserMember] = [
-        UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
-    ]
-    
-
     @State private var isEditingGroupName: Bool = false
     @FocusState private var isGroupNameFocused: Bool
     
@@ -28,7 +23,8 @@ struct GroupOrderView: View {
     
     @Binding var isGroupOrderActive: Bool
     @Binding var groupName: String
-
+    @Binding var groupMembers: [UserMember]
+    
     
     var body: some View {
         VStack(spacing: 0) {
@@ -131,7 +127,7 @@ struct GroupOrderView: View {
                                 title: "Order Deadline",
                                 // Tampilkan deadline jika ada, atau default text
                                 subtitle: orderDeadline != nil ? "Today, " + orderDeadline!.formatted(date: .omitted, time: .shortened) : "No deadline set"
-
+                                
                             )
                         }
                         .buttonStyle(.plain)
@@ -191,42 +187,56 @@ struct GroupOrderView: View {
             //tombol create
             VStack {
                 Button(action: {
-                    print("Group order created: \(groupName)")
-                    
-                    isGroupOrderActive = true // Set state di parent jadi true
-                    dismiss()
+                    if isGroupOrderActive {
+                        print("Group order deleted")
+                        isGroupOrderActive = false
+                        if let currentUser = groupMembers.first(where: { $0.isCurrentUser }) {
+                            groupMembers = [currentUser]
+                        }
+                        dismiss()
+                    } else {
+                        
+                        print("Group order created: \(groupName)")
+                        isGroupOrderActive = true
+                        dismiss()
+                    }
                 }) {
-                    Text("Create Group Order")
-                        .fontWeight(.medium)
-                        .foregroundColor(groupMembers.count > 1 ? .white : .gray)
+                    Text(isGroupOrderActive ? "Delete Group Order" : "Create Group Order")
+                        .font(.headline)
+                        .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(groupMembers.count > 1 ? Color.orange : Color(.systemGray5))
+                        .background(
+                            isGroupOrderActive ? Color.red : (groupMembers.count > 1 ? Color.orange : Color(.systemGray5))
+                        )
                         .cornerRadius(30)
                 }
-                // Disable tombol jika anggota hanya 1
-                .disabled(groupMembers.count <= 1)
+                .disabled(!isGroupOrderActive && groupMembers.count <= 1)
+                
+                
             }
             .padding()
             .background(Color.white)
+            
         }
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-                    ToolbarItem(placement: .principal) {
-                        VStack(spacing: 0) {
-                            Text("Group Order").font(.headline).foregroundColor(.black)
-                            Text(restaurantName).font(.caption).foregroundColor(.gray)
-                        }
-                    }
+            ToolbarItem(placement: .principal) {
+                VStack(spacing: 0) {
+                    Text("Group Order").font(.headline).foregroundColor(.black)
+                    Text(restaurantName).font(.caption).foregroundColor(.gray)
                 }
+            }
+        }
         .sheet(isPresented: $showBillingSheet) {
             BillingOptionSheet(selectedOption: $selectedBillingOption)
         }
         .sheet(isPresented: $showDeadlineSheet) {
-                    OrderDeadlineSheet(initialDate: orderDeadline, onSave: { date in self.orderDeadline = date })
-                }
+            OrderDeadlineSheet(initialDate: orderDeadline, onSave: { date in self.orderDeadline = date })
+        }
     }
 }
+
 
 // MARK: - Subview: Baris Pengaturan
 struct GroupOrderSettingRow: View {
@@ -283,7 +293,8 @@ struct TopRoundedCorner: Shape {
 struct GroupOrderView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            GroupOrderView(restaurantName: "Raburi", isGroupOrderActive: .constant(false), groupName: .constant("Angela's Group"))
+            // Dummy binding for preview
+            GroupOrderView(restaurantName: "Raburi", isGroupOrderActive: .constant(false), groupName: .constant("Angela's Group"), groupMembers: .constant([UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)]))
         }
     }
 }

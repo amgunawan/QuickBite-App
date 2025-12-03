@@ -14,36 +14,41 @@ struct MenuSetupView: View {
 
     // MARK: - UI States
     @State private var newSectionName: String = ""
-    @State private var showAddItemOverlay = false
-    @State private var editingIndex: (sec: Int, row: Int)? = nil
+    @State private var editingIndex: EditingItem? = nil
+
+    struct EditingItem: Identifiable {
+        let id = UUID()
+        let sec: Int
+        let row: Int
+    }
 
     var body: some View {
         VStack(spacing: 20) {
-
+            
             // HEADER
             MenuHeader(
                 step: 2,
                 title: "Build your Quickbite Store",
                 subtitle: "Configure your store’s menu and branding"
             )
-
+            
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-
+                    
                     Text("Menu Sections")
                         .font(.headline)
-
+                    
                     // MARK: - IF EMPTY
                     if sections.isEmpty {
-
+                        
                         emptyMenuPlaceholder
                     }
-
+                    
                     // MARK: - RENDER ALL SECTIONS (NO CARD)
                     ForEach(sections.indices, id: \.self) { secIdx in
                         simpleSectionView(secIdx)
                     }
-
+                    
                     // MARK: - ADD NEW SECTION (ONLY IF > 0)
                     if !sections.isEmpty {
                         Button {
@@ -57,36 +62,35 @@ struct MenuSetupView: View {
                                 .background(Color.orange, in: Capsule())
                         }
                     }
-
+                    
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             }
-
+            
             // FINISH
-            Button {
-                print("FINISHED ✔")
-            } label: {
+            NavigationLink(destination: OnboardingView()) {
                 Text("Finish")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.orange.opacity(0.6), in: Capsule())
+                    .background(
+                        Color.orange,
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
             }
             .padding(.horizontal)
         }
 
         // OVERLAY (Only for EDIT)
-        .sheet(isPresented: $showAddItemOverlay) {
-            if let (sec, row) = editingIndex {
-                AddMenuItemOverlay { newItem in
-                    sections[sec].items[row] = newItem
-                    showAddItemOverlay = false
-                }
-                .presentationDetents([.fraction(0.92)])
-                .presentationCornerRadius(22)
+        .sheet(item: $editingIndex) { edit in
+            AddMenuItemOverlay { newItem in
+                sections[edit.sec].items[edit.row] = newItem
+                editingIndex = nil
             }
+            .presentationDetents([.fraction(0.92)])
+            .presentationCornerRadius(22)
         }
     }
 
@@ -149,8 +153,7 @@ struct MenuSetupView: View {
                 MenuRow(item: section.items[rowIdx]) {
 
                     // 🔥 EDIT membuka overlay
-                    editingIndex = (sec: secIdx, row: rowIdx)
-                    showAddItemOverlay = true
+                    editingIndex = EditingItem(sec: secIdx, row: rowIdx)
                 }
             }
         }

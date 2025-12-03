@@ -138,7 +138,6 @@ extension AddMenuItemOverlay {
             Text("Item Information")
                 .font(.system(size: 17, weight: .semibold))
 
-            // NAME
             VStack(alignment: .leading, spacing: 6) {
                 Text("Item Name")
                     .font(.caption)
@@ -156,9 +155,9 @@ extension AddMenuItemOverlay {
 
             // DESCRIPTION
             VStack(alignment: .leading, spacing: 6) {
-                Text("Short description")
+                Text("Short Description")
                     .font(.caption)
-
+                
                 ZStack(alignment: .topLeading) {
 
                     if shortDescription.isEmpty {
@@ -166,18 +165,38 @@ extension AddMenuItemOverlay {
                             .foregroundColor(.gray.opacity(0.5))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
+                            .allowsHitTesting(false)
                     }
 
-                    CustomTextEditor(text: $shortDescription)
+                    CustomTextEditor(text: $shortDescription, wordLimit: 100)
                         .frame(minHeight: 90)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
+                        .background(Color.clear)
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.gray.opacity(0.3))
                 )
+
+                // ✅ LIVE WORD COUNTER
+                HStack {
+                    Spacer()
+
+                    let wordCount = shortDescription
+                        .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+                        .count
+
+                    Text("\(wordCount) / 100 words")
+                        .font(.caption)
+                        .foregroundColor(
+                            wordCount >= 100 ? .red :
+                            wordCount >= 70 ? .orange :
+                            .secondary
+                        )
+                }
             }
+
 
             // PRICE + PREP TIME
             HStack(spacing: 12) {
@@ -201,7 +220,7 @@ extension AddMenuItemOverlay {
                 }
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Prep Time (Minimum)")
+                    Text("Prep Time (Maximum)")
                         .font(.caption)
 
                     HStack(spacing: 8) {
@@ -211,6 +230,7 @@ extension AddMenuItemOverlay {
                             }
                         }
                         .pickerStyle(.menu)
+                        .tint(.orange)
 
                         Text("mins")
                             .foregroundColor(.secondary)
@@ -405,3 +425,6 @@ extension AddMenuItemOverlay {
     }
 }
 
+#Preview {
+    AddMenuItemOverlay{ _ in }
+}

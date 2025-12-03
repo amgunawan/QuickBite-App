@@ -35,7 +35,7 @@ struct RegistrationHeader: View {
             
             HStack {
                 Spacer()
-                Text("Step \(step) of 4")
+                Text("Step \(step) of 3")
                     .font(.footnote)
                     .foregroundColor(.secondary)
             }
@@ -69,6 +69,5 @@ struct RegistrationHeader: View {
         RegistrationHeader(step: 1, title: "Step 1", subtitle: "Start here.")
         RegistrationHeader(step: 2, title: "Step 2", subtitle: "Almost there.")
         RegistrationHeader(step: 3, title: "Step 3", subtitle: "Getting close.")
-        RegistrationHeader(step: 4, title: "Step 4", subtitle: "Done!")
     }
 }

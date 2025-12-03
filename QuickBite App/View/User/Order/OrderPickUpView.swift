@@ -17,7 +17,18 @@ struct OrderedItemPU: Identifiable {
 
 struct OrderPickUpView: View {
 
-    // MARK: - Dummy multiple items
+    // MARK: - RECEIVED FROM OrderConfirmationView
+    let qrImage: UIImage?
+    let orderId: String
+
+    // MARK: - DEFAULT INIT (IMPORTANT FIX)
+    init(qrImage: UIImage? = UIImage(systemName: "qrcode"),
+         orderId: String = "PREVIEW_ORDER_ID") {
+        self.qrImage = qrImage
+        self.orderId = orderId
+    }
+
+    // MARK: - Dummy multiple items ( sementara sampai pakai Firestore )
     @State private var items: [OrderedItemPU] = [
         OrderedItemPU(count: 1, name: "Chicken Katsu Shirokara Ramen", price: 35000),
         OrderedItemPU(count: 1, name: "Chicken Teriyaki Donburi", price: 42000)
@@ -68,7 +79,6 @@ struct OrderPickUpView: View {
 
                 Divider().padding(.vertical, 4)
 
-
                 // MARK: - Reminder Banner
                 HStack(spacing: 8) {
                     Image(systemName: "megaphone.fill")
@@ -85,9 +95,7 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-
-
-                // MARK: - ORDER DETAILS (UPDATED)
+                // MARK: - ORDER DETAILS
                 VStack(spacing: 6) {
 
                     HStack {
@@ -114,7 +122,6 @@ struct OrderPickUpView: View {
                         }
                     }
                     .padding(.horizontal)
-
                 }
 
                 Rectangle()
@@ -122,37 +129,42 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-
-
-                // MARK: - QR SECTION
-                VStack(spacing: 6) {
+                // MARK: - QR SECTION (FINAL)
+                VStack(spacing: 10) {
 
                     Text("Scan QR at Restaurant")
                         .font(.headline)
 
-                    Image("PickUpQR")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 180)
-                        .padding(.top, 6)
+                    if let qrImage = qrImage {
+                        Image(uiImage: qrImage)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 180)
+                            .padding(.top, 4)
+                    } else {
+                        Text("QR Code unavailable")
+                            .foregroundColor(.secondary)
+                    }
+
+                    Text("Order ID: \(orderId)")
+                        .font(.caption)
+                        .foregroundColor(.gray)
 
                     Text("Take a screenshot of this QR code to pick up\nyour meal when the network is poor.")
                         .multilineTextAlignment(.center)
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .padding(.horizontal)
-                        .padding(.top, 6)
+                        .padding(.top, 4)
 
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
+                .padding(.vertical, 10)
 
                 Rectangle()
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
                     .padding(.vertical, 4)
-
-
 
                 // MARK: - Restaurant Info
                 VStack(alignment: .leading, spacing: 6) {
@@ -195,8 +207,6 @@ struct OrderPickUpView: View {
                     .fill(Color.orange.opacity(0.3))
                     .frame(height: 8)
                     .padding(.vertical, 4)
-
-
 
                 // MARK: - Things to Note
                 VStack(alignment: .leading, spacing: 6) {
@@ -243,8 +253,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-
-
                 // MARK: - ORDER SUMMARY
                 VStack(alignment: .leading, spacing: 6) {
 
@@ -285,8 +293,6 @@ struct OrderPickUpView: View {
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 4)
-
-
 
                 // MARK: - BUY AGAIN BUTTON
                 Button(action: {}) {

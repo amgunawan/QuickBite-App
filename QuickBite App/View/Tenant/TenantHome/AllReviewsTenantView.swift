@@ -93,26 +93,6 @@ struct AllReviewsTenantView: View {
     var body: some View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 16) {
-
-                    // Search Bar
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.gray)
-                        TextField("Search by menu item or comment...", text: $searchText)
-                            .textFieldStyle(PlainTextFieldStyle())
-                        if !searchText.isEmpty {
-                            Button(action: { searchText = "" }) {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                    }
-                    .padding(10)
-                    .background(Color(.systemGray6))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
-
                     // Sort Section
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Sort by")
@@ -186,9 +166,6 @@ struct AllReviewsTenantView: View {
                                 Text(String(format: "%.1f", averageRating))
                                     .font(.system(size: 48, weight: .bold))
                                     .foregroundColor(.black)
-
-                                RatingStars(rating: averageRating, size: 20)
-                                    .foregroundColor(starTint)
 
                                 Text("\(reviews.count) total reviews")
                                     .font(.subheadline)
@@ -278,12 +255,6 @@ struct AllReviewsTenantView: View {
                                     Text(review.text)
                                         .font(.body)
                                         .fixedSize(horizontal: false, vertical: true)
-                                    Text(review.menu)
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 4)
-                                        .background(Color(.systemGray6))
-                                        .cornerRadius(8)
                                 }
                                 .padding()
                                 .background(Color.white)

@@ -48,22 +48,19 @@ struct StockItem: Identifiable {
 
 
 struct TenantHomeView: View {
+    @StateObject private var totalWalletVM = TotalWalletBalanceViewModel()
+    @StateObject private var todayPerformanceVM = TodayPerformanceOverviewViewModel()
+    
     @State private var showAllReviews = false
     @State private var showManageStock = false
     @State private var tenantName: String = "Raburi"
     
     // Wallet
-    @State private var walletBalance: Double = 2_500_000
     @State private var scheduledDate: Date = Calendar.current.date(
         byAdding: .month,
         value: 1,
         to: Calendar.current.startOfMonth(for: Date())
     ) ?? Date()
-    
-    // Dashboard Stats
-    @State private var totalIncome: Double = 325_000
-    @State private var totalOrders: Int = 10
-    @State private var pendingPickups: Int = 2
     
     // Trends
     @State private var weeklySales: [DaySalesPoint] = [
@@ -88,18 +85,6 @@ struct TenantHomeView: View {
         .init(index: 3, name: "Katsutama Donbri", left: 0)
     ]
     
-    // Busy Hours
-    @State private var busiestHours: [HourBucket] = [
-        .init(hour: 10, count: 8),
-        .init(hour: 11, count: 12),
-        .init(hour: 12, count: 15),
-        .init(hour: 1,  count: 9),
-        .init(hour: 2,  count: 7),
-        .init(hour: 3,  count: 8),
-        .init(hour: 4,  count: 10),
-        .init(hour: 5,  count: 9)
-    ]
-    
     // Ratings
     @State private var ratingScore: Double = 4.8
     @State private var totalReviews: Int = 27
@@ -109,7 +94,7 @@ struct TenantHomeView: View {
         let nf = NumberFormatter()
         nf.numberStyle = .decimal
         nf.groupingSeparator = "."
-        return "Rp " + (nf.string(from: walletBalance as NSNumber) ?? "0")
+        return "Rp " + (nf.string(from: totalWalletVM.totalWalletBalance as NSNumber) ?? "0")
     }
     
     private var formattedScheduled: String {
@@ -161,17 +146,12 @@ struct TenantHomeView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .offset(y: -10)       // sama seperti profile card
+                    .offset(y: -10)
                     .zIndex(1)
                     
                     // === Scrollable CONTENT ===
                     ScrollView(showsIndicators: false) {
                         VStack(spacing: 16) {
-                            
-                            // ======================
-                            // ALL YOUR CONTENT BELOW
-                            // ======================
-                            
                             // Scan Button
                             NavigationLink(destination: ScanQRCodeView()) {
                                 HStack {
@@ -204,15 +184,6 @@ struct TenantHomeView: View {
                             // Top Menu
                             topMenuSection
                             
-                            // Busy Hours
-                            Card {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    Text("Order Busiest Hours Heatmap")
-                                        .font(.headline)
-                                    BarChart(items: busiestHours)
-                                }
-                            }
-                            
                             // Low Stock
                             lowStockSection
                             
@@ -223,6 +194,10 @@ struct TenantHomeView: View {
                     }
                     .scrollContentBackground(.hidden)
                 }
+            }
+            .onAppear {
+                totalWalletVM.fetchWalletBalance(storeId: "2plb4UCwxjle2Yy6PTdj")
+                todayPerformanceVM.fetchTodayStats(storeId: "2plb4UCwxjle2Yy6PTdj")
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: TenantHomeDestination.self) { destination in
@@ -269,10 +244,11 @@ struct TenantHomeView: View {
                 Text("Today's Performance Overview")
                     .font(.headline)
                 
+                
                 HStack(spacing: 6) {
-                    MetricCard(metric: .init(title: "Total Income", value: "Rp \(Int(totalIncome))", subtitle: "", icon: "creditcard"))
-                    MetricCard(metric: .init(title: "Total Orders", value: "\(totalOrders) orders", subtitle: "", icon: "cart"))
-                    MetricCard(metric: .init(title: "Pending Orders", value: "\(pendingPickups) orders", subtitle: "", icon: "clock"))
+                    MetricCard(metric: .init(title: "Total Income", value: "Rp \(formatPrice(Double(todayPerformanceVM.totalIncomeToday)))", subtitle: "", icon: "creditcard"))
+                    MetricCard(metric: .init(title: "Total Orders", value: "\(todayPerformanceVM.totalOrdersToday) orders", subtitle: "", icon: "cart"))
+                    MetricCard(metric: .init(title: "Pending Orders", value: "\(todayPerformanceVM.totalPendingOrdersToday) orders", subtitle: "", icon: "clock"))
                 }
             }
         }
@@ -298,8 +274,6 @@ struct TenantHomeView: View {
                 Text("(Based on \(totalReviews) reviews)")
                     .font(.caption)
                     .foregroundColor(.secondary)
-                
-                RatingStars(rating: ratingScore, size: 25)
             }
         }
     }
@@ -428,20 +402,6 @@ struct TenantHomeView: View {
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(borderColor.opacity(0.5), lineWidth: 1)
             )
-        }
-    }
-    
-    struct RatingStars: View {
-        let rating: Double
-        let size: CGFloat
-        var body: some View {
-            HStack(spacing: 3) {
-                ForEach(0..<5, id: \.self) { i in
-                    Image(systemName: i < Int(round(rating)) ? "star.fill" : "star")
-                        .font(.system(size: size))
-                        .foregroundColor(UIConst.brandOrange)
-                }
-            }
         }
     }
     
@@ -697,3 +657,4 @@ extension Calendar {
 #Preview {
     TenantHomeView()
 }
+

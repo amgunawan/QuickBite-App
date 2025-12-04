@@ -33,12 +33,6 @@ struct MenuItemSold: Identifiable {
     let sold: Int
 }
 
-struct HourBucket: Identifiable {
-    let id = UUID()
-    let hour: Int
-    let count: Int
-}
-
 struct StockItem: Identifiable {
     let id = UUID()
     let index: Int
@@ -61,16 +55,6 @@ struct TenantHomeView: View {
         value: 1,
         to: Calendar.current.startOfMonth(for: Date())
     ) ?? Date()
-    
-    // Trends
-    @State private var weeklySales: [DaySalesPoint] = [
-        .init(day: "Mon", value: 60_000),
-        .init(day: "Tue", value: 220_000),
-        .init(day: "Wed", value: 180_000),
-        .init(day: "Thu", value: 320_000),
-        .init(day: "Fri", value: 200_000),
-        .init(day: "Sat", value: 260_000)
-    ]
     
     // Menu + Stocks
     @State private var topMenu: [MenuItemSold] = [
@@ -174,9 +158,6 @@ struct TenantHomeView: View {
                             
                             // Performance
                             performanceSection
-                            
-                            // Weekly Sales
-                            Card { LineChart(points: weeklySales) }
                             
                             // Rating
                             ratingSection
@@ -388,11 +369,6 @@ struct TenantHomeView: View {
                     }
                     Text(metric.value)
                         .font(.headline).fontWeight(.semibold)
-                    //                if !metric.subtitle.isEmpty {
-                    //                    Text(metric.subtitle)
-                    //                        .font(.caption)
-                    //                        .foregroundColor(.green)
-                    //                }
                 }
                 .multilineTextAlignment(.center)
             }
@@ -404,195 +380,7 @@ struct TenantHomeView: View {
             )
         }
     }
-    
-    // MARK: - LineChart
-    struct LineChart: View {
-        let points: [DaySalesPoint]
-        @State private var hoveredPoint: DaySalesPoint? = nil
-        
-        private var maxValue: Double {
-            guard let max = points.map(\.value).max() else { return 1 }
-            return max == 0 ? 1 : max
-        }
-        
-        // MARK: - Currency Formatter
-        private var currencyFormatter: NumberFormatter {
-            let nf = NumberFormatter()
-            nf.numberStyle = .decimal
-            nf.groupingSeparator = "."
-            nf.maximumFractionDigits = 0
-            return nf
-        }
-        
-        var body: some View {
-            VStack(alignment: .leading, spacing: 8) {
-                // MARK: - Title
-                Text("Weekly Performance Sales Trends")
-                    .font(.headline)
-                    .padding(.bottom, 1)
-                
-                HStack(spacing: 4) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                    Text("Up 12% compared to last week")
-                        .font(.caption)
-                        .foregroundColor(.green)
-                }
-                
-                // MARK: - Chart
-                GeometryReader { geo in
-                    let chartWidth = geo.size.width - 70   // give space for y-axis
-                    let chartHeight = geo.size.height - 30 // keep Rp0 visible
-                    let stepX = chartWidth / CGFloat(points.count-1)
-                    
-                    let scaledPoints = points.enumerated().map { i, p in
-                        CGPoint(
-                            x: CGFloat(i) * stepX,
-                            y: chartHeight - CGFloat(p.value / maxValue) * (chartHeight)
-                        )
-                    }
-                    
-                    HStack(alignment: .top, spacing: 5) {
-                        // MARK: - Y Axis
-                        VStack(alignment: .trailing, spacing: chartHeight / 8) {
-                            ForEach((0...4).reversed(), id: \.self) { i in
-                                let value = maxValue / 4 * Double(i)
-                                Text("Rp\(currencyFormatter.string(from: NSNumber(value: value)) ?? "0")")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-                        .frame(width: 60)
-                        
-                        // MARK: - Chart Body
-                        ZStack(alignment: .bottomLeading) {
-                            // Line Path
-                            Path { path in
-                                guard let first = scaledPoints.first else { return }
-                                path.move(to: first)
-                                scaledPoints.dropFirst().forEach { path.addLine(to: $0) }
-                            }
-                            .stroke(Color.orange, style: StrokeStyle(lineWidth: 2.5, lineJoin: .round))
-                            
-                            // Dots + Tooltip
-                            ForEach(Array(points.enumerated()), id: \.offset) { i, p in
-                                let pt = scaledPoints[i]
-                                Circle()
-                                    .fill(Color.orange)
-                                    .frame(width: 7, height: 7)
-                                    .position(pt)
-                                    .onTapGesture {
-                                        withAnimation(.easeInOut) {
-                                            hoveredPoint = hoveredPoint?.id == p.id ? nil : p
-                                        }
-                                    }
-                                
-                                // Tooltip bubble
-                                if hoveredPoint?.id == p.id {
-                                    VStack(spacing: 4) {
-                                        Text("Rp \(currencyFormatter.string(from: NSNumber(value: p.value)) ?? "0")")
-                                            .font(.caption2)
-                                            .fontWeight(.medium)
-                                            .padding(6)
-                                            .background(Color.white)
-                                            .cornerRadius(6)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(Color.orange.opacity(0.4), lineWidth: 0.8)
-                                            )
-                                            .shadow(radius: 2)
-                                        Triangle()
-                                            .fill(Color.white)
-                                            .frame(width: 8, height: 5)
-                                    }
-                                    .position(x: pt.x, y: pt.y - 25)
-                                }
-                            }
-                            
-                            // X Axis Labels
-                            HStack(spacing: 5) {
-                                ForEach(points) { p in
-                                    Text(p.day)
-                                        .font(.caption2)
-                                        .foregroundColor(.secondary)
-                                        .frame(maxWidth: .infinity)
-                                }
-                            }
-                            .frame(maxHeight: .infinity, alignment: .bottom)
-                        }
-                        .frame(width: chartWidth)
-                    }
-                }
-                .frame(height: 200)
-            }
-            .padding(.horizontal, 8)
-            .padding(.top, 4)
-        }
-    }
 }
-// MARK: - Triangle (Tooltip Pointer)
-struct Triangle: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        path.move(to: CGPoint(x: rect.midX, y: rect.minY))
-        path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-        path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
-
-// Mark: BarChart
-struct BarChart: View {
-    let items: [HourBucket]
-    private var maxVal: Int {
-        guard let max = items.map(\.count).max() else { return 1 }
-        return max == 0 ? 1 : max
-    }
-    
-    var body: some View {
-        VStack(spacing: 6) {
-            HStack(alignment: .bottom, spacing: 12) {
-                ForEach(items) { b in
-                    VStack(spacing: 6) {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [
-                                        Color(hex: "#FFB84D"),
-                                        UIConst.brandOrange
-                                    ]),
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            )
-                            .frame(
-                                width: 32,
-                                height: CGFloat(b.count) / CGFloat(maxVal) * 120
-                            )
-                        Text("\(b.hour)")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
-                    }
-                }
-            }
-            
-            HStack {
-                Text("10 AM")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text("5 PM")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.top, 4)
-        }
-        .frame(height: 160)
-    }
-}
-
 
 struct HomeSettingsRowLabel: View {
     let systemIcon: String

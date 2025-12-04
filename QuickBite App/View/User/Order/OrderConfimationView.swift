@@ -23,6 +23,9 @@ struct OrderConfirmationView: View {
     )
     
     @State private var navigateToCompleted = false
+    @State private var generatedQR: UIImage?
+    @State private var generatedOrderId: String = ""
+
     
     var body: some View {
         VStack(spacing: 0) {
@@ -251,8 +254,31 @@ struct OrderConfirmationView: View {
                     }
                     
                     Button(action: {
-                        cart.clearCart()
-                        navigateToCompleted = true
+                        let service = OrderService()
+
+                        let items = cart.items.map { "\($0.quantity)x \($0.name)" }
+                        let finalTotal = cart.totalPrice - 5000 + 2500
+
+                        service.createOrder(
+                            customerName: "Jessica",   // TODO: replace with actual user name
+                            items: items,
+                            total: Int(finalTotal),
+                            pickupTime: selectedTime?.timeRange ?? "ASAP",
+                            tenantId: "raburi"         // TODO: replace with actual tenant/store ID
+                        ) { orderId in
+                            if let orderId = orderId {
+
+                                // Generate QR
+                                let qr = QRGenerator().generate(from: orderId)
+
+                                // Pass to next screen
+                                self.generatedQR = qr
+                                self.generatedOrderId = orderId
+
+                                // Navigate to QR page
+                                self.navigateToCompleted = true
+                            }
+                        }
                     }) {
                         Text("Buy Now")
                             .font(.headline)
@@ -273,10 +299,13 @@ struct OrderConfirmationView: View {
             PickUpTimeView(selectedTime: $selectedTime)
         }
         .navigationDestination(isPresented: $navigateToCompleted) {
-            OrderCompletedView(userRating: 0,
-                               didSubmitReview: false)
-                .navigationBarBackButtonHidden(true)
+            OrderPickUpView(
+                qrImage: generatedQR,
+                orderId: generatedOrderId
+            )
+            .navigationBarBackButtonHidden(true)
         }
+
     }
 }
 

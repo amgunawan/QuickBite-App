@@ -19,8 +19,9 @@ struct AddMenuItemOverlay: View {
 
     @State private var itemName = ""
     @State private var shortDescription = ""
-    @State private var price: Int = 0
+    @State private var priceText: String = "0"
     @State private var prepMinutes: Int = 10
+    @State private var stockText: String = "0"
 
     // MARK: Customization Groups
     @State private var customizationGroups: [CustomizationGroup] = []
@@ -134,14 +135,14 @@ extension AddMenuItemOverlay {
     private var itemInformationSection: some View {
 
         VStack(alignment: .leading, spacing: 16) {
-
+            
             Text("Item Information")
                 .font(.system(size: 17, weight: .semibold))
-
+            
             VStack(alignment: .leading, spacing: 6) {
                 Text("Item Name")
                     .font(.caption)
-
+                
                 TextField("Enter name", text: $itemName)
                     .font(.system(size: 15))
                     .padding(.horizontal, 14)
@@ -152,14 +153,14 @@ extension AddMenuItemOverlay {
                             .stroke(Color.gray.opacity(0.3), lineWidth: 1)
                     )
             }
-
+            
             // DESCRIPTION
             VStack(alignment: .leading, spacing: 6) {
                 Text("Short Description")
                     .font(.caption)
                 
                 ZStack(alignment: .topLeading) {
-
+                    
                     if shortDescription.isEmpty {
                         Text("A short, enticing description...")
                             .foregroundColor(.gray.opacity(0.5))
@@ -167,7 +168,7 @@ extension AddMenuItemOverlay {
                             .padding(.vertical, 10)
                             .allowsHitTesting(false)
                     }
-
+                    
                     CustomTextEditor(text: $shortDescription, wordLimit: 100)
                         .frame(minHeight: 90)
                         .padding(.horizontal, 14)
@@ -178,51 +179,74 @@ extension AddMenuItemOverlay {
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.gray.opacity(0.3))
                 )
-
+                
                 // ✅ LIVE WORD COUNTER
                 HStack {
                     Spacer()
-
+                    
                     let wordCount = shortDescription
                         .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
                         .count
-
+                    
                     Text("\(wordCount) / 100 words")
                         .font(.caption)
                         .foregroundColor(
                             wordCount >= 100 ? .red :
-                            wordCount >= 70 ? .orange :
-                            .secondary
+                                wordCount >= 70 ? .orange :
+                                    .secondary
                         )
                 }
             }
-
-
-            // PRICE + PREP TIME
+            
+            
+            // PRICE + STOCK + PREP TIME
             HStack(spacing: 12) {
-
+                
+                // PRICE
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Base Price (Rp)")
                         .font(.caption)
-
-                    TextField("35000",
-                              value: $price,
-                              formatter: NumberFormatter.decimalNoGrouping)
+                    
+                    TextField("35000", text: $priceText)
                         .keyboardType(.numberPad)
+                        .onChange(of: priceText) { _, newValue in
+                            priceText = newValue.filter { $0.isNumber }
+                        }
                         .font(.system(size: 15))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
-                        .frame(height: 44)
+                        .frame(width: 95, height: 44)
                         .background(
                             RoundedRectangle(cornerRadius: 10)
                                 .stroke(Color.gray.opacity(0.3))
                         )
                 }
-
+                
+                // ✅ NEW: STOCK / DAY
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Prep Time (Maximum)")
+                    Text("Stock / Day")
                         .font(.caption)
-
+                    
+                    TextField("10", text: $stockText)
+                        .keyboardType(.numberPad)
+                        .onChange(of: stockText) { _, newValue in
+                            stockText = newValue.filter { $0.isNumber }
+                        }
+                        .font(.system(size: 15))
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .frame(width: 95, height: 44)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.3))
+                        )
+                }
+                
+                // PREP TIME
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Prep Time (Max)")
+                        .font(.caption)
+                    
                     HStack(spacing: 8) {
                         Picker("", selection: $prepMinutes) {
                             ForEach(minutesChoices, id: \.self) { m in
@@ -231,21 +255,19 @@ extension AddMenuItemOverlay {
                         }
                         .pickerStyle(.menu)
                         .tint(.orange)
-
+                        
                         Text("mins")
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 10)
-                    .frame(height: 44)
+                    .frame(width: 153, height: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.gray.opacity(0.3))
                     )
                 }
             }
-
-            customerSeesBlock
         }
     }
 
@@ -365,10 +387,13 @@ extension AddMenuItemOverlay {
     private var saveButton: some View {
         VStack {
             Button {
+                let finalPrice = Int(priceText) ?? 0
+                let finalStock = Int(stockText) ?? 0
+
                 let newItem = MenuItem(
                     name: itemName,
-                    price: price,
-                    stock: 10,
+                    price: finalPrice,
+                    stock: finalStock,
                     shortDescription: shortDescription,
                     prepMinutes: prepMinutes,
                     imageName: "placeholder",
@@ -386,14 +411,40 @@ extension AddMenuItemOverlay {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
                     .background(
-                        Color.orange,
+                        canSave ? Color.orange : Color.gray.opacity(0.4),
                         in: RoundedRectangle(cornerRadius: 14)
                     )
             }
+            .disabled(!canSave)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
     }
+
+    // ✅ SAVE VALIDATION FUNCTION
+    private var canSave: Bool {
+
+        if itemName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return false
+        }
+
+        let finalPrice = Int(priceText) ?? 0
+        if finalPrice <= 0 {
+            return false
+        }
+
+        let finalStock = Int(stockText) ?? 0
+        if finalStock <= 0 {
+            return false
+        }
+
+        if prepMinutes <= 0 {
+            return false
+        }
+
+        return true
+    }
+
 
     // MARK: LOGIC FUNCTIONS
     private func addNewSection() {

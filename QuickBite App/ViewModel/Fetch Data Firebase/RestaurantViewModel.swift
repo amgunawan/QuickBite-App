@@ -16,35 +16,46 @@ class RestaurantsViewModel: ObservableObject {
     private var db = Firestore.firestore()
     private var storage = Storage.storage()
     
+    private var listener: ListenerRegistration?
+
     init() {
-        fetchRestaurants()
+        listenRestaurants()
     }
     
-    func fetchRestaurants() {
-        db.collection("stores").getDocuments { snapshot, error in
-            if let error = error {
-                print("Error fetching stores:", error)
-                return
-            }
-            
-            guard let documents = snapshot?.documents else { return }
-            
-            self.restaurants = documents.map { doc in
-                let data = doc.data()
+    /// Realtime Listener
+    func listenRestaurants() {
+        listener = db.collection("stores")
+            .addSnapshotListener { snapshot, error in
+                if let error = error {
+                    print("Error listening to stores:", error)
+                    return
+                }
                 
-                return Restaurant(
-                    id: doc.documentID,
-                    name: data["name"] as? String ?? "",
-                    rating: data["rating"] as? Double ?? 0.0,
-                    reviewCount: data["review_count"] as? Int ?? 0,
-                    bannerURL: data["banner_url"] as? String,   // masih GS URL
-                    cuisineType: data["cuisine_type"] as? [String] ?? []
-                )
+                guard let documents = snapshot?.documents else { return }
+                
+                var fetchedRestaurants: [Restaurant] = []
+                
+                for doc in documents {
+                    let data = doc.data()
+                    
+                    let store = Restaurant(
+                        id: doc.documentID,
+                        name: data["name"] as? String ?? "",
+                        rating: data["rating"] as? Double ?? 0.0,
+                        reviewCount: data["review_count"] as? Int ?? 0,
+                        bannerURL: data["banner_url"] as? String, // masih gs://
+                        cuisineType: data["cuisine_type"] as? [String] ?? []
+                    )
+                    
+                    fetchedRestaurants.append(store)
+                }
+                
+                // Update state
+                DispatchQueue.main.async {
+                    self.restaurants = fetchedRestaurants
+                    self.convertAllGSURLs()
+                }
             }
-            
-            // Convert semua gs:// URL → http URL
-            self.convertAllGSURLs()
-        }
     }
     
     private func convertAllGSURLs() {
@@ -66,5 +77,9 @@ class RestaurantsViewModel: ObservableObject {
                 }
             }
         }
+    }
+    
+    deinit {
+        listener?.remove() // matikan listener ketika viewmodel dibuang
     }
 }

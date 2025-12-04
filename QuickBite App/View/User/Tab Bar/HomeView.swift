@@ -131,14 +131,7 @@ struct HomeView: View {
                                 HStack(spacing: 16) {
                                     
                                     ForEach(topRatedVM.topRestaurants) { restaurant in
-                                        NavigationLink(destination: RestaurantDetailView(
-                                            imageURL: restaurant.searchURL ?? "",
-                                            name: restaurant.name,
-                                            categories: restaurant.cuisineType.joined(separator: ", "),
-                                            rating: restaurant.rating,
-                                            reviewCount: restaurant.reviewCount,
-                                            pickupTime: "10–20 minutes"
-                                        )) {
+                                        NavigationLink(destination: RestaurantDetailView(restaurant: restaurant)) {
                                             TopRatedRestaurantsCardView(
                                                 imageURL: restaurant.bannerURL,
                                                 deliveryTime: "10–20 min",

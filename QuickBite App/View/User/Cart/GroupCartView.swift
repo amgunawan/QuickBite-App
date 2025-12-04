@@ -289,7 +289,7 @@ struct UserAvatar: View {
 
 // Component: Item Row for Group Cart (Simplified)
 struct GroupCartItemRow: View {
-    let item: CartItem
+    let item: CartItemModel
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {

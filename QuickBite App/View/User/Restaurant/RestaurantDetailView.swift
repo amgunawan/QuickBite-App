@@ -10,14 +10,11 @@ import SwiftUI
 
 struct RestaurantDetailView: View {
     
-    let imageURL: String
-    let name: String
-    let categories: String
-    let rating: Double
-    let reviewCount: Int
-    let pickupTime: String
+    let restaurant: Restaurant
     
-    @State private var selectedItemForOptions: MenuItemData?
+    @StateObject private var viewModel = RestaurantDetailViewModel()
+    
+    @State private var selectedItemForOptions: MenuItemModel?
     @State private var showingCart = false
     @StateObject private var topRatedVM = TopRatedRestaurantsViewModel()
     
@@ -28,97 +25,54 @@ struct RestaurantDetailView: View {
     
     @State private var groupName = "Angela's Group"
     
+    @State private var groupMembers: [UserMember] = [
+        UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
+    ]
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
                     
-                    HeaderView(imageURL: imageURL)
+                    HeaderView(imageURL: restaurant.bannerURL ?? "")
                         .padding(.bottom)
                     
                     InfoView(
-                        name: name,
-                        categories: categories,
-                        rating: rating,
-                        reviewCount: reviewCount,
-                        pickupTime: pickupTime,
+                        name: restaurant.name,
+                        categories: restaurant.cuisineType.joined(separator: ", "),
+                        rating: restaurant.rating,
+                        reviewCount: restaurant.reviewCount,
+                        pickupTime: "15-20 min", // Bisa dibuat dinamis nanti
                         isGroupOrderActive: $isGroupOrderActive,
-                        groupName: $groupName
-                        
+                        groupName: $groupName,
+                        groupMembers: $groupMembers
                     )
                     .padding(.horizontal)
                     
                     // MARK: - SECTION 1
-                    Section(header: CategoryHeaderView(title: "Shirokara Ramen")) {
-                        let item1 = MenuItemData(
-                            id: "katsu_ramen",
-                            imageName: "ChickenKatsuShirokaraRamen",
-                            name: "Chicken Katsu Shirokara Ramen",
-                            salesDescription: "10 terjual",
-                            price: 30000,
-                            originalPrice: 35000,
-                            longDescription: "Ramen noodle, chicken katsu, tamago, kizaminori, negi, narutomaki, with shirokara soupa."
-                        )
-                        MenuRowLink(item: item1) { self.selectedItemForOptions = item1 }
-                        
-                        let item2 = MenuItemData(
-                            id: "teriyaki_ramen",
-                            imageName: "ChickenTeriyakiShirokaraRamen",
-                            name: "Chicken Teriyaki Shirokara Ramen",
-                            salesDescription: "5 terjual",
-                            price: 35000,
-                            originalPrice: nil,
-                            longDescription: "Ramen noodle, chicken teriyaki, tamago, kizaminori, negi, narutomaki, with shirokara soupa."
-                        )
-                        MenuRowLink(item: item2) { self.selectedItemForOptions = item2 }
+                    if viewModel.isLoading {
+                        HStack {
+                            Spacer()
+                            ProgressView("Sedang mengambil menu...")
+                                .padding(.top, 50)
+                            Spacer()
+                        }
+                    } else if let error = viewModel.errorMessage {
+                        Text(error)
+                            .foregroundColor(.red)
+                            .padding()
+                    } else {
+                        ForEach(viewModel.groupedMenu) { section in
+                            Section(header: CategoryHeaderView(title: section.category)) {
+                                ForEach(section.items) { item in
+                                    MenuRowLink(item: item) {
+                                        self.selectedItemForOptions = item
+                                    }
+                                }
+                            }
+                        }
                     }
                     
-                    // MARK: - SECTION 2
-                    Section(header: CategoryHeaderView(title: "Donburi")) {
-                        let item3 = MenuItemData(
-                            id: "teriyaki_donburi",
-                            imageName: "ChickenTeriyakiDonburi",
-                            name: "Chicken Teriyaki Donburi",
-                            salesDescription: "10 terjual",
-                            price: 42500,
-                            originalPrice: nil,
-                            longDescription: "Nasi pulen dengan ayam teriyaki, telur mata sapi, dan taburan wijen."
-                        )
-                        MenuRowLink(item: item3) { self.selectedItemForOptions = item3 }
-                        
-                        let item4 = MenuItemData(
-                            id: "katsu_curry",
-                            imageName: "ChickenKatsuCurryRice",
-                            name: "Chicken Katsu Curry Rice",
-                            salesDescription: "10 terjual",
-                            price: 42500,
-                            originalPrice: nil,
-                            longDescription: "Kari khas Jepang yang kental disajikan dengan nasi dan chicken katsu renyah."
-                        )
-                        MenuRowLink(item: item4) { self.selectedItemForOptions = item4 }
-                        
-                        let item5 = MenuItemData(
-                            id: "katsutama_donburi",
-                            imageName: "KatsutamaDonburi",
-                            name: "Katsutama Donburi",
-                            salesDescription: "8 terjual",
-                            price: 42500,
-                            originalPrice: nil,
-                            longDescription: "Chicken katsu yang dimasak dengan telur dan saus donburi spesial di atas nasi hangat."
-                        )
-                        MenuRowLink(item: item5) { self.selectedItemForOptions = item5 }
-                        
-                        let item6 = MenuItemData(
-                            id: "katsu_donburi",
-                            imageName: "ChickenKatsuDonburi",
-                            name: "Chicken Katsu Donburi",
-                            salesDescription: "5 terjual",
-                            price: 42500,
-                            originalPrice: nil,
-                            longDescription: "Chicken katsu yang dimasak dengan telur dan saus donburi spesial di atas nasi hangat."
-                        )
-                        MenuRowLink(item: item6) { self.selectedItemForOptions = item6 }
-                    }
                 }
                 .padding(.bottom, cart.items.isEmpty ? 0 : 80)
             }
@@ -135,22 +89,25 @@ struct RestaurantDetailView: View {
         .environmentObject(cart)
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            viewModel.fetchMenu(from: restaurant.menuDataURL)
+        }
         .sheet(item: $selectedItemForOptions) { item in
             MenuOptionsView(
-                imageName: item.imageName,
+                imageName: item.imageURL ?? "", // Kirim URL gambar
                 name: item.name,
-                salesDescription: item.salesDescription,
-                price: item.price,
-                originalPrice: item.originalPrice
+                salesDescription: item.description ?? "Enak banget!", // Pakai deskripsi
+                price: Double(item.price),      // Konversi Int ke Double
+                originalPrice: nil              // Model belum punya harga coret, set nil
             )
-            .environmentObject(cart)
+            .environmentObject(cart)            // ⚠️ PENTING: Jangan lupa kirim Cart
         }
         .sheet(isPresented: $showingCart) {
-            CartListView()
+            CartListView() // Pastikan View ini ada
                 .environmentObject(cart)
         }
         .sheet(isPresented: $showingGroupCart) {
-            GroupCartView().environmentObject(cart)
+            GroupCartView().environmentObject(cart) // Pastikan View ini ada
         }
         .scrollIndicators(.hidden)
     }
@@ -158,35 +115,140 @@ struct RestaurantDetailView: View {
 
 // MARK: - MENU ROW LINK
 struct MenuRowLink: View {
-    let item: MenuItemData
+    let item: MenuItemModel
     let onAdd: () -> Void
     
     @EnvironmentObject var cart: CartViewModel
     
     var body: some View {
-        NavigationLink {
-            MenuDetailView(
-                imageName: item.imageName,
-                name: item.name,
-                longDescription: item.longDescription,
-                salesDescription: item.salesDescription,
-                price: item.price,
-                originalPrice: item.originalPrice
-            )
-            .environmentObject(cart)
-        } label: {
-            MenuItemRow(
-                imageName: item.imageName,
-                name: item.name,
-                description: item.salesDescription,
-                price: item.price,
-                originalPrice: item.originalPrice,
-                onAdd: onAdd
-            )
-            .padding(.horizontal)
-            .padding(.vertical, 12)
+        // Navigasi ke Detail Menu (Opsional)
+        // Kalau mau pakai NavigationLink, pastikan MenuDetailView juga menerima 'MenuItem'
+        MenuItemRow(
+            imageURL: item.imageURL,
+            name: item.name,
+            description: item.description ?? "",
+            price: Double(item.price),
+            originalPrice: nil, // JSON kamu belum ada original price, set nil dulu
+            onAdd: onAdd
+        )
+        .padding(.horizontal)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle()) // Agar area kosong bisa diklik
+        .onTapGesture {
+            onAdd() // Langsung buka sheet opsi saat baris diklik
         }
-        .buttonStyle(.plain)
+    }
+}
+
+// Update MenuItemRow agar pakai AsyncImage (URL) bukan Image(named)
+struct MenuItemRow: View {
+    let imageURL: String?
+    let name: String
+    let description: String
+    let price: Double
+    let originalPrice: Double?
+    let onAdd: () -> Void
+    
+    // Perbaikan logic quantity (sesuaikan dengan nama item)
+    @EnvironmentObject var cart: CartViewModel
+    
+    var quantity: Int {
+        cart.items.filter { $0.name == name }.reduce(0) { $0 + $1.quantity }
+    }
+    
+    var body: some View {
+        HStack(spacing: 16) {
+            // FOTO DARI URL
+            if let stringUrl = imageURL, let url = URL(string: stringUrl) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 90, height: 90)
+                .cornerRadius(8)
+                .clipped()
+            } else {
+                // Placeholder kalau tidak ada foto
+                Rectangle()
+                    .fill(Color.gray.opacity(0.2))
+                    .frame(width: 90, height: 90)
+                    .cornerRadius(8)
+                    .overlay(Image(systemName: "photo").foregroundColor(.gray))
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(name)
+                    .font(.system(size: 15, weight: .semibold))
+                    .lineLimit(2)
+                
+                Text(description)
+                    .font(.system(size: 12))
+                    .foregroundColor(.gray)
+                    .lineLimit(2)
+                
+                Spacer()
+                
+                HStack(alignment: .bottom, spacing: 4) {
+                    Text("Rp\(formatPrice(price))")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.orange)
+                    
+                    if let originalPrice = originalPrice {
+                        Text("Rp\(formatPrice(originalPrice))")
+                            .font(.system(size: 12))
+                            .foregroundColor(.gray)
+                            .strikethrough()
+                    }
+                }
+            }
+            
+            Spacer()
+            
+            // TOMBOL PLUS/MINUS
+            VStack {
+                Spacer()
+                if quantity > 0 {
+                    HStack(spacing: 8) {
+                        Button {
+                            // Logic kurangi cart
+                            if let index = cart.items.lastIndex(where: { $0.name == name }) {
+                                cart.decrementItem(id: cart.items[index].id)
+                            }
+                        } label: {
+                            Image(systemName: "minus")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.orange)
+                                .frame(width: 24, height: 24)
+                                .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.orange, lineWidth: 1))
+                        }
+                        
+                        Text("\(quantity)")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.black)
+                        
+                        Button(action: onAdd) {
+                            Image(systemName: "plus")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundColor(.white)
+                                .frame(width: 24, height: 24)
+                                .background(Color.orange)
+                                .cornerRadius(4)
+                        }
+                    }
+                } else {
+                    Button(action: onAdd) {
+                        Image(systemName: "plus")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(5)
+                            .background(Color.orange)
+                            .cornerRadius(4)
+                    }
+                }
+            }
+        }
+        .frame(height: 90) // Kunci tinggi baris agar rapi
     }
 }
 
@@ -205,7 +267,7 @@ struct CheckoutBarView: View {
             Button(action: { showCart = true }) {
                 HStack(spacing: 16) {
                     ZStack(alignment: .topTrailing) {
-                        Image(systemName: "cart")
+                        Image(systemName: "basket")
                             .font(.system(size: 24))
                             .foregroundColor(.orange)
                             .padding(.top, 2)
@@ -244,7 +306,7 @@ struct CheckoutBarView: View {
                 showCart = true
             }) {
                 Text("View Cart")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
                     .padding(.horizontal, 32)
                     .padding(.vertical, 12)
@@ -265,48 +327,52 @@ struct GroupOrderBottomBar: View {
     var body: some View {
         HStack(spacing: 16) {
             // Ikon Basket (Orange Outline) dengan Badge
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "basket")
-                    .font(.system(size: 28))
-                    .foregroundColor(.orange)
+            Button(action: { showGroupCart = true }) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "basket")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                        .padding(.top, 2)
+                        .padding(.trailing, 2)
+                    
+                    // Hitung total item (misal +1 item user lain sbg dummy)
+                    let totalItems = cart.totalItemCount // + user lain jika ada
+                    if totalItems > 0 {
+                        Text("\(totalItems)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Color.orange)
+                            .clipShape(Circle())
+                            .offset(x: 8, y: -8)
+                    }
+                }
+                .frame(width: 44, height: 44)
                 
-                // Hitung total item (misal +1 item user lain sbg dummy)
-                let totalItems = cart.totalItemCount // + user lain jika ada
-                if totalItems > 0 {
-                    Text("\(totalItems)")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundColor(.white)
-                        .frame(width: 16, height: 16)
-                        .background(Color.orange)
-                        .clipShape(Circle())
-                        .offset(x: 6, y: -6)
+                Spacer()
+                
+                // Text Total Harga (User saja)
+                // Menggunakan Group untuk menghindari error type check pada + operator
+                VStack(alignment: .trailing) {
+                    Text("Rp\(formatPrice(cart.totalPrice))")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(.orange)
+                    
+                    Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
+                        .font(.system(size:14))
+                        .foregroundColor(.orange)
                 }
             }
-            .padding(.leading, 8)
-            
-            Spacer()
-            
-            // Text Total Harga (User saja)
-            // Menggunakan Group untuk menghindari error type check pada + operator
-            Group {
-                Text("Rp\(formatPrice(cart.totalPrice))")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(.orange)
-                Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
-                    .font(.caption)
-                    .foregroundColor(.orange)
-            }
-            
-            Spacer()
+            .buttonStyle(.plain)
             
             // Tombol View Cart
             Button(action: {
                 showGroupCart = true
             }) {
                 Text("View Cart")
-                    .font(.system(size: 16, weight: .bold))
+                    .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.white)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, 32)
                     .padding(.vertical, 12)
                     .background(Color.orange)
                     .cornerRadius(25)
@@ -314,14 +380,14 @@ struct GroupOrderBottomBar: View {
         }
         .padding(.horizontal)
         .padding(.vertical, 10)
-        .background(Color.white.shadow(color: .black.opacity(0.1), radius: 10, y: -5))
+        .background(Color.white)
     }
 }
 
 // MARK: - Header
 struct HeaderView: View {
     let imageURL: String
-
+    
     var body: some View {
         if let url = URL(string: imageURL) {
             AsyncImage(url: url) { image in
@@ -353,7 +419,7 @@ struct InfoView: View {
     
     @Binding var isGroupOrderActive: Bool
     @Binding var groupName: String
-    
+    @Binding var groupMembers: [UserMember]
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -363,9 +429,8 @@ struct InfoView: View {
                     Text(categories).font(.body).foregroundColor(.gray)
                 }
                 Spacer()
-                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName)) {
+                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName, groupMembers: $groupMembers)) {
                     GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
-
                 }
                 .padding(.top, 4)          }
             HStack(spacing: 4) {
@@ -436,101 +501,24 @@ struct CategoryHeaderView: View {
 }
 
 // MARK: - Menu Row
-struct MenuItemRow: View {
-    let imageName: String
-    let name: String
-    let description: String
-    let price: Double
-    let originalPrice: Double?
-    let onAdd: () -> Void
-    
-    @EnvironmentObject var cart: CartViewModel
-    
-    var quantity: Int {
-        cart.items.filter { $0.name == name }
-            .reduce(0) { $0 + $1.quantity }
-    }
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 90, height: 90)
-                .background(Color(.systemGray6))
-                .cornerRadius(8)
-            
-            VStack(alignment: .leading, spacing: 4) {
-                Text(name)
-                    .font(.system(size: 15, weight: .semibold))
-                    .lineLimit(2)
-                
-                Text(description)
-                    .font(.system(size: 12))
-                    .foregroundColor(.gray)
-                
-                Spacer()
-                
-                HStack(alignment: .bottom, spacing: 4) {
-                    Text("Rp\(formatPrice(price))")
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.orange)
-                    
-                    if let originalPrice = originalPrice {
-                        Text("Rp\(formatPrice(originalPrice))")
-                            .font(.system(size: 12))
-                            .foregroundColor(.gray)
-                            .strikethrough()
-                    }
-                }
-            }
-            
-            Spacer()
-            
-            VStack {
-                Spacer()
-                
-                if quantity > 0 {
-                    HStack(spacing: 8) {
-                        Button {
-                            if let index = cart.items.lastIndex(where: { $0.name == name }) {
-                                cart.decrementItem(id: cart.items[index].id)
-                            }
-                        } label: {
-                            Image(systemName: "minus")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.orange)
-                                .frame(width: 24, height: 24)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 4)
-                                        .stroke(Color.orange, lineWidth: 1)
-                                )
-                        }
-                        
-                        Text("\(quantity)")
-                            .font(.system(size: 14, weight: .bold))
-                            .foregroundColor(.black)
-                        
-                        Button(action: onAdd) {
-                            Image(systemName: "plus")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
-                                .background(Color.orange)
-                                .cornerRadius(4)
-                        }
-                    }
-                } else {
-                    Button(action: onAdd) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundColor(.white)
-                            .padding(5)
-                            .background(Color.orange)
-                            .cornerRadius(4)
-                    }
-                }
-            }
+
+
+struct RestaurantDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        let dummyResto = Restaurant(
+            id: "123",
+            name: "Raburi Test",
+            location: "UC Walk",
+            rating: 4.8,
+            reviewCount: 100,
+            bannerURL: nil,
+            searchURL: nil,
+            cuisineType: ["Japanese", "Noodles"],
+            menuDataURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/menu.json"
+        )
+        
+        NavigationStack {
+            RestaurantDetailView(restaurant: dummyResto)
         }
     }
 }

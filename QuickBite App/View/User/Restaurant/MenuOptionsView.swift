@@ -9,9 +9,7 @@ import SwiftUI
 
 struct MenuOptionsView: View {
     
-    // DIPERBARUI: Dapatkan CartViewModel dari Environment
     @EnvironmentObject var cart: CartViewModel
-    
     @Environment(\.dismiss) var dismiss
     
     let imageName: String
@@ -20,7 +18,8 @@ struct MenuOptionsView: View {
     let price: Double
     let originalPrice: Double?
     
-    var itemToEdit: CartItem? = nil
+    // 👇 PERBAIKAN 1: Gunakan CartItemModel (Bukan CartItem)
+    var itemToEdit: CartItemModel? = nil
     
     @State private var quantity: Int = 1
     @State private var note: String = ""
@@ -40,7 +39,8 @@ struct MenuOptionsView: View {
     let toppings = ["Classic", "Chicken Chashu"]
     
     
-    init(imageName: String, name: String, salesDescription: String, price: Double, originalPrice: Double?, itemToEdit: CartItem? = nil) {
+    // 👇 PERBAIKAN 2: Update Init juga agar menerima CartItemModel
+    init(imageName: String, name: String, salesDescription: String, price: Double, originalPrice: Double?, itemToEdit: CartItemModel? = nil) {
         self.imageName = imageName
         self.name = name
         self.salesDescription = salesDescription
@@ -59,7 +59,7 @@ struct MenuOptionsView: View {
     }
     
     
-    // --- KALKULASI HARGA (Updated to Double) ---
+    // --- KALKULASI HARGA ---
     private var currentOptionsPrice: Double {
         var total: Double = 0
         if let levelPrice = levels.first(where: { $0.0 == selectedLevel })?.1 {
@@ -133,25 +133,26 @@ struct MenuOptionsView: View {
                     price: "Rp\(formatPrice(totalCalculatedPrice))",
                     buttonText: itemToEdit != nil ? "Update Cart" : "Add to Cart",
                     action: {
-                        let newItem = CartItem(
+                        // 👇 PERBAIKAN 3: Buat CartItemModel baru
+                        let newItem = CartItemModel(
                             id: itemToEdit?.id ?? UUID(),
                             name: name,
                             imageName: imageName,
                             basePrice: price,
                             baseOriginalPrice: originalPrice,
-                            optionsPrice: currentOptionsPrice,
+                            quantity: quantity,
+                            note: note,
                             noodleType: selectedNoodleType,
                             level: selectedLevel,
                             topping: selectedTopping,
-                            note: note,
-                            quantity: quantity
+                            optionsPrice: currentOptionsPrice
                         )
                         
                         if itemToEdit != nil {
-                            // Mode Edit: Update item yang ada
+                            // Mode Edit
                             cart.updateItem(newItem)
                         } else {
-                            // Mode Add: Tambah baru
+                            // Mode Add
                             cart.add(item: newItem)
                         }
                         
@@ -168,7 +169,6 @@ struct MenuOptionsView: View {
                         Image(systemName: "xmark")
                             .font(.system(size: 16, weight: .bold))
                             .foregroundColor(.black)
-                            .clipShape(Circle())
                     }
                 }
             }
@@ -196,24 +196,45 @@ struct MenuItemInfo: View {
     
     var body: some View {
         HStack(alignment: .top, spacing: 16) {
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
+            
+            // --- LOGIC GAMBAR BARU (Support URL & Lokal) ---
+            if let url = URL(string: imageName), imageName.starts(with: "http") {
+                // Kalau ini Link Internet (Firebase)
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.3) // Warna abu-abu saat loading
+                }
                 .frame(width: 64, height: 64)
                 .cornerRadius(8)
+                .clipped()
+            } else {
+                // Kalau ini Nama Aset Lokal (Fallback)
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 64, height: 64)
+                    .cornerRadius(8)
+                    .clipped()
+            }
+            // ---------------------------------------------
             
             VStack(alignment: .leading, spacing: 4) {
                 Text(name)
                     .font(.system(size: 17, weight: .semibold))
+                    .lineLimit(2) // Jaga-jaga kalau nama panjang
+                
                 Text(salesDescription)
                     .font(.system(size: 14))
                     .foregroundColor(.gray)
+                    .lineLimit(2)
                 
                 HStack(alignment: .bottom, spacing: 4) {
                     // Format Price
                     Text("Rp\(formatPrice(price))")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.orange)
+                    
                     if let original = originalPrice {
                         Text("Rp\(formatPrice(original))")
                             .font(.system(size: 14))
@@ -225,6 +246,7 @@ struct MenuItemInfo: View {
             
             Spacer()
             
+            // Tombol Plus Minus Quantity
             HStack(spacing: 12) {
                 Button(action: { if quantity > 1 { quantity -= 1 } }) {
                     Image(systemName: "minus")

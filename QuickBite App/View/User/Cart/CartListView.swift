@@ -12,7 +12,7 @@ struct CartListView: View {
     @Environment(\.dismiss) var dismiss
     
     @State private var showingCart = false
-    @State private var itemToEdit: CartItem?
+    @State private var itemToEdit: CartItemModel?
     @State private var showOrderConfirmation = false
     
     var body: some View {
@@ -52,35 +52,36 @@ struct CartListView: View {
                     }
                 }
             }
+            // PERUBAHAN 2: Sesuaikan sheet dengan model baru
             .sheet(item: $itemToEdit) { item in
                 MenuOptionsView(
                     imageName: item.imageName,
                     name: item.name,
-                    salesDescription: "",
+                    salesDescription: "", // CartItemModel tidak menyimpan ini, kosongkan saja
                     price: item.basePrice,
                     originalPrice: item.baseOriginalPrice,
-                    itemToEdit: item // Pass item untuk mode edit
+                    itemToEdit: item
                 )
                 .environmentObject(cart)
             }
             .fullScreenCover(isPresented: $showOrderConfirmation) {
-                            NavigationStack {
-                                OrderConfirmationView()
-                                    .environmentObject(cart)
-                                    .toolbar {
-                                        // Tombol Back Manual untuk menutup Full Screen Cover
-                                        ToolbarItem(placement: .navigationBarLeading) {
-                                            Button(action: {
-                                                showOrderConfirmation = false
-                                            }) {
-                                                Image(systemName: "chevron.left")
-                                                    .font(.system(size: 16, weight: .bold))
-                                                    .foregroundColor(.black)
-                                            }
-                                        }
-                                    }
+                NavigationStack {
+                    OrderConfirmationView()
+                        .environmentObject(cart)
+                        .toolbar {
+                            // Tombol Back Manual untuk menutup Full Screen Cover
+                            ToolbarItem(placement: .navigationBarLeading) {
+                                Button(action: {
+                                    showOrderConfirmation = false
+                                }) {
+                                    Image(systemName: "chevron.left")
+                                        .font(.system(size: 16, weight: .bold))
+                                        .foregroundColor(.black)
+                                }
                             }
                         }
+                }
+            }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
@@ -90,22 +91,36 @@ struct CartListView: View {
 
 // --- Sub-View: Baris Item Keranjang ---
 struct CartItemRow: View {
-    let item: CartItem
+    // PERUBAHAN 3: Gunakan CartItemModel
+    let item: CartItemModel
     let onChange: () -> Void
     
     @EnvironmentObject var cart: CartViewModel
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            // Gambar
-            Image(item.imageName)
-                .resizable()
-                .scaledToFill()
+            
+            // PERUBAHAN 4: Support AsyncImage untuk URL
+            if let url = URL(string: item.imageName), item.imageName.starts(with: "http") {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
                 .frame(width: 80, height: 80)
                 .cornerRadius(8)
                 .clipped()
+            } else {
+                // Fallback untuk aset lokal (jika ada data dummy lama)
+                Image(item.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 80, height: 80)
+                    .cornerRadius(8)
+                    .clipped()
+            }
             
-            // Info
+            // Info Item
             VStack(alignment: .leading, spacing: 4) {
                 HStack(alignment: .top) {
                     Text(item.name)
@@ -135,8 +150,8 @@ struct CartItemRow: View {
                         .font(.system(size: 16, weight: .bold))
                         .foregroundColor(.orange)
                     
-                    if item.baseOriginalPrice != nil {
-                        Text("Rp\(formatPrice(item.originalPrice))")
+                    if let original = item.baseOriginalPrice {
+                        Text("Rp\(formatPrice(original))")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
                             .strikethrough()
@@ -190,7 +205,7 @@ struct CartFooterView: View {
                 }) {
                     HStack(spacing: 16) {
                         ZStack(alignment: .topTrailing) {
-                            Image(systemName: "cart")
+                            Image(systemName: "basket")
                                 .font(.system(size: 24))
                                 .foregroundColor(.orange)
                                 .padding(.top, 2)
@@ -229,16 +244,16 @@ struct CartFooterView: View {
                 
                 // Tombol Checkout
                 Button(action: {
-                                    onCheckout()
-                                }) {
-                                    Text("Checkout")
-                                        .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 24)
-                                        .padding(.vertical, 12)
-                                        .background(Color.orange)
-                                        .cornerRadius(20)
-                                }
+                    onCheckout()
+                }) {
+                    Text("Checkout")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.orange)
+                        .cornerRadius(20)
+                }
             }
             .padding(.horizontal)
             .background(Color.white)

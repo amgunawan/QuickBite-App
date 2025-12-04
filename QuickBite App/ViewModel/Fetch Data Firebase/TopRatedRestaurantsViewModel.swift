@@ -12,72 +12,91 @@ import FirebaseStorage
 
 class TopRatedRestaurantsViewModel: ObservableObject {
     @Published var topRestaurants: [Restaurant] = []
+    @Published var isLoading = false
     
     private var db = Firestore.firestore()
     private var storage = Storage.storage()
     
+    init() {
+        fetchTopRated()
+    }
+    
     func fetchTopRated() {
-        db.collection("stores").getDocuments { snapshot, error in
+        self.isLoading = true
+        
+        // Query: Ambil semua toko
+        // (Tips: Sebaiknya sorting dilakukan di Query Firestore .order(by: "rating", descending: true))
+        db.collection("stores").getDocuments { [weak self] snapshot, error in
+            
+            guard let self = self else { return }
+            
             if let error = error {
-                print("Error fetching restaurants:", error.localizedDescription)
+                print("Error fetching top rated:", error.localizedDescription)
+                self.isLoading = false
                 return
             }
             
-            guard let docs = snapshot?.documents else { return }
-            
-            // Decode manual (sama seperti RestaurantsViewModel)
-            var result: [Restaurant] = []
-            
-            for doc in docs {
-                let data = doc.data()
-                
-                let restaurant = Restaurant(
-                    id: doc.documentID,
-                    name: data["name"] as? String ?? "",
-                    rating: data["rating"] as? Double ?? 0.0,
-                    reviewCount: data["review_count"] as? Int ?? 0,
-                    bannerURL: data["banner_url"] as? String,   // masih GS URL
-                    searchURL: data["search_url"] as? String,
-                    cuisineType: data["cuisine_type"] as? [String] ?? []
-                )
-                
-                result.append(restaurant)
+            guard let documents = snapshot?.documents else {
+                self.isLoading = false
+                return
             }
             
-            // Sort by rating highest → lowest
-            let sorted = result.sorted { $0.rating > $1.rating }
-            
-            DispatchQueue.main.async {
-                self.topRestaurants = sorted
-                self.convertAllGSURLs()  // SAMAKAN DENGAN RestaurantsViewModel
+            // PERBAIKAN UTAMA: Pakai Codable
+            // Ini otomatis mengambil menu_data_url tanpa perlu kamu ketik manual
+            var results = documents.compactMap { doc -> Restaurant? in
+                return try? doc.data(as: Restaurant.self)
             }
+            
+            // Sorting Manual (Rating Tinggi ke Rendah)
+            results.sort { $0.rating > $1.rating }
+            
+            // Ambil 5 teratas saja
+            let top5 = Array(results.prefix(5))
+            
+            self.topRestaurants = top5
+            
+            // Convert gambar
+            self.convertAllGSURLs()
+            self.isLoading = false
         }
     }
     
-    // GS URL Converter
+    // GS URL Converter (Versi Aman dengan Safety Check)
     private func convertAllGSURLs() {
-        for index in topRestaurants.indices {
+        for (index, restaurant) in topRestaurants.enumerated() {
             
-            // Convert bannerURL
-            if let gsURL = topRestaurants[index].bannerURL,
-               gsURL.starts(with: "gs://") {
-                
+            // 1. Convert Banner URL
+            if let gsURL = restaurant.bannerURL, gsURL.starts(with: "gs://") {
                 let ref = storage.reference(forURL: gsURL)
-                ref.downloadURL { url, _ in
-                    DispatchQueue.main.async {
-                        self.topRestaurants[index].bannerURL = url?.absoluteString
+                ref.downloadURL { [weak self] url, _ in
+                    guard let self = self else { return }
+                    if let downloadURL = url {
+                        DispatchQueue.main.async {
+                            // Cek index supaya tidak crash
+                            if self.topRestaurants.indices.contains(index) {
+                                // Cek ID biar tidak salah update
+                                if self.topRestaurants[index].id == restaurant.id {
+                                    self.topRestaurants[index].bannerURL = downloadURL.absoluteString
+                                }
+                            }
+                        }
                     }
                 }
             }
             
-            // Convert searchURL
-            if let gsURL = topRestaurants[index].searchURL,
-               gsURL.starts(with: "gs://") {
-                
-                let ref = storage.reference(forURL: gsURL)
-                ref.downloadURL { url, _ in
-                    DispatchQueue.main.async {
-                        self.topRestaurants[index].searchURL = url?.absoluteString
+            // 2. Convert Search URL
+            if let gsSearchURL = restaurant.searchURL, gsSearchURL.starts(with: "gs://") {
+                let ref = storage.reference(forURL: gsSearchURL)
+                ref.downloadURL { [weak self] url, _ in
+                    guard let self = self else { return }
+                    if let downloadURL = url {
+                        DispatchQueue.main.async {
+                            if self.topRestaurants.indices.contains(index) {
+                                if self.topRestaurants[index].id == restaurant.id {
+                                    self.topRestaurants[index].searchURL = downloadURL.absoluteString
+                                }
+                            }
+                        }
                     }
                 }
             }

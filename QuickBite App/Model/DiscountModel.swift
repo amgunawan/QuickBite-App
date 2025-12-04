@@ -1,0 +1,38 @@
+//
+//  DiscountModel.swift
+//  QuickBite
+//
+//  Created by student on 04/12/25.
+//
+
+import Foundation
+import FirebaseFirestore
+
+struct DiscountModel: Identifiable, Codable {
+    @DocumentID var id: String?
+    
+    var amount: Int
+    var type: String
+    var itemId: String
+    var startDateTime: Date
+    var endDateTime: Date
+    var storeId: String // Bisa String atau Reference, kita pakai String path dulu
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case amount = "discount_amount"
+        case type = "discount_type"
+        case itemId = "item_id"
+        case startDateTime = "start_date_time"
+        case endDateTime = "end_date_time"
+        case storeId = "store_id"
+    }
+    
+    // Helper untuk mengecek apakah diskon SEDANG BERLAKU sekarang
+    var isActive: Bool {
+        let now = Date()
+        return now >= startDateTime && now <= endDateTime
+    }
+}
+
+

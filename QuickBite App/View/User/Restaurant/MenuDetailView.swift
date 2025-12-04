@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseStorage
 
 // ==================================================================
 // --- 1. MAIN VIEW (Halaman Detail Menu) ---
@@ -13,55 +14,81 @@ import SwiftUI
 
 struct MenuDetailView: View {
     @EnvironmentObject var cart: CartViewModel
-
+    
     // Properti untuk menerima data
-    let imageName: String
-    let name: String
-    let longDescription: String
-    let salesDescription: String
-    let price: Double
-    let originalPrice: Double?
+    let item: MenuItemModel
+    let customFinalPrice: Double
+    let customOriginalPrice: Double?
     
     // State untuk memunculkan sheet
     @State private var showingOptionsSheet = false
+    
+    @State private var displayImageURL: URL? = nil
     
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 
                 // 1. Gambar Header
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 400)
-                    .clipped()
-                
-                // --- Konten Teks ---
+                if let url = displayImageURL {
+                    // Jika sudah dapat URL HTTPS
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                            .frame(height: 300)
+                            .clipped()
+                    } placeholder: {
+                        Rectangle()
+                            .fill(Color.gray.opacity(0.2))
+                            .frame(height: 300)
+                            .overlay(ProgressView())
+                    }
+                } else {
+                    // Fallback / Loading / Local Asset
+                    Image(item.imageURL ?? "placeholder_food") // Ganti dengan nama aset default kamu
+                        .resizable()
+                        .scaledToFill()
+                        .frame(height: 300)
+                        .clipped()
+                        .overlay(
+                            // Tampilkan loading jika linknya ada tapi belum ter-convert
+                            item.imageURL != nil ? ProgressView() : nil
+                        )
+                }                // --- Konten Teks ---
                 VStack(alignment: .leading, spacing: 12) {
                     
                     // Nama
-                    Text(name)
+                    Text(item.name)
                         .font(.system(size: 22, weight: .bold))
                         .lineLimit(2)
                     
                     // Deskripsi Panjang
-                    Text(longDescription)
+                    Text(item.description ?? "")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
                     
                     // Deskripsi Penjualan
-                    Text(salesDescription)
-                        .font(.system(size: 15))
-                        .foregroundColor(.gray)
-                        .padding(.top, 4)
+                    //                    Text(salesDescription)
+                    //                        .font(.system(size: 15))
+                    //                        .foregroundColor(.gray)
+                    //                        .padding(.top, 4)
                     
                     // --- Harga dan Tombol Tambah ---
                     HStack(alignment: .bottom) {
                         // Harga
                         HStack(spacing: 8) {
-                            Text("Rp\(formatPrice(price))").font(.system(size: 22, weight: .bold)).foregroundColor(.orange)
-                            if let originalPrice = originalPrice {
-                                Text("Rp\(formatPrice(originalPrice))").font(.system(size: 16)).foregroundColor(.gray).strikethrough()
+                            
+                            Text("Rp\(formatPrice(customFinalPrice))")
+                                .font(.system(size: 22, weight: .bold))
+                                .foregroundColor(.orange)
+                            
+                            // PERBAIKAN: Gunakan customOriginalPrice yang sudah Double optional
+                            if let originalPrice = customOriginalPrice {
+                                Text("Rp\(formatPrice(originalPrice))")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(.gray)
+                                    .strikethrough()
                             }
                         }
                         
@@ -87,17 +114,48 @@ struct MenuDetailView: View {
         }
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
+        .onAppear {loadImage()}
         .sheet(isPresented: $showingOptionsSheet) {
+            
+            let finalImageString = displayImageURL?.absoluteString ?? item.imageURL ?? ""
+            
             MenuOptionsView(
-                imageName: self.imageName,
-                name: self.name,
-                salesDescription: self.salesDescription,
-                price: self.price,
-                originalPrice: self.originalPrice
+                imageName: finalImageString,
+                name: item.name,
+                salesDescription: "", // Data sales belum ada di model
+                price: Double(item.price),
+                originalPrice: nil, // Data original price belum ada di model
+                itemToEdit: nil // Mode Add (Baru)
             )
             .environmentObject(cart)
         }
     }
+    
+    func loadImage() {
+            guard let urlString = item.imageURL else { return }
+            
+            // Kasus 1: Sudah HTTPS (Aman)
+            if urlString.starts(with: "http") {
+                self.displayImageURL = URL(string: urlString)
+            }
+            // Kasus 2: Masih GS Link (Perlu Convert)
+            else if urlString.starts(with: "gs://") {
+                let storageRef = Storage.storage().reference(forURL: urlString)
+                storageRef.downloadURL { url, error in
+                    if let error = error {
+                        print("Gagal load gambar detail: \(error.localizedDescription)")
+                    } else if let url = url {
+                        DispatchQueue.main.async {
+                            self.displayImageURL = url
+                        }
+                    }
+                }
+            }
+            // Kasus 3: Asset Lokal (Nama file biasa)
+            else {
+                // Biarkan nil, nanti di-handle oleh `else` di View Body (Image(named:))
+            }
+        }
 }
 
 // ==================================================================
@@ -105,14 +163,21 @@ struct MenuDetailView: View {
 // ==================================================================
 struct MenuDetailView_Previews: PreviewProvider {
     static var previews: some View {
+        // Bikin Dummy Model untuk Preview
+        let dummyItem = MenuItemModel(
+            id: "1",
+            name: "Chicken Katsu Shirokara Ramen",
+            description: "Ramen kuah pedas putih dengan ayam katsu renyah.",
+            price: 35000,
+            category: "Ramen",
+            imageURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/ShirokaraRamen/ChickenKatsuShirokaraRamen.jpeg"
+        )
+        
         NavigationStack {
             MenuDetailView(
-                imageName: "ChickenKatsuShirokaraRamen",
-                name: "Chicken Katsu Shirokara Ramen",
-                longDescription: "Ramen noodle, chicken katsu, tamago, kizaminori, negi, narutomaki, with shirokara soupa.",
-                salesDescription: "10 terjual",
-                price: 30000,
-                originalPrice: 35000
+                item: dummyItem,
+                customFinalPrice: 30000,
+                customOriginalPrice: 35000
             )
         }
         .environmentObject(CartViewModel())

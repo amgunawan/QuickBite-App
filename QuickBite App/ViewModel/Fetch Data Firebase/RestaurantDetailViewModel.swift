@@ -7,12 +7,14 @@
 
 import Foundation
 import FirebaseStorage
+import FirebaseFirestore
 import Combine
 
 class RestaurantDetailViewModel: ObservableObject {
     @Published var menuItems: [MenuItemModel] = []
     @Published var isLoading = false
     @Published var errorMessage: String?
+    @Published var discounts: [DiscountModel] = []
     
     // Instance Storage
     private let storage = Storage.storage()
@@ -42,23 +44,35 @@ class RestaurantDetailViewModel: ObservableObject {
             guard let data = data else { return }
             
             do {
-                // 2. Decode JSON ke Array Model
                 let decodedItems = try JSONDecoder().decode([MenuItemModel].self, from: data)
                 
                 DispatchQueue.main.async {
-                    self.menuItems = decodedItems
-                    // 3. LANGSUNG KONVERSI GAMBAR SETELAH DATA MASUK
+                    // --- 🛡️ PERISAI ANTI CRASH 🛡️ ---
+                    // Kita tidak percaya ID dari JSON 100%.
+                    // Kita buat ulang arraynya dan paksa ganti ID dengan UUID baru.
+                    // Ini menjamin tidak akan ada "Duplicate ID" yang bikin crash.
+                    
+                    var safeItems: [MenuItemModel] = []
+                    
+                    for item in decodedItems {
+                        var cleanItem = item
+                        cleanItem.id = UUID().uuidString // GANTI ID JADI UNIK
+                        safeItems.append(cleanItem)
+                    }
+                    
+                    self.menuItems = safeItems
+                    
+                    // Lanjut konversi gambar...
                     self.convertMenuImages()
                 }
                 
             } catch {
+                print("Error Decoding JSON: \(error)") // Print error biar tau kenapa
                 DispatchQueue.main.async {
                     self.isLoading = false
-                    self.errorMessage = "Format JSON salah."
-                    print("JSON Error: \(error)")
+                    self.errorMessage = "Format data menu salah."
                 }
-            }
-        }
+            }        }
     }
     
     // --- FUNGSI AJAIB KONVERSI GAMBAR (gs:// -> https://) ---
@@ -98,6 +112,45 @@ class RestaurantDetailViewModel: ObservableObject {
             self.isLoading = false
         }
     }
+    
+    func fetchDiscounts(storeID: String) {
+            // storeID misal: "l8jFbmSGa7H4li3XR6nm" (ID dokumen tokonya)
+            // Atau kalau di firebase tersimpan path "/stores/ID", sesuaikan querynya.
+            
+            let db = Firestore.firestore()
+            
+            // Asumsi di firebase field store_id isinya "/stores/ID_TOKO"
+            let storePath = "/stores/\(storeID)"
+            
+            db.collection("discounts")
+                .whereField("store_id", isEqualTo: storePath)
+                .getDocuments { [weak self] snapshot, error in
+                    guard let self = self else { return }
+                    
+                    if let docs = snapshot?.documents {
+                        self.discounts = docs.compactMap { try? $0.data(as: DiscountModel.self) }
+                        print("Berhasil ambil \(self.discounts.count) diskon")
+                    }
+                }
+        }
+        
+        // 3. LOGIKA UTAMA: Hitung Harga Final
+        func getPriceInfo(for item: MenuItemModel) -> (finalPrice: Double, originalPrice: Double?) {
+            let basePrice = Double(item.price)
+            
+            // Cari diskon untuk item ini yang sedang aktif
+            if let activeDiscount = discounts.first(where: { $0.itemId == item.id && $0.isActive }) {
+                
+                let discountAmount = Double(activeDiscount.amount)
+                let finalPrice = max(0, basePrice - discountAmount) // Jangan sampai minus
+                
+                // Kembalikan: (Harga Diskon, Harga Asli buat dicoret)
+                return (finalPrice, basePrice)
+            }
+            
+            // Kalau tidak ada diskon: (Harga Asli, Nil)
+            return (basePrice, nil)
+        }
 }
 
 struct MenuSection: Identifiable {

@@ -65,9 +65,19 @@ struct RestaurantDetailView: View {
                         ForEach(viewModel.groupedMenu) { section in
                             Section(header: CategoryHeaderView(title: section.category)) {
                                 ForEach(section.items) { item in
-                                    MenuRowLink(item: item) {
-                                        self.selectedItemForOptions = item
-                                    }
+                                    
+                                    // 1. Minta ViewModel hitung harga
+                                    let priceInfo = viewModel.getPriceInfo(for: item)
+                                    
+                                    // 2. Buat MenuRowLink dengan harga yang sudah dihitung
+                                    MenuRowLink(
+                                        item: item,
+                                        finalPrice: priceInfo.finalPrice,       // Harga Akhir (Diskon)
+                                        originalPrice: priceInfo.originalPrice, // Harga Coret (Jika ada)
+                                        onAdd: {
+                                            self.selectedItemForOptions = item
+                                        }
+                                    )
                                 }
                             }
                         }
@@ -90,17 +100,35 @@ struct RestaurantDetailView: View {
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            viewModel.fetchMenu(from: restaurant.menuDataURL)
+            print("📢 Membuka Resto: \(restaurant.name)")
+            
+            // 1. Cek Apakah Link Menu Ada?
+            if let menuLink = restaurant.menuDataURL, !menuLink.isEmpty {
+                print("✅ Link Menu Ditemukan: \(menuLink)")
+                viewModel.fetchMenu(from: menuLink)
+            } else {
+                print("❌ BAHAYA: Link Menu Kosong/Nil di Firebase!")
+                // Jangan panggil fetchMenu biar gak error
+            }
+
+            // 2. Ambil Diskon
+            if let storeID = restaurant.id {
+                viewModel.fetchDiscounts(storeID: storeID)
+            }
         }
         .sheet(item: $selectedItemForOptions) { item in
+            
+            let priceInfo = viewModel.getPriceInfo(for: item)
+            
             MenuOptionsView(
-                imageName: item.imageURL ?? "", // Kirim URL gambar
-                name: item.name,
-                salesDescription: item.description ?? "Enak banget!", // Pakai deskripsi
-                price: Double(item.price),      // Konversi Int ke Double
-                originalPrice: nil              // Model belum punya harga coret, set nil
-            )
-            .environmentObject(cart)            // ⚠️ PENTING: Jangan lupa kirim Cart
+                            imageName: item.imageURL ?? "",
+                            name: item.name,
+                            salesDescription: item.description ?? "",
+                            price: priceInfo.finalPrice,         // Kirim Harga Diskon
+                            originalPrice: priceInfo.originalPrice, // Kirim Harga Coret
+                            itemToEdit: nil
+                        )
+                        .environmentObject(cart)
         }
         .sheet(isPresented: $showingCart) {
             CartListView() // Pastikan View ini ada
@@ -116,27 +144,34 @@ struct RestaurantDetailView: View {
 // MARK: - MENU ROW LINK
 struct MenuRowLink: View {
     let item: MenuItemModel
+    let finalPrice: Double
+    let originalPrice: Double?
     let onAdd: () -> Void
     
     @EnvironmentObject var cart: CartViewModel
     
     var body: some View {
-        // Navigasi ke Detail Menu (Opsional)
-        // Kalau mau pakai NavigationLink, pastikan MenuDetailView juga menerima 'MenuItem'
-        MenuItemRow(
-            imageURL: item.imageURL,
-            name: item.name,
-            description: item.description ?? "",
-            price: Double(item.price),
-            originalPrice: nil, // JSON kamu belum ada original price, set nil dulu
-            onAdd: onAdd
+        // Klik Baris -> Masuk ke MenuDetailView
+        NavigationLink(destination: MenuDetailView(
+            item: item,
+            customFinalPrice: finalPrice,
+            customOriginalPrice: originalPrice
         )
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .contentShape(Rectangle()) // Agar area kosong bisa diklik
-        .onTapGesture {
-            onAdd() // Langsung buka sheet opsi saat baris diklik
+            .environmentObject(cart)
+        ) {
+            MenuItemRow(
+                imageURL: item.imageURL,
+                name: item.name,
+                description: item.description ?? "",
+                price: finalPrice,
+                originalPrice: originalPrice,
+                onAdd: onAdd // Klik Plus -> Buka Sheet (di Parent)
+            )
+            .padding(.horizontal)
+            .padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }
 

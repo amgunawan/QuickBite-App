@@ -6,20 +6,29 @@
 //
 
 import SwiftUI
+import PhotosUI
+import UIKit
 
 struct KTPVerificationView: View {
     @State private var isKtpUploaded = false
-    
+
+    // ✅ PhotosUI States
+    @State private var ktpImage: UIImage? = nil
+    @State private var showGallery = false
+    @State private var showCamera = false
+    @State private var showPhotoOptions = false
+    @State private var pickedItem: PhotosPickerItem?
+
     var body: some View {
         VStack(spacing: 20) {
-            
+
             RegistrationHeader(step: 2,
                                title: "KTP Verification",
                                subtitle: "Please upload a clear image of your KTP (Kartu Tanda Penduduk) for identity verification")
-            
+
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    
+
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Verification Note")
                             .font(.subheadline)
@@ -29,24 +38,22 @@ struct KTPVerificationView: View {
                             .foregroundColor(.secondary)
                     }
                     .padding(.horizontal)
-                    
+
                     ZStack {
-                        if isKtpUploaded {
+                        if let img = ktpImage, isKtpUploaded {
                             VStack(spacing: 12) {
-                                Image("KTP")
+                                Image(uiImage: img)
                                     .resizable()
                                     .scaledToFit()
                                     .frame(maxWidth: .infinity)
                                     .cornerRadius(8)
-                                    .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-                                    }
-                                
+
                                 Text("Uploaded Successfully!")
                                     .font(.headline)
                                     .foregroundColor(.orange)
-                                
+
                                 Button("Click again to replace image") {
-                                    isKtpUploaded = false
+                                    showPhotoOptions = true
                                 }
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
@@ -60,9 +67,7 @@ struct KTPVerificationView: View {
                             )
                         } else {
                             Button(action: {
-                                withAnimation {
-                                    isKtpUploaded = true
-                                }
+                                showPhotoOptions = true
                             }) {
                                 VStack(spacing: 8) {
                                     Image(systemName: "arrow.up.circle")
@@ -70,11 +75,11 @@ struct KTPVerificationView: View {
                                         .scaledToFit()
                                         .frame(width: 40, height: 40)
                                         .foregroundColor(.secondary)
-                                    
+
                                     Text("Click here to upload KTP photo")
                                         .font(.subheadline)
                                         .foregroundColor(.primary)
-                                    
+
                                     Text("PNG, JPG, or JPEG only (max. 5 MB)")
                                         .font(.caption)
                                         .foregroundColor(.secondary)
@@ -93,18 +98,94 @@ struct KTPVerificationView: View {
                         }
                     }
                     .padding(.horizontal)
-                    
+
                     Spacer()
                 }
             }
             .scrollIndicators(.hidden)
-            
+
             NavigationLink(destination: PayoutSetupView(),
                            label: {
                 OrangeButton(title: "Continue", enabled: isKtpUploaded)
             })
             .padding()
         }
+
+        // ✅ PHOTO OPTIONS SHEET (same pattern as EditProfileTenantView)
+        .sheet(isPresented: $showPhotoOptions) {
+            VStack(spacing: 0) {
+                Text("Upload KTP Photo")
+                    .font(.headline)
+                    .padding(.top, 18)
+                    .padding(.bottom, 8)
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showGallery = true
+                } label: {
+                    row(icon: "photo.on.rectangle.angled",
+                        title: "Choose from Gallery")
+                }
+
+                Divider()
+
+                Button {
+                    showPhotoOptions = false
+                    showCamera = true
+                } label: {
+                    row(icon: "camera.fill", title: "Take Photo")
+                }
+
+                Spacer(minLength: 0)
+            }
+            .padding()
+            .presentationDetents([.height(180)])
+            .presentationDragIndicator(.visible)
+        }
+
+        // ✅ GALLERY PICKER (PhotosUI)
+        .photosPicker(isPresented: $showGallery, selection: $pickedItem)
+        .onChange(of: pickedItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self),
+                   let uiImage = UIImage(data: data) {
+                    ktpImage = uiImage
+                    isKtpUploaded = true
+                }
+            }
+        }
+
+        // ✅ CAMERA PICKER (unchanged pattern)
+        .sheet(isPresented: $showCamera) {
+            CameraPickerViewModel(image: $ktpImage)
+                .onDisappear {
+                    if ktpImage != nil {
+                        isKtpUploaded = true
+                    }
+                }
+        }
+    }
+
+    // ✅ Reused helper style from EditProfileTenantView
+    private func row(icon: String, title: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle().fill(Color.orange.opacity(0.15))
+                Image(systemName: icon)
+                    .foregroundColor(.orange)
+                    .font(.system(size: 18, weight: .semibold))
+            }
+            .frame(width: 32, height: 32)
+
+            Text(title)
+                .foregroundColor(.primary)
+
+            Spacer()
+        }
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 

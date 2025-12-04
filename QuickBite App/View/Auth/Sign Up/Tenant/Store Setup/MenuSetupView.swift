@@ -13,14 +13,17 @@ struct MenuSetupView: View {
     @State private var sections: [MenuSectionModel] = []
 
     // MARK: - UI States
-    @State private var newSectionName: String = ""
-    @State private var showAddItemOverlay = false
-    @State private var editingIndex: (sec: Int, row: Int)? = nil
+    @State private var editingIndex: EditingItem? = nil
+
+    struct EditingItem: Identifiable {
+        let id = UUID()
+        let sec: Int
+        let row: Int
+    }
 
     var body: some View {
         VStack(spacing: 20) {
 
-            // HEADER
             MenuHeader(
                 step: 2,
                 title: "Build your Quickbite Store",
@@ -33,18 +36,14 @@ struct MenuSetupView: View {
                     Text("Menu Sections")
                         .font(.headline)
 
-                    // MARK: - IF EMPTY
                     if sections.isEmpty {
-
                         emptyMenuPlaceholder
                     }
 
-                    // MARK: - RENDER ALL SECTIONS (NO CARD)
                     ForEach(sections.indices, id: \.self) { secIdx in
                         simpleSectionView(secIdx)
                     }
 
-                    // MARK: - ADD NEW SECTION (ONLY IF > 0)
                     if !sections.isEmpty {
                         Button {
                             sections.append(MenuSectionModel(title: "", items: []))
@@ -57,37 +56,76 @@ struct MenuSetupView: View {
                                 .background(Color.orange, in: Capsule())
                         }
                     }
-
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             }
 
-            // FINISH
-            Button {
-                print("FINISHED ✔")
-            } label: {
+            // ✅ FINISH BUTTON WITH VALIDATION
+            NavigationLink(destination: OnboardingView()) {
                 Text("Finish")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 14)
-                    .background(Color.orange.opacity(0.6), in: Capsule())
+                    .background(
+                        canFinish ? Color.orange : Color.gray.opacity(0.4),
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
             }
             .padding(.horizontal)
+            .disabled(!canFinish)
         }
 
-        // OVERLAY (Only for EDIT)
-        .sheet(isPresented: $showAddItemOverlay) {
-            if let (sec, row) = editingIndex {
-                AddMenuItemOverlay { newItem in
-                    sections[sec].items[row] = newItem
-                    showAddItemOverlay = false
+        .sheet(item: $editingIndex) { edit in
+            AddMenuItemOverlay { newItem in
+                sections[edit.sec].items[edit.row] = newItem
+                editingIndex = nil
+            }
+            .presentationDetents([.fraction(0.92)])
+            .presentationCornerRadius(22)
+        }
+    }
+
+    // MARK: - ✅ VALIDATION LOGIC (YOUR EXACT RULES)
+    private var canFinish: Bool {
+
+        if sections.isEmpty { return false }
+
+        for section in sections {
+
+            // Section name must NOT be empty
+            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return false
+            }
+
+            // Section must have at least 1 item
+            if section.items.isEmpty {
+                return false
+            }
+
+            for item in section.items {
+
+                // Item name NOT empty
+                if item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    return false
                 }
-                .presentationDetents([.fraction(0.92)])
-                .presentationCornerRadius(22)
+
+                // shortDescription ✅ allowed empty
+
+                // Price must be > 0
+                if item.price <= 0 {
+                    return false
+                }
+
+                // Prep time must be > 0
+                if item.prepMinutes <= 0 {
+                    return false
+                }
             }
         }
+
+        return true
     }
 
     // MARK: - EMPTY PLACEHOLDER
@@ -123,12 +161,10 @@ struct MenuSetupView: View {
 
         VStack(alignment: .leading, spacing: 12) {
 
-            // TITLE + ADD ITEM (Simplified)
             HStack(spacing: 12) {
                 TextField("Enter section name",
                           text: bindingTitle(for: secIdx))
                     .font(.headline)
-                    .cornerRadius(8)
 
                 Button {
                     addItem(in: secIdx)
@@ -144,13 +180,9 @@ struct MenuSetupView: View {
 
             Divider()
 
-            // ITEMS LIST
             ForEach(section.items.indices, id: \.self) { rowIdx in
                 MenuRow(item: section.items[rowIdx]) {
-
-                    // 🔥 EDIT membuka overlay
-                    editingIndex = (sec: secIdx, row: rowIdx)
-                    showAddItemOverlay = true
+                    editingIndex = EditingItem(sec: secIdx, row: rowIdx)
                 }
             }
         }
@@ -164,15 +196,15 @@ struct MenuSetupView: View {
         )
     }
 
-    // MARK: - ADD DUMMY ITEM (Direct Add Item)
+    // MARK: - ADD ITEM (INVALID BY DEFAULT)
     private func addItem(in secIdx: Int) {
 
         let newItem = MenuItem(
-            name: "New Item",
-            price: 20000,
+            name: "",
+            price: 0,
             stock: 10,
-            shortDescription: "Describe your tasty item here.",
-            prepMinutes: 15,
+            shortDescription: "",
+            prepMinutes: 0,
             imageName: "placeholder"
         )
 

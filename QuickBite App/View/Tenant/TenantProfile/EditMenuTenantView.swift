@@ -243,27 +243,48 @@ private extension EditMenuTenantView {
             VStack(alignment: .leading, spacing: 6) {
                 Text("Short description")
                     .font(.caption)
-                
+
                 ZStack(alignment: .topLeading) {
-                    
+
                     if item.shortDescription.isEmpty {
-                        Text("Enter short description...")
+                        Text("A short, enticing description...")
                             .foregroundColor(.gray.opacity(0.5))
                             .padding(.horizontal, 14)
                             .padding(.vertical, 10)
+                            .allowsHitTesting(false)
                     }
-                    
-                    CustomTextEditor(text: $item.shortDescription)
+
+                    CustomTextEditor(text: $item.shortDescription, wordLimit: 100)
                         .frame(minHeight: 90)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 10)
+                        .scrollContentBackground(.hidden)
+                        .background(Color.clear)
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 10)
                         .stroke(Color.gray.opacity(0.3))
                         .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
                 )
+
+                // ✅ LIVE WORD COUNTER
+                HStack {
+                    Spacer()
+
+                    let wordCount = item.shortDescription
+                        .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
+                        .count
+
+                    Text("\(wordCount) / 100 words")
+                        .font(.caption)
+                        .foregroundColor(
+                            wordCount >= 100 ? .red :
+                            wordCount >= 70 ? .orange :
+                            .secondary
+                        )
+                }
             }
+
             
             // PRICE + PREP TIME
             HStack(spacing: 12) {
@@ -300,6 +321,7 @@ private extension EditMenuTenantView {
                             }
                         }
                         .pickerStyle(.menu)
+                        .tint(.orange)
                         
                         Text("mins")
                             .foregroundColor(.secondary)

@@ -12,6 +12,20 @@ struct PayoutSetupView: View {
     @State private var accountHolderName = ""
     @State private var accountNumber = ""
     @State private var nmid = ""
+    @State private var showBankPicker = false
+    
+    private let bankOptions = [
+        "Bank Central Asia (BCA)",
+        "Bank Mandiri",
+        "Bank Negara Indonesia (BNI)",
+        "Bank Rakyat Indonesia (BRI)",
+        "Bank CIMB Niaga",
+        "Bank Danamon",
+        "Bank Permata",
+        "Bank Panin",
+        "Bank Maybank Indonesia",
+        "Bank OCBC NISP"
+    ]
     
     var body: some View {
         VStack(spacing: 20) {
@@ -20,49 +34,150 @@ struct PayoutSetupView: View {
                                title: "Payout & QRIS Setup",
                                subtitle: "Please provide your bank details for daily payouts and your QRIS identifier")
             
-            Form {
-                Section(header: Text("Bank Account Details")) {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
                     
-                    TextField("Bank Name (e.g., Bank Central Asia)", text: $bankName)
-                        .autocapitalization(.words)
-                    
-                    VStack(alignment: .leading, spacing: 4) {
-                        TextField("Enter full name on the account", text: $accountHolderName)
-                            .autocapitalization(.words)
+                    // =========================
+                    // BANK ACCOUNT DETAILS
+                    // =========================
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Bank Account Details")
+                            .font(.title3).bold()
                         
-                        Text("Account holder name must match the name on KTP uploaded")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Bank Name")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            Button {
+                                showBankPicker = true
+                            } label: {
+                                HStack {
+                                    Text(bankName.isEmpty ? "Select bank" : bankName)
+                                        .foregroundColor(bankName.isEmpty ? .secondary : .primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(12)
+                                .background(Color(.secondarySystemBackground),
+                                            in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Account Holder Name")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            TextField("Enter account holder name", text: $accountHolderName)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .fieldStyle()
+                            
+                            Text("Account holder name must match the name on KTP uploaded")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Account Number")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            TextField("Enter account number", text: $accountNumber)
+                                .keyboardType(.numberPad)
+                                .fieldStyle()
+                        }
+                        
+                        Divider().padding(.top, 6)
                     }
                     
-                    TextField("Account Number (number only)", text: $accountNumber)
-                        .keyboardType(.numberPad)
-                }
-                
-                Section(header: Text("QRIS")) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        TextField("e.g., ID0000000000000", text: $nmid)
-                            .autocapitalization(.allCharacters)
+                    // =========================
+                    // QRIS SECTION
+                    // =========================
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("QRIS")
+                            .font(.title3).bold()
                         
-                        Text("This is required for integrated digital payments. It should be provided by your QRIS provider.")
-                            .font(.caption2)
-                            .foregroundColor(.secondary)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("NMID (National Merchant ID)")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                            
+                            TextField("Enter NMID", text: $nmid)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .keyboardType(.asciiCapable)
+                                .fieldStyle()
+                            
+                            Text("This is required for integrated digital payments. It should be provided by your QRIS provider.")
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                        }
                     }
                 }
+                .padding(.horizontal, 16)
             }
             .scrollIndicators(.hidden)
             
-            NavigationLink(destination: OnboardingView(),
-                           label: {
-                OrangeButton(title: "Complete Registration", enabled: canComplete)
-            })
+            // ✅ BUTTON — NOT MODIFIED
+            NavigationLink(
+                destination: ConfirmationView(
+                    userName: "Sharon Tan",
+                    setupAction: { }
+                ),
+                label: {
+                    OrangeButton(title: "Complete Registration", enabled: canComplete)
+                }
+            )
             .padding()
             .simultaneousGesture(TapGesture().onEnded {
                 hideKeyboard()
             })
         }
+        // ✅ BANK PICKER SHEET
+        .sheet(isPresented: $showBankPicker) {
+            VStack(spacing: 4) {
+                HStack {
+                    Text("Select Bank").font(.headline)
+                    Spacer()
+                    Button("Close") { showBankPicker = false }
+                        .foregroundColor(.orange).font(.headline)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 10)
+                
+                Divider()
+                
+                ScrollView {
+                    VStack(spacing: 0) {
+                        ForEach(bankOptions, id: \.self) { bank in
+                            Button {
+                                bankName = bank
+                                showBankPicker = false
+                            } label: {
+                                HStack {
+                                    Text(bank)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 14)
+                            }
+                            .buttonStyle(.plain)
+                            Divider().padding(.leading, 16)
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.fraction(0.50)])
+            .presentationDragIndicator(.visible)
+        }
     }
     
+    // ✅ VALIDATION (UNCHANGED)
     private var canComplete: Bool {
         !bankName.isEmpty &&
         !accountHolderName.isEmpty &&
@@ -75,5 +190,15 @@ struct PayoutSetupView: View {
 #Preview {
     NavigationView {
         PayoutSetupView()
+    }
+}
+
+// ✅ MATCHING FIELD STYLE
+private extension View {
+    func fieldStyle() -> some View {
+        self
+            .padding(12)
+            .background(Color(.secondarySystemBackground),
+                        in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }

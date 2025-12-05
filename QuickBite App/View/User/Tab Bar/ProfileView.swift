@@ -5,6 +5,11 @@
 //  Created by jessica tedja on 02/11/25.
 //
 
+//
+//  ProfileView.swift
+//  QuickBite App
+//
+
 import SwiftUI
 
 struct SettingsRowLabel: View {
@@ -16,7 +21,7 @@ struct SettingsRowLabel: View {
     var body: some View {
         HStack(spacing: 12) {
             ZStack {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                RoundedRectangle(cornerRadius: 8)
                     .fill(Color(.secondarySystemBackground))
                 Image(systemName: systemIcon)
                     .foregroundColor(tint)
@@ -26,7 +31,9 @@ struct SettingsRowLabel: View {
 
             Text(title)
                 .foregroundColor(.primary)
+
             Spacer()
+
             if let trailing {
                 Text(trailing)
                     .foregroundColor(.secondary)
@@ -39,17 +46,28 @@ struct SettingsRowLabel: View {
 struct ProfileCard: View {
     let username: String
     let email: String
+    let profileImage: UIImage?
     var onEdit: () -> Void
 
     var body: some View {
         HStack(spacing: 12) {
-            ZStack {
-                Circle().fill(Color.orange.opacity(0.18))
-                Image(systemName: "person.fill")
-                    .foregroundColor(.orange)
-                    .font(.title2)
+
+            // === SHOW USER AVATAR OR DEFAULT ICON ===
+            if let img = profileImage {
+                Image(uiImage: img)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 48, height: 48)
+                    .clipShape(Circle())
+            } else {
+                ZStack {
+                    Circle().fill(Color.orange.opacity(0.18))
+                    Image(systemName: "person.fill")
+                        .foregroundColor(.orange)
+                        .font(.title2)
+                }
+                .frame(width: 48, height: 48)
             }
-            .frame(width: 48, height: 48)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(username)
@@ -62,7 +80,9 @@ struct ProfileCard: View {
 
             Spacer()
 
-            Button(action: onEdit) {
+            Button {
+                onEdit()
+            } label: {
                 Image(systemName: "pencil")
                     .foregroundColor(.orange)
             }
@@ -70,7 +90,7 @@ struct ProfileCard: View {
         }
         .padding()
         .background(
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
+            RoundedRectangle(cornerRadius: 16)
                 .fill(Color(.systemBackground))
                 .shadow(color: .black.opacity(0.06), radius: 10, x: 0, y: 6)
                 .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
@@ -84,21 +104,29 @@ struct ProfileView: View {
     @State private var language: String = "English"
 
     @State private var showEdit = false
-    @State private var fullName: String = "Angela Melia Gunawan"
+    @State private var fullName: String =
+        UserDefaults.standard.string(forKey: "user.fullName") ?? "Angela Melia Gunawan"
+
     @State private var phoneCode: String = "+62"
-    @State private var phone: String = "81230300020"
+    @State private var phone: String =
+        UserDefaults.standard.string(forKey: "user.phone") ?? "81230300020"
+
     @State private var points: Int = 30
+
+    // === NEW: profile image state for user ===
+    @State private var profileImage: UIImage? = nil
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
+
                 VStack(spacing: 0) {
                     HeaderBackgroundView(height: 100)
-                    
                     Spacer()
                 }
 
                 VStack(spacing: 0) {
+
                     Text("Profile")
                         .font(.title)
                         .fontWeight(.bold)
@@ -106,15 +134,22 @@ struct ProfileView: View {
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    ProfileCard(username: username, email: email) {
+                    // === UPDATED PROFILE CARD ===
+                    ProfileCard(
+                        username: username,
+                        email: email,
+                        profileImage: profileImage    // << IMPORTANT
+                    ) {
                         showEdit = true
                     }
                     .padding(.horizontal)
                     .offset(y: -10)
                     .zIndex(1)
 
+                    // === SETTINGS LIST ===
                     List {
                         Section("Settings") {
+
                             NavigationLink {
                                 ChangePasswordView()
                             } label: {
@@ -122,7 +157,7 @@ struct ProfileView: View {
                                                  tint: .gray,
                                                  title: "Change Password")
                             }
-                            
+
                             NavigationLink {
                                 LanguageSelectionView(selectedLanguage: $language)
                             } label: {
@@ -131,7 +166,7 @@ struct ProfileView: View {
                                                  title: "Languages",
                                                  trailing: language)
                             }
-                            
+
                             NavigationLink {
                                 HelpSupportView()
                             } label: {
@@ -139,7 +174,7 @@ struct ProfileView: View {
                                                  tint: .gray,
                                                  title: "Help & Support")
                             }
-                            
+
                             NavigationLink {
                                 FAQView()
                             } label: {
@@ -147,7 +182,7 @@ struct ProfileView: View {
                                                  tint: .gray,
                                                  title: "FAQ")
                             }
-                            
+
                             NavigationLink {
                                 TermsServiceView()
                             } label: {
@@ -155,7 +190,7 @@ struct ProfileView: View {
                                                  tint: .gray,
                                                  title: "Terms & Service")
                             }
-                            
+
                             NavigationLink {
                                 ManageAccountView()
                             } label: {
@@ -165,14 +200,17 @@ struct ProfileView: View {
                             }
                         }
                         .foregroundColor(.black)
+
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
-                    .padding(.top,-20)
+                    .padding(.top, -20)
                     .scrollDisabled(true)
                 }
             }
+
             .toolbar(.hidden, for: .navigationBar)
+
             .navigationDestination(isPresented: $showEdit) {
                 EditProfileView(
                     username: username,
@@ -181,9 +219,24 @@ struct ProfileView: View {
                     phone: $phone,
                     email: $email,
                     points: points,
-                    onSave: { showEdit = false }
+                    onSave: {
+                        showEdit = false
+                        reloadAvatar()   // ⬅ AUTO UPDATE IMAGE
+                    }
                 )
             }
+        }
+        .onAppear {
+            reloadAvatar()
+        }
+    }
+
+    private func reloadAvatar() {
+        if let data = UserDefaults.standard.data(forKey: "user.avatar"),
+           let img = UIImage(data: data) {
+            profileImage = img
+        } else {
+            profileImage = nil
         }
     }
 }

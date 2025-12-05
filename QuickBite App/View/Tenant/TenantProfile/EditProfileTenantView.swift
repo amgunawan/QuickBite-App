@@ -188,8 +188,7 @@ struct EditProfileTenantView: View {
                     showPhotoOptions = false
                     showGallery = true
                 } label: {
-                    row(icon: "photo.on.rectangle.angled",
-                        title: "Choose from Gallery")
+                    row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
                 }
                 
                 Divider()

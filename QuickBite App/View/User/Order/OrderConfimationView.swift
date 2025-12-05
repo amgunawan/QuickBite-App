@@ -260,11 +260,11 @@ struct OrderConfirmationView: View {
                         let finalTotal = cart.totalPrice - 5000 + 2500
 
                         service.createOrder(
-                            customerName: "Jessica",   // TODO: replace with actual user name
+                            customerName: "Jessica",
                             items: items,
                             total: Int(finalTotal),
                             pickupTime: selectedTime?.timeRange ?? "ASAP",
-                            tenantId: "raburi"         // TODO: replace with actual tenant/store ID
+                            tenantId: "raburi"         
                         ) { orderId in
                             if let orderId = orderId {
 

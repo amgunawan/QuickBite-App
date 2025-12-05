@@ -36,21 +36,15 @@ struct NewOrderCardView: View {
             Divider()
             
             HStack {
-                Button("Reject") {}
-                    .foregroundColor(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.gray.opacity(0.2))
-                    .cornerRadius(52)
-                
                 Button("Accept") {
                     onAccept?()
                 }
+                .fontWeight(.medium)
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
-                .padding()
+                .padding(.vertical, 12)
                 .background(Color.green)
-                .cornerRadius(52)
+                .cornerRadius(24)
             }
         }
         .padding()

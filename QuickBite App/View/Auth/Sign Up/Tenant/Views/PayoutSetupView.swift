@@ -8,10 +8,8 @@
 import SwiftUI
 
 struct PayoutSetupView: View {
-    @State private var bankName = ""
-    @State private var accountHolderName = ""
-    @State private var accountNumber = ""
-    @State private var nmid = ""
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    
     @State private var showBankPicker = false
     
     private let bankOptions = [
@@ -53,8 +51,8 @@ struct PayoutSetupView: View {
                                 showBankPicker = true
                             } label: {
                                 HStack {
-                                    Text(bankName.isEmpty ? "Select bank" : bankName)
-                                        .foregroundColor(bankName.isEmpty ? .secondary : .primary)
+                                    Text(storeVM.payoutBankName.isEmpty ? "Select bank" : storeVM.payoutBankName)
+                                        .foregroundColor(storeVM.payoutBankName.isEmpty ? .secondary : .primary)
                                     Spacer()
                                     Image(systemName: "chevron.down")
                                         .foregroundColor(.gray)
@@ -70,7 +68,7 @@ struct PayoutSetupView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            TextField("Enter account holder name", text: $accountHolderName)
+                            TextField("Enter account holder name", text: $storeVM.payoutAccountHolder)
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                                 .fieldStyle()
@@ -85,7 +83,7 @@ struct PayoutSetupView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            TextField("Enter account number", text: $accountNumber)
+                            TextField("Enter account number", text: $storeVM.payoutAccountNumber)
                                 .keyboardType(.numberPad)
                                 .fieldStyle()
                         }
@@ -105,7 +103,7 @@ struct PayoutSetupView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            TextField("Enter NMID", text: $nmid)
+                            TextField("Enter NMID", text: $storeVM.payoutNMID)
                                 .textInputAutocapitalization(.never)
                                 .autocorrectionDisabled()
                                 .keyboardType(.asciiCapable)
@@ -124,7 +122,6 @@ struct PayoutSetupView: View {
             // ✅ BUTTON — NOT MODIFIED
             NavigationLink(
                 destination: ConfirmationView(
-                    userName: "Sharon Tan",
                     setupAction: { }
                 ),
                 label: {
@@ -155,7 +152,7 @@ struct PayoutSetupView: View {
                     VStack(spacing: 0) {
                         ForEach(bankOptions, id: \.self) { bank in
                             Button {
-                                bankName = bank
+                                storeVM.payoutBankName = bank
                                 showBankPicker = false
                             } label: {
                                 HStack {
@@ -179,17 +176,18 @@ struct PayoutSetupView: View {
     
     // ✅ VALIDATION (UNCHANGED)
     private var canComplete: Bool {
-        !bankName.isEmpty &&
-        !accountHolderName.isEmpty &&
-        !accountNumber.isEmpty &&
-        !nmid.isEmpty &&
-        accountNumber.allSatisfy({ $0.isNumber })
+        !storeVM.payoutBankName.isEmpty &&
+        !storeVM.payoutAccountHolder.isEmpty &&
+        !storeVM.payoutAccountNumber.isEmpty &&
+        !storeVM.payoutNMID.isEmpty &&
+        storeVM.payoutAccountNumber.allSatisfy({ $0.isNumber })
     }
 }
 
 #Preview {
     NavigationView {
         PayoutSetupView()
+            .environmentObject(StoreRegistrationViewModel())
     }
 }
 

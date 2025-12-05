@@ -9,6 +9,8 @@ import SwiftUI
 import PhotosUI
 
 struct StoreBrandingView: View {
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    
     @State private var bannerPickedItem: PhotosPickerItem? = nil
     @State private var iconPickedItem: PhotosPickerItem? = nil
     @State private var bannerImage: UIImage? = nil
@@ -47,6 +49,9 @@ struct StoreBrandingView: View {
                                 Image(uiImage: img)
                                     .resizable()
                                     .scaledToFill()
+                                    .frame(height: 120)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                             } else {
                                 VStack {
@@ -86,6 +91,8 @@ struct StoreBrandingView: View {
                                     Image(uiImage: img)
                                         .resizable()
                                         .scaledToFill()
+                                        .frame(width: 64, height: 64)
+                                        .clipped()
                                         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                                 } else {
                                     Image(systemName: "photo.fill")
@@ -173,6 +180,13 @@ struct StoreBrandingView: View {
             })
             .padding()
         }
+        .onAppear {
+            if storeVM.openDays.isEmpty {
+                storeVM.openDays = openDays
+                storeVM.openingTime = openingTime
+                storeVM.closingTime = closingTime
+            }
+        }
         .sheet(isPresented: $showOpeningPicker) {
             TimePickerSheet(title: "Opening Time", date: $openingTime)
                 .presentationDetents([.height(320)])
@@ -182,10 +196,31 @@ struct StoreBrandingView: View {
                 .presentationDetents([.height(320)])
         }
         .onChange(of: bannerPickedItem) { _, newValue in
-            handlePhotoPicker(item: newValue, image: $bannerImage, fileName: $bannerFileName)
+            handlePhotoPicker(item: newValue) { image, filename in
+                bannerImage = image
+                bannerFileName = filename
+                storeVM.bannerImage = image   // ✅ SAVE TO VIEWMODEL
+            }
         }
+
         .onChange(of: iconPickedItem) { _, newValue in
-            handlePhotoPicker(item: newValue, image: $iconImage, fileName: $iconFileName)
+            handlePhotoPicker(item: newValue) { image, filename in
+                iconImage = image
+                iconFileName = filename
+                storeVM.searchIcon = image   // ✅ SAVE TO VIEWMODEL
+            }
+        }
+        
+        .onChange(of: openingTime) { _, new in
+            storeVM.openingTime = new
+        }
+        
+        .onChange(of: closingTime) { _, new in
+            storeVM.closingTime = new
+        }
+        
+        .onChange(of: openDays) { _, new in
+            storeVM.openDays = new   // ✅ REQUIRED
         }
     }
     
@@ -205,13 +240,16 @@ struct StoreBrandingView: View {
         bannerImage != nil && iconImage != nil
     }
     
-    private func handlePhotoPicker(item: PhotosPickerItem?, image: Binding<UIImage?>, fileName: Binding<String>) {
+    private func handlePhotoPicker(
+        item: PhotosPickerItem?,
+        completion: @escaping (UIImage, String) -> Void
+    ) {
         guard let item else { return }
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let uiimg = UIImage(data: data) {
-                image.wrappedValue = uiimg
-                fileName.wrappedValue = await item.itemIdentifier ?? "selected_file.png"
+                let filename = await item.itemIdentifier ?? "selected_file.png"
+                completion(uiimg, filename)
             }
         }
     }
@@ -220,5 +258,6 @@ struct StoreBrandingView: View {
 #Preview {
     NavigationView {
         StoreBrandingView()
+            .environmentObject(StoreRegistrationViewModel())
     }
 }

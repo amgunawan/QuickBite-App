@@ -1,3 +1,10 @@
+//
+//  TenantActivityView.swift
+//  QuickBite
+//
+//  Created by Angela on 04/11/25.
+//
+
 import SwiftUI
 import Foundation
 
@@ -58,10 +65,7 @@ struct TenantActivityView: View {
         NavigationStack {
             VStack(spacing: 0) {
 
-                // ================= HEADER =================
                 VStack(alignment: .leading, spacing: 12) {
-
-                    // TOP: Title + Toggle
                     HStack {
                         Text("Activity")
                             .font(.title)
@@ -110,8 +114,6 @@ struct TenantActivityView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 8)
                 .background(Color.white)
-
-                // ================= CONTENT =================
 
                 if !isOpen {
                     Spacer()
@@ -175,8 +177,6 @@ struct TenantActivityView: View {
             }
         }
     }
-
-    // ================= LOGIC TRANSITIONS =================
 
     func moveToPreparing(_ order: OrderCardViewData) {
         preparingOrders.append(order)

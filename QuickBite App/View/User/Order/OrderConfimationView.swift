@@ -11,10 +11,9 @@ struct OrderConfirmationView: View {
     @EnvironmentObject var cart: CartViewModel
     @Environment(\.dismiss) var dismiss
     
-    // State untuk sheet waktu
     @State private var showingTimeSheet = false
     
-    // Default selection
+    // Default pickup time
     @State private var selectedTime: TimeSlot? = TimeSlot(
         timeRange: "12:00 PM",
         status: "Right After your class! (Recommended)",
@@ -23,23 +22,22 @@ struct OrderConfirmationView: View {
     )
     
     @State private var navigateToCompleted = false
-    @State private var generatedQR: UIImage?
     @State private var generatedOrderId: String = ""
-
     
     var body: some View {
         VStack(spacing: 0) {
-            // Konten Scrollable
+            
             ScrollView {
                 VStack(alignment: .leading, spacing: 0) {
-                    
-                    // 1. Info Toko
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: "storefront")
                             .font(.system(size: 24))
                             .foregroundColor(.orange)
                             .frame(width: 40, height: 40)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.orange, lineWidth: 1.5))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.orange, lineWidth: 1.5)
+                            )
                         
                         VStack(alignment: .leading, spacing: 2) {
                             Text("Pickup At")
@@ -65,8 +63,7 @@ struct OrderConfirmationView: View {
                     .padding()
                     
                     Rectangle().fill(Color.orange.opacity(0.3)).frame(height: 8)
-                    
-                    // 2. Pick Up Time Section
+
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Pick Up Time")
@@ -79,13 +76,12 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.orange)
                         }
                         
-                        // Kartu Waktu Terpilih (Satu Opsi Saja)
                         Button(action: { showingTimeSheet = true }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(selectedTime?.timeRange ?? "Select Time")
                                         .font(.system(size: 15, weight: .bold))
-                                        .foregroundColor(.orange) // Selalu orange karena terpilih
+                                        .foregroundColor(.orange)
                                     
                                     if let status = selectedTime?.status {
                                         Text(status)
@@ -94,8 +90,6 @@ struct OrderConfirmationView: View {
                                     }
                                 }
                                 Spacer()
-                                
-                                // Icon Checkmark
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.orange)
                                     .font(.title2)
@@ -114,9 +108,7 @@ struct OrderConfirmationView: View {
                     
                     Rectangle().fill(Color.orange.opacity(0.3)).frame(height: 8)
                     
-                    // 3. My Order List
                     VStack(alignment: .leading, spacing: 16) {
-                        
                         Text("My Order")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
@@ -128,11 +120,11 @@ struct OrderConfirmationView: View {
                                     .scaledToFill()
                                     .frame(width: 60, height: 60)
                                     .cornerRadius(8)
-                                    .clipped()
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(item.name)
                                         .font(.system(size: 15, weight: .semibold))
+                                    
                                     Text(item.optionsDescription)
                                         .font(.system(size: 12))
                                         .foregroundColor(.gray)
@@ -142,6 +134,7 @@ struct OrderConfirmationView: View {
                                         Text("Rp\(formatPrice(item.currentPrice))")
                                             .font(.system(size: 15, weight: .bold))
                                             .foregroundColor(.orange)
+                                        
                                         if item.baseOriginalPrice != nil {
                                             Text("Rp\(formatPrice(item.originalPrice))")
                                                 .font(.system(size: 12))
@@ -158,24 +151,20 @@ struct OrderConfirmationView: View {
                     }
                     .padding()
                     
-                    VStack{
+                    // Additional Note
+                    VStack {
                         Divider()
-                        // Additional Note Input
                         HStack {
                             Text("Additional Note:")
                                 .font(.system(size: 12, weight: .medium))
-                            
                             Spacer()
-                            
                             TextField("Leave a message...", text: .constant(""))
                                 .font(.system(size: 12))
                         }
                         .padding(.horizontal)
-                        
                         Divider()
                     }
-                    
-                    // 4. Upsell (Add More)
+
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
                             VStack(alignment: .leading) {
@@ -186,6 +175,7 @@ struct OrderConfirmationView: View {
                                     .foregroundColor(.gray)
                             }
                             Spacer()
+                            
                             Button("Add More") {
                                 dismiss()
                             }
@@ -201,12 +191,13 @@ struct OrderConfirmationView: View {
                     
                     Rectangle().fill(Color.orange.opacity(0.3)).frame(height: 8)
                     
-                    // 5. Payment Summary
+                    // =============================
+                    // 5. PAYMENT SUMMARY
+                    // =============================
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Payment Summary")
                             .font(.system(size: 14))
                             .foregroundColor(.gray)
-                            .padding(.bottom, 4)
                         
                         SummaryRow(title: "Quantity", value: "\(cart.totalItemCount)")
                         SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(cart.totalPrice))")
@@ -218,11 +209,8 @@ struct OrderConfirmationView: View {
                         let finalTotal = cart.totalPrice - 5000 + 2500
                         
                         HStack {
-                            Text("Total")
-                                .font(.headline)
-                            
+                            Text("Total").font(.headline)
                             Spacer()
-                            
                             Text("Rp\(formatPrice(finalTotal))")
                                 .font(.title3)
                                 .fontWeight(.bold)
@@ -233,13 +221,13 @@ struct OrderConfirmationView: View {
                     .padding(.bottom, 100)
                 }
             }
-            
-            // 6. Bottom Bar (Buy Now)
+
             VStack(spacing: 0) {
                 Divider()
                 HStack {
                     
                     Spacer()
+                    
                     VStack(alignment: .trailing) {
                         Text("Rp\(formatPrice(cart.totalPrice))")
                             .font(.caption)
@@ -247,6 +235,7 @@ struct OrderConfirmationView: View {
                             .strikethrough()
                         
                         let finalTotal = cart.totalPrice - 5000 + 2500
+                        
                         Text("Rp\(formatPrice(finalTotal))")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -255,27 +244,19 @@ struct OrderConfirmationView: View {
                     
                     Button(action: {
                         let service = OrderService()
-
                         let items = cart.items.map { "\($0.quantity)x \($0.name)" }
                         let finalTotal = cart.totalPrice - 5000 + 2500
-
+                        
                         service.createOrder(
                             customerName: "Jessica",
                             items: items,
                             total: Int(finalTotal),
                             pickupTime: selectedTime?.timeRange ?? "ASAP",
-                            tenantId: "raburi"         
+                            tenantId: "raburi"
                         ) { orderId in
                             if let orderId = orderId {
-
-                                // Generate QR
-                                let qr = QRGenerator().generate(from: orderId)
-
-                                // Pass to next screen
-                                self.generatedQR = qr
+                                
                                 self.generatedOrderId = orderId
-
-                                // Navigate to QR page
                                 self.navigateToCompleted = true
                             }
                         }
@@ -298,22 +279,22 @@ struct OrderConfirmationView: View {
         .sheet(isPresented: $showingTimeSheet) {
             PickUpTimeView(selectedTime: $selectedTime)
         }
+        
+        // =============================
+        // 7. NAVIGATION → OrderPickUpView
+        // =============================
         .navigationDestination(isPresented: $navigateToCompleted) {
-            OrderPickUpView(
-                qrImage: generatedQR,
-                orderId: generatedOrderId
-            )
-            .navigationBarBackButtonHidden(true)
+            OrderPickUpView(orderId: generatedOrderId)
+                .navigationBarBackButtonHidden(true)
         }
-
     }
 }
 
 struct OrderConfirmationView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            OrderConfirmationView().environmentObject(CartViewModel())
+            OrderConfirmationView()
+                .environmentObject(CartViewModel())
         }
     }
 }
-

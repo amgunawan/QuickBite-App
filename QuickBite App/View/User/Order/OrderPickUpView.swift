@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import CoreImage.CIFilterBuiltins
 
 struct OrderedItemPU: Identifiable {
     let id = UUID()
@@ -16,13 +17,29 @@ struct OrderedItemPU: Identifiable {
 
 struct OrderPickUpView: View {
 
+    // QR CODE IMAGE
     let qrImage: UIImage?
     let orderId: String
 
-    init(qrImage: UIImage? = UIImage(systemName: "qrcode"),
-         orderId: String = "PREVIEW_ORDER_ID") {
-        self.qrImage = qrImage
+    init(orderId: String = "PREVIEW_ORDER_ID") {
         self.orderId = orderId
+        self.qrImage = Self.generateQRCode(from: orderId)
+    }
+
+    static func generateQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        let data = Data(string.utf8)
+        filter.setValue(data, forKey: "inputMessage")
+
+        if let output = filter.outputImage {
+            let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+
+            if let cgimg = context.createCGImage(scaled, from: scaled.extent) {
+                return UIImage(cgImage: cgimg)
+            }
+        }
+        return nil
     }
 
     @State private var items: [OrderedItemPU] = [
@@ -198,7 +215,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - Things to Note
                 VStack(alignment: .leading, spacing: 6) {
 
                     Text("Things to Note")
@@ -243,7 +259,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - ORDER SUMMARY
                 VStack(alignment: .leading, spacing: 6) {
 
                     Text("Order Summary")
@@ -284,7 +299,6 @@ struct OrderPickUpView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 4)
 
-                // MARK: - BUY AGAIN BUTTON
                 Button(action: {}) {
                     Text("Buy Again")
                         .fontWeight(.medium)
@@ -303,5 +317,5 @@ struct OrderPickUpView: View {
 }
 
 #Preview {
-    OrderPickUpView()
+    OrderPickUpView(orderId: "QB12345ABCDE")
 }

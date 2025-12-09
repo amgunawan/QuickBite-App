@@ -19,6 +19,12 @@ struct MenuItemModel: Identifiable, Codable {
     var defaultStock: Int?
     var prepTime: Int?
     
+    var options: [MenuOptionCategory]?
+    
+    var nonOptionalOptions: [MenuOptionCategory] {
+        return options ?? []
+    }
+    
     enum CodingKeys: String, CodingKey {
         case id = "item_id"
         case name
@@ -28,5 +34,31 @@ struct MenuItemModel: Identifiable, Codable {
         case imageURL = "image_url" 
         case defaultStock = "default_stock"
         case prepTime = "prep_time_minutes"
+        case options
+    }
+}
+
+struct MenuOptionChoice: Codable, Hashable {
+    var name: String
+    var price: Int // additional_price
+    
+    enum CodingKeys: String, CodingKey {
+        case name
+        case price = "additional_price"
+    }
+}
+
+struct MenuOptionCategory: Codable, Identifiable {
+    var id = UUID()
+    var category: String // Nama kategori
+    var minSelect: Int
+    var maxSelect: Int
+    var choices: [MenuOptionChoice]
+    
+    enum CodingKeys: String, CodingKey {
+        case category
+        case minSelect = "min_select"
+        case maxSelect = "max_select"
+        case choices
     }
 }

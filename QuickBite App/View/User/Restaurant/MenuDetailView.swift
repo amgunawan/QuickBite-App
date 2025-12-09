@@ -120,14 +120,14 @@ struct MenuDetailView: View {
             let finalImageString = displayImageURL?.absoluteString ?? item.imageURL ?? ""
             
             MenuOptionsView(
-                imageName: finalImageString,
-                name: item.name,
-                salesDescription: "", // Data sales belum ada di model
-                price: Double(item.price),
-                originalPrice: nil, // Data original price belum ada di model
-                itemToEdit: nil // Mode Add (Baru)
+                restaurantName: cart.restaurantName, // Pass info from Cart
+                restaurantId: cart.restaurantId,
+                item: item,
+                finalPrice: customFinalPrice,
+                originalPrice: customOriginalPrice,
+                itemToEdit: nil
             )
-            .environmentObject(cart)
+                        .environmentObject(cart)
         }
     }
     

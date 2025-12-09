@@ -52,24 +52,36 @@ struct CartListView: View {
                     }
                 }
             }
-            // PERUBAHAN 2: Sesuaikan sheet dengan model baru
-            .sheet(item: $itemToEdit) { item in
+            .sheet(item: $itemToEdit) { cartItem in
+                
+                // 1. Kita harus "Membungkus ulang" data Cart menjadi MenuItemModel
+                // agar MenuOptionsView mau menerimanya.
+                let tempMenuItem = MenuItemModel(
+                    id: cartItem.id.uuidString,
+                    name: cartItem.name,
+                    description: nil, // Deskripsi tidak disimpan di cart
+                    price: Int(cartItem.basePrice),
+                    category: nil,
+                    imageURL: cartItem.imageName,
+                    options: nil // ⚠️ Catatan: Opsi dinamis tidak akan muncul saat edit dari cart
+                )
+                
+                // 2. Panggil Init yang BARU
                 MenuOptionsView(
-                    imageName: item.imageName,
-                    name: item.name,
-                    salesDescription: "", // CartItemModel tidak menyimpan ini, kosongkan saja
-                    price: item.basePrice,
-                    originalPrice: item.baseOriginalPrice,
-                    itemToEdit: item
+                    restaurantName: cart.restaurantName, // Pass info from Cart
+                    restaurantId: cart.restaurantId,
+                    item: tempMenuItem,
+                    finalPrice: cartItem.basePrice,
+                    originalPrice: cartItem.baseOriginalPrice,
+                    itemToEdit: cartItem
                 )
                 .environmentObject(cart)
             }
             .fullScreenCover(isPresented: $showOrderConfirmation) {
                 NavigationStack {
-                    OrderConfirmationView()
+                    OrderConfirmationView() // Pastikan View ini ada di project kamu
                         .environmentObject(cart)
                         .toolbar {
-                            // Tombol Back Manual untuk menutup Full Screen Cover
                             ToolbarItem(placement: .navigationBarLeading) {
                                 Button(action: {
                                     showOrderConfirmation = false
@@ -91,7 +103,6 @@ struct CartListView: View {
 
 // --- Sub-View: Baris Item Keranjang ---
 struct CartItemRow: View {
-    // PERUBAHAN 3: Gunakan CartItemModel
     let item: CartItemModel
     let onChange: () -> Void
     
@@ -100,7 +111,7 @@ struct CartItemRow: View {
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
             
-            // PERUBAHAN 4: Support AsyncImage untuk URL
+            // AsyncImage untuk URL
             if let url = URL(string: item.imageName), item.imageName.starts(with: "http") {
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFill()
@@ -111,7 +122,7 @@ struct CartItemRow: View {
                 .cornerRadius(8)
                 .clipped()
             } else {
-                // Fallback untuk aset lokal (jika ada data dummy lama)
+                // Fallback Asset Lokal
                 Image(item.imageName)
                     .resizable()
                     .scaledToFill()
@@ -184,7 +195,7 @@ struct CartItemRow: View {
                 }
             }
         }
-        .frame(height: 100) // Tinggi fix agar rapi
+        .frame(height: 100)
     }
 }
 
@@ -211,7 +222,6 @@ struct CartFooterView: View {
                                 .padding(.top, 2)
                                 .padding(.trailing, 2)
                             
-                            // Badge Count
                             if cart.totalItemCount > 0 {
                                 Text("\(cart.totalItemCount)")
                                     .font(.system(size: 12, weight: .bold))
@@ -225,7 +235,6 @@ struct CartFooterView: View {
                         .frame(width: 44, height: 44)
                         
                         Spacer()
-                        // Info Harga
                         VStack(alignment: .trailing, spacing: 2) {
                             if cart.totalOriginalPrice > cart.totalPrice {
                                 Text("Rp\(formatPrice(cart.totalOriginalPrice))")
@@ -241,8 +250,6 @@ struct CartFooterView: View {
                 }
                 .buttonStyle(.plain)
                 
-                
-                // Tombol Checkout
                 Button(action: {
                     onCheckout()
                 }) {
@@ -260,7 +267,6 @@ struct CartFooterView: View {
         }
         .background(Color.white)
     }
-    
 }
 
 struct CartListView_Previews: PreviewProvider {

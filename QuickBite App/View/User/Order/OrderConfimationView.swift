@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
+import FirebaseStorage
 
 struct OrderConfirmationView: View {
     @EnvironmentObject var cart: CartViewModel
@@ -13,6 +15,12 @@ struct OrderConfirmationView: View {
     
     // State untuk sheet waktu
     @State private var showingTimeSheet = false
+    
+    // State Status Toko (Open/Closed)
+    @State private var storeStatusText: String = "Loading..."
+    @State private var isStoreClosed: Bool = false
+    
+    @State private var totalDiscountAmount: Int = 0
     
     // Default selection
     @State private var selectedTime: TimeSlot? = TimeSlot(
@@ -25,7 +33,6 @@ struct OrderConfirmationView: View {
     @State private var navigateToCompleted = false
     @State private var generatedQR: UIImage?
     @State private var generatedOrderId: String = ""
-
     
     var body: some View {
         VStack(spacing: 0) {
@@ -45,16 +52,22 @@ struct OrderConfirmationView: View {
                             Text("Pickup At")
                                 .font(.caption)
                                 .foregroundColor(.gray)
-                            Text("Raburi")
+                            
+                            // Nama Restoran
+                            Text(cart.restaurantName.isEmpty ? "Unknown Restaurant" : cart.restaurantName)
                                 .font(.headline)
-                            Text("Open until 5 PM")
+                            
+                            // Status Toko (Open until...)
+                            Text(storeStatusText)
                                 .font(.caption)
-                                .foregroundColor(.gray)
+                                .foregroundColor(isStoreClosed ? .red : .gray)
                             
                             HStack(spacing: 4) {
                                 Text("Estimated Ready in:")
                                     .font(.system(size: 13))
-                                Text("12 minutes")
+                                
+                                // 👇 PERBAIKAN: Gunakan Rata-rata dari CartViewModel
+                                Text("\(cart.averagePrepTime) minutes")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.orange)
                             }
@@ -79,13 +92,13 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.orange)
                         }
                         
-                        // Kartu Waktu Terpilih (Satu Opsi Saja)
+                        // Kartu Waktu Terpilih
                         Button(action: { showingTimeSheet = true }) {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(selectedTime?.timeRange ?? "Select Time")
                                         .font(.system(size: 15, weight: .bold))
-                                        .foregroundColor(.orange) // Selalu orange karena terpilih
+                                        .foregroundColor(.orange)
                                     
                                     if let status = selectedTime?.status {
                                         Text(status)
@@ -94,8 +107,6 @@ struct OrderConfirmationView: View {
                                     }
                                 }
                                 Spacer()
-                                
-                                // Icon Checkmark
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundColor(.orange)
                                     .font(.title2)
@@ -122,45 +133,15 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.gray)
                         
                         ForEach(cart.items) { item in
-                            HStack(alignment: .top, spacing: 12) {
-                                Image(item.imageName)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 60, height: 60)
-                                    .cornerRadius(8)
-                                    .clipped()
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(item.name)
-                                        .font(.system(size: 15, weight: .semibold))
-                                    Text(item.optionsDescription)
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.gray)
-                                        .lineLimit(1)
-                                    
-                                    HStack {
-                                        Text("Rp\(formatPrice(item.currentPrice))")
-                                            .font(.system(size: 15, weight: .bold))
-                                            .foregroundColor(.orange)
-                                        if item.baseOriginalPrice != nil {
-                                            Text("Rp\(formatPrice(item.originalPrice))")
-                                                .font(.system(size: 12))
-                                                .foregroundColor(.gray)
-                                                .strikethrough()
-                                        }
-                                        Spacer()
-                                        Text("x\(item.quantity)")
-                                            .font(.system(size: 14))
-                                    }
-                                }
-                            }
+                            // Gunakan Subview agar gambar URL muncul
+                            OrderConfirmationItemRow(item: item)
                         }
                     }
                     .padding()
                     
-                    VStack{
+                    // Additional Note & Upsell
+                    VStack {
                         Divider()
-                        // Additional Note Input
                         HStack {
                             Text("Additional Note:")
                                 .font(.system(size: 12, weight: .medium))
@@ -209,20 +190,23 @@ struct OrderConfirmationView: View {
                             .padding(.bottom, 4)
                         
                         SummaryRow(title: "Quantity", value: "\(cart.totalItemCount)")
+                        
                         SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(cart.totalPrice))")
-                        SummaryRow(title: "Seller discount", value: "-Rp5.000")
+                        
+                        
+                        if totalDiscountAmount > 0 {
+                            SummaryRow(title: "Seller discount", value: "-Rp\(formatPrice(Double(totalDiscountAmount)))")
+                        }
+                        
                         SummaryRow(title: "Service fee", value: "+Rp2.500")
                         
                         Divider().padding(.vertical, 4)
                         
-                        let finalTotal = cart.totalPrice - 5000 + 2500
-                        
+                        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
                         HStack {
                             Text("Total")
                                 .font(.headline)
-                            
                             Spacer()
-                            
                             Text("Rp\(formatPrice(finalTotal))")
                                 .font(.title3)
                                 .fontWeight(.bold)
@@ -238,7 +222,6 @@ struct OrderConfirmationView: View {
             VStack(spacing: 0) {
                 Divider()
                 HStack {
-                    
                     Spacer()
                     VStack(alignment: .trailing) {
                         Text("Rp\(formatPrice(cart.totalPrice))")
@@ -246,7 +229,8 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.gray)
                             .strikethrough()
                         
-                        let finalTotal = cart.totalPrice - 5000 + 2500
+                        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
+                        
                         Text("Rp\(formatPrice(finalTotal))")
                             .font(.title2)
                             .fontWeight(.bold)
@@ -254,40 +238,17 @@ struct OrderConfirmationView: View {
                     }
                     
                     Button(action: {
-                        let service = OrderService()
-
-                        let items = cart.items.map { "\($0.quantity)x \($0.name)" }
-                        let finalTotal = cart.totalPrice - 5000 + 2500
-
-                        service.createOrder(
-                            customerName: "Jessica",   // TODO: replace with actual user name
-                            items: items,
-                            total: Int(finalTotal),
-                            pickupTime: selectedTime?.timeRange ?? "ASAP",
-                            tenantId: "raburi"         // TODO: replace with actual tenant/store ID
-                        ) { orderId in
-                            if let orderId = orderId {
-
-                                // Generate QR
-                                let qr = QRGenerator().generate(from: orderId)
-
-                                // Pass to next screen
-                                self.generatedQR = qr
-                                self.generatedOrderId = orderId
-
-                                // Navigate to QR page
-                                self.navigateToCompleted = true
-                            }
-                        }
+                        placeOrder()
                     }) {
                         Text("Buy Now")
                             .font(.headline)
                             .foregroundColor(.white)
                             .padding(.horizontal, 32)
                             .padding(.vertical, 12)
-                            .background(Color.orange)
+                            .background(isStoreClosed ? Color.gray : Color.orange) // Disable visual jika tutup
                             .cornerRadius(25)
                     }
+                    .disabled(isStoreClosed) // Matikan interaksi jika tutup
                 }
                 .padding()
                 .background(Color.white)
@@ -305,15 +266,188 @@ struct OrderConfirmationView: View {
             )
             .navigationBarBackButtonHidden(true)
         }
+        .onAppear {
+            fetchStoreSchedule()
+            fetchDiscounts()
+        }
+    }
+    
+    // --- LOGIC FUNCTIONS ---
+    func fetchDiscounts() {
+            guard !cart.restaurantId.isEmpty else { return }
+            
+            let db = Firestore.firestore()
+            
+            // Construct path string agar sesuai screenshot: "/stores/AHCqc..."
+            let storePath = "/stores/\(cart.restaurantId)"
+            
+            db.collection("discounts")
+                .whereField("store_id", isEqualTo: storePath)
+                .getDocuments { snapshot, error in
+                    if let error = error {
+                        print("Error fetching discounts: \(error.localizedDescription)")
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else { return }
+                    
+                    var calculatedTotal: Int = 0
+                    
+                    // Decode documents ke DiscountModel
+                    let discounts = documents.compactMap { doc -> DiscountModel? in
+                        try? doc.data(as: DiscountModel.self)
+                    }
+                    
+                    let activeDiscounts = discounts.filter { $0.isActive }
+                    
+                    for cartItem in cart.items {
 
+                        if let applicableDiscount = activeDiscounts.first(where: { $0.itemId == cartItem.menuItemId }) {
+                            
+                            let itemDiscountTotal = applicableDiscount.amount * cartItem.quantity
+                            calculatedTotal += itemDiscountTotal
+                            
+                            print("✅ Applied discount \(applicableDiscount.amount) for item \(cartItem.name)")
+                        }
+                    }
+                    
+                    // Update UI
+                    DispatchQueue.main.async {
+                        self.totalDiscountAmount = calculatedTotal
+                    }
+                }
+        }
+    
+    func fetchStoreSchedule() {
+        guard !cart.restaurantId.isEmpty else {
+            self.storeStatusText = "Store info unavailable"
+            return
+        }
+        
+        let db = Firestore.firestore()
+        db.collection("stores").document(cart.restaurantId).getDocument { snapshot, error in
+            
+            if let data = snapshot?.data(),
+               let schedule = data["store_schedule"] as? [String: Any] {
+                
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "EEEE"
+                dateFormatter.locale = Locale(identifier: "en_US")
+                let todayName = dateFormatter.string(from: Date())
+                
+                if let todaySchedule = schedule[todayName] as? [String: Any],
+                   let openStr = todaySchedule["open_time"] as? String,
+                   let closeStr = todaySchedule["close_time"] as? String {
+                    
+                    checkTimeStatus(open: openStr, close: closeStr)
+                    
+                } else {
+                    self.storeStatusText = "Closed Today"
+                    self.isStoreClosed = true
+                }
+            } else {
+                self.storeStatusText = "Schedule unavailable"
+            }
+        }
+    }
+    
+    func checkTimeStatus(open: String, close: String) {
+        let now = Date()
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        timeFormatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        let currentString = timeFormatter.string(from: now)
+        
+        if currentString < open {
+            self.storeStatusText = "Opens at \(open)"
+            self.isStoreClosed = true
+        } else if currentString > close {
+            self.storeStatusText = "Closed (Open until \(close))"
+            self.isStoreClosed = true
+        } else {
+            self.storeStatusText = "Open until \(close)"
+            self.isStoreClosed = false
+        }
+    }
+    
+    func placeOrder() {
+        let service = OrderService()
+        let items = cart.items.map { "\($0.quantity)x \($0.name)" }
+        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
+        service.createOrder(
+            customerName: "Jessica",
+            items: items,
+            total: Int(finalTotal),
+            pickupTime: selectedTime?.timeRange ?? "ASAP",
+            tenantId: cart.restaurantId
+        ) { orderId in
+            if let orderId = orderId {
+                let qr = QRGenerator().generate(from: orderId)
+                self.generatedQR = qr
+                self.generatedOrderId = orderId
+                self.navigateToCompleted = true
+            }
+        }
+    }
+}
+
+// --- SUBVIEW: Cart Item Row (Handles Async Image) ---
+struct OrderConfirmationItemRow: View {
+    let item: CartItemModel
+    @State private var displayImageURL: URL? = nil
+    
+    var body: some View {
+        HStack(alignment: .top, spacing: 12) {
+            
+            if let url = displayImageURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
+                .frame(width: 60, height: 60).cornerRadius(8).clipped()
+            } else {
+                Rectangle().fill(Color.gray.opacity(0.2))
+                    .frame(width: 60, height: 60).cornerRadius(8)
+            }
+            
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.name).font(.system(size: 15, weight: .semibold))
+                Text(item.optionsDescription).font(.system(size: 12)).foregroundColor(.gray).lineLimit(1)
+                
+                HStack {
+                    Text("Rp\(formatPrice(item.currentPrice))")
+                        .font(.system(size: 15, weight: .bold))
+                        .foregroundColor(.orange)
+                    Spacer()
+                    Text("x\(item.quantity)").font(.system(size: 14))
+                }
+            }
+        }
+        .onAppear { loadImage() }
+    }
+    
+    func loadImage() {
+        let urlString = item.imageName
+        if urlString.starts(with: "http") {
+            self.displayImageURL = URL(string: urlString)
+        } else if urlString.starts(with: "gs://") {
+            let storageRef = Storage.storage().reference(forURL: urlString)
+            storageRef.downloadURL { url, error in
+                if let url = url {
+                    DispatchQueue.main.async { self.displayImageURL = url }
+                }
+            }
+        }
     }
 }
 
 struct OrderConfirmationView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            OrderConfirmationView().environmentObject(CartViewModel())
+            OrderConfirmationView()
+                .environmentObject(CartViewModel())
         }
     }
 }
-

@@ -121,14 +121,14 @@ struct RestaurantDetailView: View {
             let priceInfo = viewModel.getPriceInfo(for: item)
             
             MenuOptionsView(
-                            imageName: item.imageURL ?? "",
-                            name: item.name,
-                            salesDescription: item.description ?? "",
-                            price: priceInfo.finalPrice,         // Kirim Harga Diskon
-                            originalPrice: priceInfo.originalPrice, // Kirim Harga Coret
-                            itemToEdit: nil
-                        )
-                        .environmentObject(cart)
+                restaurantName: restaurant.name,
+                restaurantId: restaurant.id ?? "",
+                item: item, // Kirim seluruh object model
+                finalPrice: priceInfo.finalPrice,
+                originalPrice: priceInfo.originalPrice,
+                itemToEdit: nil
+            )
+            .environmentObject(cart)
         }
         .sheet(isPresented: $showingCart) {
             CartListView() // Pastikan View ini ada
@@ -148,7 +148,7 @@ struct MenuRowLink: View {
     let originalPrice: Double?
     let onAdd: () -> Void
     
-    @EnvironmentObject var cart: CartViewModel
+    @EnvironmentObject var cart: CartViewModel // Inject Cart for Navigation
     
     var body: some View {
         // Klik Baris -> Masuk ke MenuDetailView
@@ -156,16 +156,14 @@ struct MenuRowLink: View {
             item: item,
             customFinalPrice: finalPrice,
             customOriginalPrice: originalPrice
-        )
-            .environmentObject(cart)
-        ) {
+        ).environmentObject(cart)) { // Pass environment object explicitly
             MenuItemRow(
                 imageURL: item.imageURL,
                 name: item.name,
                 description: item.description ?? "",
                 price: finalPrice,
                 originalPrice: originalPrice,
-                onAdd: onAdd // Klik Plus -> Buka Sheet (di Parent)
+                onAdd: onAdd
             )
             .padding(.horizontal)
             .padding(.vertical, 12)
@@ -175,7 +173,6 @@ struct MenuRowLink: View {
     }
 }
 
-// Update MenuItemRow agar pakai AsyncImage (URL) bukan Image(named)
 struct MenuItemRow: View {
     let imageURL: String?
     let name: String

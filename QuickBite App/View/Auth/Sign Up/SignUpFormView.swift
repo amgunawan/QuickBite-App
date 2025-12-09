@@ -9,7 +9,7 @@ import SwiftUI
 import FirebaseAuth
 
 struct SignUpFormView: View {
-    let role: String
+    let role: UserRole
     @StateObject private var viewModel = EmailCheckViewModel()
     @StateObject private var passwordVM = PasswordCheckViewModel()
     @State private var agreeTermsAndConditions = false
@@ -19,7 +19,7 @@ struct SignUpFormView: View {
     // Google Sign In
     @State private var loginError = ""
     @State private var isLoggedIn = false
-    @State private var vm = AuthenticationViewModel()
+    @StateObject private var vm = AuthenticationViewModel()
     
     // Email Verification
     @State private var userVerificationModal: Bool = false
@@ -44,10 +44,11 @@ struct SignUpFormView: View {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
                         
-                        TextField("e-mail address", text: $viewModel.email)
+                        TextField("e-mail address", text: $vm.email)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .keyboardType(.emailAddress)
+                            .onChange(of: vm.email) { viewModel.email = $0 }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 12)
@@ -63,13 +64,15 @@ struct SignUpFormView: View {
                         .foregroundColor(.gray)
                     
                     if showPassword {
-                        TextField("password", text: $passwordVM.password)
+                        TextField("password", text: $vm.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .onChange(of: vm.password) { passwordVM.password = $0 }
                     } else {
-                        SecureField("password", text: $passwordVM.password)
+                        SecureField("password", text: $vm.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
+                            .onChange(of: vm.password) { passwordVM.password = $0 }
                     }
                     
                     Button(action: { showPassword.toggle() }) {
@@ -135,7 +138,16 @@ struct SignUpFormView: View {
                 
                 Button(action: {
                     Task {
-                        userVerificationModal = true
+                        do {
+                            print("DEBUG EMAIL:", vm.email)
+                            print("DEBUG PASSWORD:", vm.password)
+
+                            try await vm.signUp(role: role)
+                            try await vm.sendVerificationEmail()
+                            userVerificationModal = true
+                        } catch {
+                            loginError = error.localizedDescription
+                        }
                     }
                 }) {
                     Text("Continue")
@@ -147,12 +159,51 @@ struct SignUpFormView: View {
                         .cornerRadius(24)
                 }
                 .disabled(!canContinue)
-                .alert("Email Verification", isPresented: $userVerificationModal) {
-                    Button("Verified?") {
-                        goNextScreen = true
+                .sheet(isPresented: $userVerificationModal) {
+                    VStack(spacing: 16) {
+                        Text("Email Verification")
+                            .font(.title2).bold()
+                        Text("We sent a verification email to \(vm.email). Please open it and click the verification link. Then come back and tap \"I've verified\".")
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.secondary)
+                            .padding()
+
+                        Button("I've verified") {
+                            Task {
+                                do {
+                                    let verified = try await vm.reloadCurrentUser()
+                                    if verified {
+                                        userVerificationModal = false
+                                        goNextScreen = true
+                                    } else {
+                                        // keep modal open and show a message
+                                        loginError = "Email not verified yet. Please open the verification link in your inbox and try again."
+                                    }
+                                } catch {
+                                    loginError = error.localizedDescription
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+
+                        Button("Resend verification email") {
+                            Task {
+                                do {
+                                    try await vm.sendVerificationEmail()
+                                    loginError = "Verification email resent."
+                                } catch {
+                                    loginError = error.localizedDescription
+                                }
+                            }
+                        }
+
+                        Button("Cancel") {
+                            userVerificationModal = false
+                        }
+                        .padding(.top, 8)
                     }
-                } message: {
-                    Text("We have sent a verification email to your address. Please check your inbox.")
+                    .padding()
                 }
                 
                 HStack {
@@ -189,22 +240,20 @@ struct SignUpFormView: View {
                         .padding()
                 }
                 
-                NavigationLink(value: isLoggedIn) {
-                    EmptyView()
-                }
-                .navigationDestination(isPresented: $goNextScreen) {
-                    if role == "user" {
-                        UserContentView()
-                            .navigationBarBackButtonHidden(true)
-                    } else {
-                        SignUpFormTenantView()
-                            .navigationBarBackButtonHidden(true)
-                    }
-                }
-                
                 Spacer()
             }
             .padding(.horizontal, 24)
+            .navigationDestination(isPresented: $goNextScreen) {
+                switch role {
+                case .customer:
+                    UserContentView()
+                        .navigationBarBackButtonHidden(true)
+
+                case .merchant:
+                    SignUpFormTenantView()
+                        .navigationBarBackButtonHidden(true)
+                }
+            }
         }
     }
 }

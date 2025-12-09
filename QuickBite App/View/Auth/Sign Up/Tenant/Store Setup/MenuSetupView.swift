@@ -72,20 +72,24 @@ struct MenuSetupView: View {
                 else { return }
                 
                 isSubmitting = true
-
                 Task {
-                    try await storeVM.registerStore(
-                        storeName: storeVM.storeName,
-                        location: storeVM.location,
-                        cuisineTypes: storeVM.cuisineTypes,
-                        bannerImage: banner,
-                        searchIcon: icon,
-                        openDays: storeVM.openDays,
-                        openingTime: storeVM.openingTime,
-                        closingTime: storeVM.closingTime,
-                        sections: sections
-                    )
-                    isSubmitting = false
+                    do {
+                        try await storeVM.registerStore(
+                            storeName: storeVM.storeName,
+                            location: storeVM.location,
+                            cuisineTypes: storeVM.cuisineTypes,
+                            bannerImage: banner,
+                            searchIcon: icon,
+                            openDays: storeVM.openDays,
+                            openingTime: storeVM.openingTime,
+                            closingTime: storeVM.closingTime,
+                            sections: sections
+                        )
+                        isSubmitting = false
+                    } catch {
+                        isSubmitting = false
+                        print("Register store failed: \(error.localizedDescription)")
+                    }
                 }
             } label: {
                 Text(isSubmitting ? "Submitting..." : "Finish")

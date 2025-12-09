@@ -171,19 +171,11 @@ struct MainFormView: View {
                                 .foregroundColor(.red)
                                 .padding()
                         }
-                        
-                        NavigationLink(value: isLoggedIn) {
-                            EmptyView()
-                        }
-                        .navigationDestination(isPresented: $isLoggedIn) {
-                            UserContentView()
-                                .navigationBarBackButtonHidden(true)
-                        }
                     }
                 } else {
 
                     VStack(spacing: 16) {
-                        NavigationLink(destination: SignUpFormView(role: "user")) {
+                        NavigationLink(destination: SignUpFormView(role: .customer)) {
                             Text("Sign up as user")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -201,7 +193,7 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        NavigationLink(destination: SignUpFormView(role: "merchant")) {
+                        NavigationLink(destination: SignUpFormView(role: .merchant)) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -236,7 +228,19 @@ struct MainFormView: View {
     func signInUser() async {
         do {
             try await vm.signInWithEmailPassword()
-            isLoggedIn = true
+
+            guard let user = Auth.auth().currentUser else { return }
+
+            if user.isEmailVerified {
+                isLoggedIn = true   // only TRUE when verified ✅
+            } else {
+                try await user.sendEmailVerification()
+                alertMessage = "Please verify your email before signing in."
+                showingLoginAlert = true
+
+                try Auth.auth().signOut()  // 🚨 CRITICAL
+            }
+
         } catch {
             alertMessage = error.localizedDescription
             showingLoginAlert = true

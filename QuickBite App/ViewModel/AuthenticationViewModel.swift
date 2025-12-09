@@ -30,18 +30,54 @@ class AuthenticationViewModel: ObservableObject {
         guard !email.isEmpty, !password.isEmpty else {
             throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "Email or password missing."])
         }
-        
-        // 1. Create user in Firebase Auth
+
         let returnedUser = try await createUser(email: email, password: password)
-        
-        // 2. Create Firestore document with unique username
+
         try await createUserDocument(
             uid: returnedUser.uid,
             email: email,
             role: role
         )
-        
-        print("🔥 Successfully created user & Firestore document.")
+
+        try await sendVerificationEmail()
+
+        print("🔥 Successfully created user & Firestore document. Verification email sent.")
+    }
+
+    // MARK: - Send verification email (async wrapper)
+    func sendVerificationEmail() async throws {
+        guard let user = Auth.auth().currentUser else {
+            throw NSError(domain: "AUTH", code: 401, userInfo: [NSLocalizedDescriptionKey: "No authenticated user found"])
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            user.sendEmailVerification { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    // MARK: - Reload / check current user's email verification status
+    func reloadCurrentUser() async throws -> Bool {
+        guard let user = Auth.auth().currentUser else {
+            throw NSError(domain: "AUTH", code: 401, userInfo: [NSLocalizedDescriptionKey: "No authenticated user found"])
+        }
+
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            user.reload { error in
+                if let error = error {
+                    continuation.resume(throwing: error)
+                } else {
+                    continuation.resume()
+                }
+            }
+        }
+
+        return Auth.auth().currentUser?.isEmailVerified ?? false
     }
     
     // MARK: - Create Firestore Document with Unique Username

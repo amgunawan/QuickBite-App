@@ -193,5 +193,6 @@ struct KTPVerificationView: View {
 #Preview {
     NavigationView {
         KTPVerificationView()
+            .environmentObject(StoreRegistrationViewModel())
     }
 }

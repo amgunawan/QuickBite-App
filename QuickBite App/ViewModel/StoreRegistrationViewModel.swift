@@ -78,7 +78,7 @@ class StoreRegistrationViewModel: ObservableObject {
         )
 
         // 3️⃣ UPLOAD MENU.JSON
-        let menuJSONURL = try await uploadMenuJSON(
+        let (menuJSONURL, trackingItems) = try await uploadMenuJSON(
             sections: sections,
             storeID: storeID
         )
@@ -90,11 +90,12 @@ class StoreRegistrationViewModel: ObservableObject {
             closingTime: closingTime
         )
 
-        // 5️⃣ GENERATE TRACKING ITEMS
-        let trackingItems = generateTrackingItems(from: sections)
+//        // 5️⃣ GENERATE TRACKING ITEMS
+//        let trackingItems = generateTrackingItems(from: sections)
 
         // 6️⃣ SAVE STORE DOCUMENT
         let storeData: [String: Any] = [
+            "owner_id": uid,                   
             "name": storeName,
             "location": location,
             "cuisine_type": cuisineTypes,
@@ -105,8 +106,6 @@ class StoreRegistrationViewModel: ObservableObject {
             "review_count": 0,
             "store_schedule": schedule,
             "tracking_item": trackingItems,
-
-            // ✅ REAL PAYOUT DATA (FROM VIEWMODEL)
             "payout_details": [
                 "account_holder": payoutAccountHolder,
                 "account_number": payoutAccountNumber,
@@ -153,31 +152,44 @@ class StoreRegistrationViewModel: ObservableObject {
     private func uploadMenuJSON(
         sections: [MenuSectionModel],
         storeID: String
-    ) async throws -> String {
+    ) async throws -> (menuURL: String, trackingItems: [[String: Any]]) {
 
-        let flatItems = sections.flatMap { section in
-            section.items.map { item in
-                MenuItemUploadModel(
-                    item_id: UUID().uuidString,
+        // Build flatItems and reuse the same item_id for tracking
+        var flatItems: [MenuItemUploadModel] = []
+        var trackingItems: [[String: Any]] = []
+
+        for section in sections {
+            for item in section.items {
+                // Use deterministic ID: UUID here (or you can use custom)
+                let itemUUID = UUID().uuidString
+
+                let upload = MenuItemUploadModel(
+                    item_id: itemUUID,
                     name: item.name,
                     description: item.shortDescription,
                     price: item.price,
                     default_stock: item.stock,
                     prep_time_minutes: item.prepMinutes,
                     category: section.title,
-                    image_url: ""
+                    image_url: "" // leave empty for now or fill if you uploaded item images
                 )
+                flatItems.append(upload)
+
+                // Generate tracking item using same item_id
+                let tracking: [String: Any] = [
+                    "item_id": itemUUID,
+                    "current_stock": item.stock,
+                    "total_sold": 0
+                ]
+                trackingItems.append(tracking)
             }
         }
 
         let data = try JSONEncoder().encode(flatItems)
-
         let ref = storage.reference().child("\(storeID)/menu.json")
-
         _ = try await ref.putDataAsync(data)
-
         let url = try await ref.downloadURL()
-        return url.absoluteString
+        return (menuURL: url.absoluteString, trackingItems: trackingItems)
     }
 
     // -----------------------------------------------------
@@ -207,21 +219,21 @@ class StoreRegistrationViewModel: ObservableObject {
 
         return schedule
     }
-
-    // -----------------------------------------------------
-    // MARK: - TRACKING ITEM GENERATOR
-    // -----------------------------------------------------
-
-    private func generateTrackingItems(from sections: [MenuSectionModel]) -> [[String: Any]] {
-
-        sections.flatMap { section in
-            section.items.map { item in
-                [
-                    "item_id": UUID().uuidString,
-                    "current_stock": item.stock,
-                    "total_sold": 0
-                ]
-            }
-        }
-    }
+//
+//    // -----------------------------------------------------
+//    // MARK: - TRACKING ITEM GENERATOR
+//    // -----------------------------------------------------
+//
+//    private func generateTrackingItems(from sections: [MenuSectionModel]) -> [[String: Any]] {
+//
+//        sections.flatMap { section in
+//            section.items.map { item in
+//                [
+//                    "item_id": UUID().uuidString,
+//                    "current_stock": item.stock,
+//                    "total_sold": 0
+//                ]
+//            }
+//        }
+//    }
 }

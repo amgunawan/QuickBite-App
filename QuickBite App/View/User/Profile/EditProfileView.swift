@@ -1,3 +1,10 @@
+//
+//  EditProfileView.swift
+//  QuickBite
+//
+//  Created by Angela on 04/11/25.
+//
+
 import SwiftUI
 import PhotosUI
 import UIKit
@@ -27,7 +34,6 @@ struct EditProfileView: View {
         ScrollView {
             VStack(spacing: 20) {
                 
-                // MARK: - Avatar + Points
                 VStack(spacing: 8) {
                     ZStack {
                         if let image = profileImage {
@@ -44,6 +50,7 @@ struct EditProfileView: View {
                                                    endPoint: .bottomTrailing)
                                 )
                                 .frame(width: 96, height: 96)
+                            
                             Image(systemName: "person.fill")
                                 .font(.system(size: 44))
                                 .foregroundColor(.white)
@@ -70,6 +77,7 @@ struct EditProfileView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
                             .foregroundColor(.orange)
+                        
                         Text("\(points) Points")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -77,7 +85,6 @@ struct EditProfileView: View {
                 }
                 .padding(.top, 6)
                 
-                // MARK: - Form
                 VStack(spacing: 14) {
                     
                     // USERNAME
@@ -92,6 +99,7 @@ struct EditProfileView: View {
                     // FULL NAME
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
+                        
                         HStack {
                             TextField("Your full name", text: $fullName)
                                 .textInputAutocapitalization(.words)
@@ -111,23 +119,21 @@ struct EditProfileView: View {
                         .background(.white, in: RoundedRectangle(cornerRadius: 8))
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.orange.opacity(0.5),
-                                        lineWidth: focusedField == .fullName ? 1.2 : 0.3)
+                                .stroke(Color.orange.opacity(0.5), lineWidth: focusedField == .fullName ? 1.2 : 0.3)
                         )
                     }
                     
                     // PHONE
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Phone Number")
-                        HStack(spacing: 8) {
+                        HStack {
                             HStack(spacing: 6) {
                                 Text("🇮🇩")
                                 Text(phoneCode)
                             }
                             .padding(.horizontal, 10)
                             .frame(height: 44)
-                            .background(Color(.secondarySystemBackground),
-                                        in: RoundedRectangle(cornerRadius: 8))
+                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
                             
                             TextField("", text: $phone)
                                 .padding(10)
@@ -141,6 +147,7 @@ struct EditProfileView: View {
                     // EMAIL
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
+                        
                         TextField("name@example.com", text: $email)
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
@@ -150,9 +157,17 @@ struct EditProfileView: View {
                             .foregroundColor(.secondary)
                     }
                     
+                    // SAVE BUTTON
                     Button {
+                        
+                        // SAVE PROFILE IMAGE INTO USERDEFAULTS
+                        if let data = profileImage?.jpegData(compressionQuality: 0.9) {
+                            UserDefaults.standard.set(data, forKey: "user.avatar")
+                        }
+                        
                         onSave()
                         dismiss()
+                        
                     } label: {
                         Text("Save")
                             .fontWeight(.medium)
@@ -172,6 +187,14 @@ struct EditProfileView: View {
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         
+        // LOAD SAVED AVATAR
+        .onAppear {
+            if let data = UserDefaults.standard.data(forKey: "user.avatar") {
+                profileImage = UIImage(data: data)
+            }
+        }
+        
+        // PHOTO OPTIONS SHEET
         .sheet(isPresented: $showPhotoOptions) {
             VStack(spacing: 0) {
                 Text("Edit Profile Photo")
@@ -199,12 +222,12 @@ struct EditProfileView: View {
                 
                 Spacer(minLength: 0)
             }
-            .padding(.horizontal, 18)
+            .padding()
             .presentationDetents([.height(180)])
             .presentationDragIndicator(.visible)
         }
         
-        // Photos Picker
+        // GALLERY PICKER
         .photosPicker(isPresented: $showGallery, selection: $pickedItem)
         .onChange(of: pickedItem) { _, newItem in
             Task {
@@ -215,11 +238,13 @@ struct EditProfileView: View {
             }
         }
         
+        // CAMERA PICKER
         .sheet(isPresented: $showCamera) {
             CameraPickerViewModel(image: $profileImage)
         }
     }
     
+    // LABEL WITH STAR
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -230,6 +255,7 @@ struct EditProfileView: View {
         .foregroundColor(.secondary)
     }
     
+    // ROW COMPONENT
     private func row(icon: String, title: String) -> some View {
         HStack(spacing: 14) {
             ZStack {
@@ -249,6 +275,7 @@ struct EditProfileView: View {
         .contentShape(Rectangle())
     }
 }
+
 #Preview {
     ProfileView()
 }

@@ -43,11 +43,12 @@ struct PreparingOrderCardView: View {
             
             Button(action: { onMarkAsReady?() }) {
                 Text("Mark as Ready")
+                    .fontWeight(.medium)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.blue)
-                    .cornerRadius(10)
+                    .padding(.vertical, 12)
+                    .background(Color.orange)
+                    .cornerRadius(24)
             }
         }
         .padding()

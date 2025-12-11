@@ -7,6 +7,7 @@
 
 import SwiftUI
 import AVFoundation
+import FirebaseFirestore
 
 struct ScanQRCodeView: View {
     @Environment(\.dismiss) private var dismiss
@@ -14,22 +15,46 @@ struct ScanQRCodeView: View {
     @State private var isFlashOn = false
     @State private var goToActivity = false
     
-    // === SCAN RESULT ===
+    // ORDER DATA RECEIVED
     @State private var scannedOrder: OrderCardViewData? = nil
     @State private var showOrderSheet = false
-
-    // MARK: - Handle QR Result
+    
+    // MARK: - FETCH FROM FIRESTORE
     func handleScannedCode(_ code: String) {
-        print("QR Detected: \(code)")
+        print("QR Detected:", code)
         
-        // === SEMENTARA: Hardcoded Example ===
-        if code == "AngelaMeliaQR" {
+        let db = Firestore.firestore()
+        let orderId = code.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        db.collection("orders").document(orderId).getDocument { snapshot, error in
+            
+            if let error = error {
+                print("🔥 Error fetch:", error)
+                return
+            }
+            
+            guard let data = snapshot?.data() else {
+                print("⚠️ Order not found")
+                return
+            }
+            
+            // Convert all Firestore fields safely into Strings
+            let customerName = data["customerName"] as? String ?? "Unknown"
+            let pickupTime  = data["pickupTime"] as? String ?? "-"
+            let items       = data["items"] as? [String] ?? []
+            let totalInt = data["total"] as? Int ?? 0
+            let totalString = "Rp \(formatPrice(Double(totalInt)))"
+
+            
+            // Convert into UI model
             scannedOrder = OrderCardViewData(
-                name: "Angela Melia",
-                pickupTime: "12:00 PM",
-                items: ["1x Chicken Katsu Shirokara Ramen"],
-                total: "Rp 83.000"
+                name: customerName,
+                pickupTime: pickupTime,
+                items: items,
+                total: totalString
             )
+            
+            // Show sheet
             showOrderSheet = true
         }
     }
@@ -37,16 +62,15 @@ struct ScanQRCodeView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-
-                // === FULL SCREEN CAMERA ===
+                
+                // === CAMERA PREVIEW ===
                 CameraPreviewView(isFlashOn: isFlashOn) { scannedValue in
                     handleScannedCode(scannedValue)
                 }
-                .ignoresSafeArea() // <-- tetap dipakai
+                .ignoresSafeArea()
 
-                // === OVERLAY UI ===
                 VStack {
-
+                    
                     // === TOP BAR ===
                     HStack {
                         Button(action: { dismiss() }) {
@@ -70,7 +94,7 @@ struct ScanQRCodeView: View {
                         }
                     }
                     .padding(.horizontal)
-                    .padding(.top, 16)
+                    .padding(.top, 64)
 
                     Text("Scan Order QR")
                         .font(.headline)
@@ -79,7 +103,6 @@ struct ScanQRCodeView: View {
 
                     Spacer()
 
-                    // === WHITE SCAN FRAME ===
                     RoundedRectangle(cornerRadius: 16)
                         .stroke(Color.white, lineWidth: 4)
                         .frame(width: 280, height: 280)
@@ -88,12 +111,10 @@ struct ScanQRCodeView: View {
                     Spacer()
                 }
             }
-            // === FIX: REMOVE WHITE BOTTOM AREA ===
-            .ignoresSafeArea()    // <-- Yang paling penting, DI SINI!
-            
+            .ignoresSafeArea()
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
-
+            
             // === BOTTOM SHEET ===
             .sheet(isPresented: $showOrderSheet) {
                 if let order = scannedOrder {
@@ -103,6 +124,10 @@ struct ScanQRCodeView: View {
                             showOrderSheet = false
                         },
                         onConfirm: {
+                            // Example confirm logic
+                            let customerName = order.name
+                            print("Order confirmed for:", customerName)
+
                             showOrderSheet = false
                             goToActivity = true
                         }
@@ -112,6 +137,7 @@ struct ScanQRCodeView: View {
                 }
             }
 
+            // Navigate to Tenant Activity page
             .navigationDestination(isPresented: $goToActivity) {
                 TenantActivityView()
             }

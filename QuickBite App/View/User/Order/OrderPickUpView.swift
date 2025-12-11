@@ -6,8 +6,8 @@
 //
 
 import SwiftUI
+import CoreImage.CIFilterBuiltins
 
-// MARK: - MODEL FOR ORDERED ITEMS
 struct OrderedItemPU: Identifiable {
     let id = UUID()
     let count: Int
@@ -17,24 +17,36 @@ struct OrderedItemPU: Identifiable {
 
 struct OrderPickUpView: View {
 
-    // MARK: - RECEIVED FROM OrderConfirmationView
+    // QR CODE IMAGE
     let qrImage: UIImage?
     let orderId: String
 
-    // MARK: - DEFAULT INIT (IMPORTANT FIX)
-    init(qrImage: UIImage? = UIImage(systemName: "qrcode"),
-         orderId: String = "PREVIEW_ORDER_ID") {
-        self.qrImage = qrImage
+    init(orderId: String = "PREVIEW_ORDER_ID") {
         self.orderId = orderId
+        self.qrImage = Self.generateQRCode(from: orderId)
     }
 
-    // MARK: - Dummy multiple items ( sementara sampai pakai Firestore )
+    static func generateQRCode(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        let data = Data(string.utf8)
+        filter.setValue(data, forKey: "inputMessage")
+
+        if let output = filter.outputImage {
+            let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
+
+            if let cgimg = context.createCGImage(scaled, from: scaled.extent) {
+                return UIImage(cgImage: cgimg)
+            }
+        }
+        return nil
+    }
+
     @State private var items: [OrderedItemPU] = [
         OrderedItemPU(count: 1, name: "Chicken Katsu Shirokara Ramen", price: 35000),
         OrderedItemPU(count: 1, name: "Chicken Teriyaki Donburi", price: 42000)
     ]
 
-    // MARK: - Other States
     @State private var discount: Double = 5_000
     @State private var serviceFee: Double = 2_500
     @State private var orderNumber: String = "000000000000001"
@@ -48,7 +60,6 @@ struct OrderPickUpView: View {
     @State private var reviewCount: Int = 65
     @State private var estTime: String = "10–20 min"
 
-    // MARK: - Computed Values
     private var totalMealCount: Int {
         items.reduce(0) { $0 + $1.count }
     }
@@ -65,7 +76,6 @@ struct OrderPickUpView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading) {
 
-                // MARK: - Title
                 VStack(alignment: .leading, spacing: 0) {
                     Text("\(totalMealCount) meal to pick up")
                         .font(.title)
@@ -79,7 +89,6 @@ struct OrderPickUpView: View {
 
                 Divider().padding(.vertical, 4)
 
-                // MARK: - Reminder Banner
                 HStack(spacing: 8) {
                     Image(systemName: "megaphone.fill")
                         .foregroundColor(Color(hex: "#FF9500"))
@@ -95,7 +104,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - ORDER DETAILS
                 VStack(spacing: 6) {
 
                     HStack {
@@ -129,7 +137,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - QR SECTION (FINAL)
                 VStack(spacing: 10) {
 
                     Text("Scan QR at Restaurant")
@@ -208,7 +215,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - Things to Note
                 VStack(alignment: .leading, spacing: 6) {
 
                     Text("Things to Note")
@@ -253,7 +259,6 @@ struct OrderPickUpView: View {
                     .frame(height: 8)
                     .padding(.vertical, 4)
 
-                // MARK: - ORDER SUMMARY
                 VStack(alignment: .leading, spacing: 6) {
 
                     Text("Order Summary")
@@ -294,7 +299,6 @@ struct OrderPickUpView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 4)
 
-                // MARK: - BUY AGAIN BUTTON
                 Button(action: {}) {
                     Text("Buy Again")
                         .fontWeight(.medium)
@@ -313,5 +317,5 @@ struct OrderPickUpView: View {
 }
 
 #Preview {
-    OrderPickUpView()
+    OrderPickUpView(orderId: "QB12345ABCDE")
 }

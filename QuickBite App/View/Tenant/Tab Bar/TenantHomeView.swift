@@ -20,34 +20,18 @@ struct SummaryMetrics: Identifiable {
     let icon: String
 }
 
-struct DaySalesPoint: Identifiable {
-    let id = UUID()
-    let day: String
-    let value: Double
-}
-
-struct MenuItemSold: Identifiable {
-    let id = UUID()
-    let index: Int
-    let name: String
-    let sold: Int
-}
-
-struct StockItem: Identifiable {
-    let id = UUID()
-    let index: Int
-    let name: String
-    let left: Int
-}
-
-
 struct TenantHomeView: View {
+    let storeId = "2plb4UCwxjle2Yy6PTdj"
+    
+    @StateObject private var headerVM = TenantHeaderViewModel()
     @StateObject private var totalWalletVM = TotalWalletBalanceViewModel()
     @StateObject private var todayPerformanceVM = TodayPerformanceOverviewViewModel()
+    @StateObject private var topMenuVM = TopMenuItemsViewModel()
+    @StateObject private var lowStockVM = LowStockItemsViewModel()
+    @StateObject private var ratingVM = TenantRatingViewModel()
     
     @State private var showAllReviews = false
     @State private var showManageStock = false
-    @State private var tenantName: String = "Raburi"
     
     // Wallet
     @State private var scheduledDate: Date = Calendar.current.date(
@@ -55,23 +39,10 @@ struct TenantHomeView: View {
         value: 1,
         to: Calendar.current.startOfMonth(for: Date())
     ) ?? Date()
-    
-    // Menu + Stocks
-    @State private var topMenu: [MenuItemSold] = [
-        .init(index: 1, name: "Chicken Katsu Shiokara Ramen", sold: 22),
-        .init(index: 2, name: "Chicken Katsu Curry Rice", sold: 14),
-        .init(index: 3, name: "Katsutama Donburi", sold: 8)
-    ]
-    
-    @State private var lowStock: [StockItem] = [
-        .init(index: 1, name: "Chicken Katsu Shiokara Ramen", left: 4),
-        .init(index: 2, name: "Chicken Katsu Curry Rice", left: 3),
-        .init(index: 3, name: "Katsutama Donbri", left: 0)
-    ]
-    
+        
     // Ratings
-    @State private var ratingScore: Double = 4.8
-    @State private var totalReviews: Int = 27
+//    @State private var ratingScore: Double = 4.8
+//    @State private var totalReviews: Int = 27
     
     // Formatter
     private var formattedBalance: String {
@@ -95,7 +66,7 @@ struct TenantHomeView: View {
                 
                 // === Background Header fixed ===
                 VStack(spacing: 0) {
-                    HeaderBackgroundView(height: 120)  // sama dengan profile view
+                    HeaderBackgroundView(height: 120)
                     Spacer()
                 }
                 
@@ -114,7 +85,7 @@ struct TenantHomeView: View {
                     Card {
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Welcome, \(tenantName)!")
+                                Text("Welcome, \(headerVM.tenantName)!")
                                     .font(.title3).fontWeight(.bold)
                                 
                                 Text("It's a great day to serve delicious bites!")
@@ -122,11 +93,32 @@ struct TenantHomeView: View {
                                     .foregroundColor(.secondary)
                             }
                             Spacer()
-                            Image("Raburi")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(width: 62, height: 62)
-                                .cornerRadius(8)
+                            if let url = headerVM.searchImageURL {
+                                AsyncImage(url: url) { phase in
+                                    switch phase {
+                                    case .success(let img):
+                                        img.resizable()
+                                            .scaledToFill()
+                                            .frame(width: 62, height: 62)
+                                            .cornerRadius(8)
+                                    case .empty:
+                                        ProgressView()
+                                            .frame(width: 62, height: 62)
+                                    case .failure:
+                                        Image(systemName: "exclamationmark.triangle")
+                                            .resizable()
+                                            .frame(width: 62, height: 62)
+                                    @unknown default:
+                                        EmptyView()
+                                    }
+                                }
+                            } else {
+                                Rectangle()
+                                    .fill(Color.gray.opacity(0.3))
+                                    .frame(width: 62, height: 62)
+                                    .cornerRadius(8)
+                            }
+
                         }
                     }
                     .padding(.horizontal)
@@ -177,8 +169,13 @@ struct TenantHomeView: View {
                 }
             }
             .onAppear {
-                totalWalletVM.fetchWalletBalance(storeId: "2plb4UCwxjle2Yy6PTdj")
-                todayPerformanceVM.fetchTodayStats(storeId: "2plb4UCwxjle2Yy6PTdj")
+                totalWalletVM.fetchWalletBalance(storeId: storeId)
+                todayPerformanceVM.fetchTodayStats(storeId: storeId)
+                topMenuVM.fetchTopMenuItems(storeId: storeId)
+                lowStockVM.fetchLowStockItems(storeId: storeId)
+                headerVM.loadTenantHeader(storeId: storeId)
+                ratingVM.fetchRating(for: storeId)
+
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: TenantHomeDestination.self) { destination in
@@ -219,6 +216,7 @@ struct TenantHomeView: View {
             .padding()
         }
     }
+    // MARK: Today's Performance Overview
     private var performanceSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
@@ -235,6 +233,7 @@ struct TenantHomeView: View {
         }
     }
     
+    // MARK: Rating
     private var ratingSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 5) {
@@ -246,19 +245,20 @@ struct TenantHomeView: View {
                 }
                 
                 HStack(spacing: 5) {
-                    Text(String(format: "%.1f", ratingScore))
+                    Text(String(format: "%.1f", ratingVM.averageRating))
                         .font(.system(size: 40, weight: .bold))
                         .foregroundColor(UIConst.brandOrange)
                     Text("/ 5").font(.title3).foregroundColor(.secondary)
                 }
                 
-                Text("(Based on \(totalReviews) reviews)")
+                Text("(Based on \(ratingVM.totalReviews) reviews)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }
         }
     }
     
+    // MARK: Top Menu
     private var topMenuSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 10) {
@@ -274,9 +274,9 @@ struct TenantHomeView: View {
                 
                 Divider()
                 
-                ForEach(topMenu) { item in
+                ForEach(Array(topMenuVM.topMenuItems.enumerated()), id: \.1.id) { index, item in
                     HStack {
-                        Text("\(item.index).").frame(width: 30)
+                        Text("\(index + 1).").frame(width: 30)
                         Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
                         Text("\(item.sold)").frame(width: 50, alignment: .trailing)
                     }
@@ -286,13 +286,15 @@ struct TenantHomeView: View {
         }
     }
     
+    // MARK: Low Stock
     private var lowStockSection: some View {
         Card {
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Text("Low Stock Items").font(.headline)
                     Spacer()
-                    Button("See All") { navPath.append(TenantHomeDestination.manageStock) }.font(.subheadline)
+                    Button("See All") { navPath.append(TenantHomeDestination.manageStock) }
+                        .font(.subheadline)
                 }
                 
                 HStack {
@@ -305,18 +307,17 @@ struct TenantHomeView: View {
                 
                 Divider()
                 
-                ForEach(lowStock) { s in
+                ForEach(Array(lowStockVM.lowStockItems.enumerated()), id: \.1.id) { index, item in
                     HStack {
-                        Text("\(s.index).").frame(width: 30)
-                        Text(s.name).frame(maxWidth: .infinity, alignment: .leading)
-                        Text("\(s.left)").frame(width: 80, alignment: .trailing)
+                        Text("\(index + 1).").frame(width: 30)
+                        Text(item.name).frame(maxWidth: .infinity, alignment: .leading)
+                        Text("\(item.stockLeft)").frame(width: 80, alignment: .trailing)
                     }
                     Divider()
                 }
             }
         }
     }
-    
     
     // MARK: - Components
     struct Card<Content: View>: View {

@@ -11,33 +11,26 @@ import FirebaseAuth
 
 struct InitialView: View {
     @State private var showSplash = true
-    @State private var userLoggedIn = (Auth.auth().currentUser != nil)
+    
+    // Start as NOT logged in. Do NOT check Auth here.
+    @State private var userLoggedIn: Bool = false
+    @State private var listenerAttached = false
     
     @StateObject private var authVM = AuthenticationViewModel()
-    @State private var showSignInView: Bool = false
 
     var body: some View {
         ZStack {
             VStack {
                 if userLoggedIn {
                     UserContentView()
-                }
-                else {
+                } else {
                     MainFormView()
                 }
             }
             .onAppear {
-                Auth.auth().addStateDidChangeListener { auth, user in
-                    guard let user = user else {
-                        userLoggedIn = false
-                        return
-                    }
-
-                    // ✅ ONLY allow navigation if email is verified
-                    userLoggedIn = user.isEmailVerified
-                }
+                attachAuthListenerIfNeeded()
             }
-            
+
             if showSplash {
                 SplashView {
                     withAnimation(.easeOut(duration: 0.6)) {
@@ -46,6 +39,26 @@ struct InitialView: View {
                 }
                 .transition(.opacity)
                 .zIndex(1)
+            }
+        }
+    }
+
+    private func attachAuthListenerIfNeeded() {
+        guard !listenerAttached else { return }
+        listenerAttached = true
+
+        Auth.auth().addStateDidChangeListener { auth, user in
+            guard let user = user else {
+                userLoggedIn = false
+                return
+            }
+
+            // Only allow login when verified
+            if user.isEmailVerified {
+                userLoggedIn = true
+            } else {
+                // Prevent auto-login after signup
+                userLoggedIn = false
             }
         }
     }

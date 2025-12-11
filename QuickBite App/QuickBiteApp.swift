@@ -14,10 +14,13 @@ import FirebaseStorage
 @main
 struct QuickBiteApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
+    
+    @StateObject private var storeVM = StoreRegistrationViewModel()
 
     var body: some Scene {
         WindowGroup {
             InitialView()
+                .environmentObject(storeVM)
         }
     }
 }

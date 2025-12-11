@@ -27,14 +27,14 @@ struct InitialView: View {
                 }
             }
             .onAppear {
-                // Firebase state change listener
                 Auth.auth().addStateDidChangeListener { auth, user in
-                    if (user != nil) {
-                        userLoggedIn = true
-                    }
-                    else {
+                    guard let user = user else {
                         userLoggedIn = false
+                        return
                     }
+
+                    // ✅ ONLY allow navigation if email is verified
+                    userLoggedIn = user.isEmailVerified
                 }
             }
             

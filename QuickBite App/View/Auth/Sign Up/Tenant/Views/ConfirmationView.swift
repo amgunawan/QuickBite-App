@@ -6,10 +6,18 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ConfirmationView: View {
-    let userName: String
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    
     let setupAction: () -> Void
+    
+    // ✅ Derived username from Firebase email
+    private var userName: String {
+        let email = Auth.auth().currentUser?.email ?? ""
+        return email.components(separatedBy: "@").first ?? "User"
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -30,13 +38,11 @@ struct ConfirmationView: View {
                     .fontWeight(.bold)
                     .multilineTextAlignment(.center)
                 
-                (
-                    Text("Welcome, \(userName)!")
-                        .foregroundColor(.orange)
-                        .fontWeight(.semibold)
-                )
-                .font(.title2)
-                .multilineTextAlignment(.center)
+                Text("Welcome, \(userName)!")
+                    .foregroundColor(.orange)
+                    .fontWeight(.semibold)
+                    .font(.title2)
+                    .multilineTextAlignment(.center)
 
                 Text("You can't sell until your menu is online. Lets create your digital store and menu book now!")
                     .font(.subheadline)
@@ -44,13 +50,13 @@ struct ConfirmationView: View {
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 40)
             }
-            
             .padding(.bottom, 40)
             
-            NavigationLink(destination: StoreBrandingView(), label: {
+            NavigationLink(destination: StoreBrandingView()) {
                 OrangeButton(title: "Start Menu Setup", enabled: true)
-            })
+            }
             .padding(.horizontal, 60)
+            
             Spacer()
         }
         .navigationBarHidden(true)
@@ -58,5 +64,8 @@ struct ConfirmationView: View {
 }
 
 #Preview {
-    ConfirmationView(userName: "Sharon Tan", setupAction: {})
+    NavigationView {
+        ConfirmationView(setupAction: {})
+            .environmentObject(StoreRegistrationViewModel())
+    }
 }

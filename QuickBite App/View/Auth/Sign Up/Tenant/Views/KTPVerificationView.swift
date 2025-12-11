@@ -10,10 +10,11 @@ import PhotosUI
 import UIKit
 
 struct KTPVerificationView: View {
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    
     @State private var isKtpUploaded = false
 
     // ✅ PhotosUI States
-    @State private var ktpImage: UIImage? = nil
     @State private var showGallery = false
     @State private var showCamera = false
     @State private var showPhotoOptions = false
@@ -40,7 +41,7 @@ struct KTPVerificationView: View {
                     .padding(.horizontal)
 
                     ZStack {
-                        if let img = ktpImage, isKtpUploaded {
+                        if let img = storeVM.ktpImage, isKtpUploaded {
                             VStack(spacing: 12) {
                                 Image(uiImage: img)
                                     .resizable()
@@ -151,7 +152,7 @@ struct KTPVerificationView: View {
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
-                    ktpImage = uiImage
+                    storeVM.ktpImage = uiImage
                     isKtpUploaded = true
                 }
             }
@@ -159,9 +160,9 @@ struct KTPVerificationView: View {
 
         // ✅ CAMERA PICKER (unchanged pattern)
         .sheet(isPresented: $showCamera) {
-            CameraPickerViewModel(image: $ktpImage)
+            CameraPickerViewModel(image: $storeVM.ktpImage)
                 .onDisappear {
-                    if ktpImage != nil {
+                    if storeVM.ktpImage != nil {
                         isKtpUploaded = true
                     }
                 }
@@ -192,5 +193,6 @@ struct KTPVerificationView: View {
 #Preview {
     NavigationView {
         KTPVerificationView()
+            .environmentObject(StoreRegistrationViewModel())
     }
 }

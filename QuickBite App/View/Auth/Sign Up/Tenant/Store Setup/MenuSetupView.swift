@@ -8,12 +8,15 @@
 import SwiftUI
 
 struct MenuSetupView: View {
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
 
     // MARK: - Menu Data
     @State private var sections: [MenuSectionModel] = []
 
     // MARK: - UI States
     @State private var editingIndex: EditingItem? = nil
+    
+    @State private var isSubmitting = false
 
     struct EditingItem: Identifiable {
         let id = UUID()
@@ -62,8 +65,34 @@ struct MenuSetupView: View {
             }
 
             // ✅ FINISH BUTTON WITH VALIDATION
-            NavigationLink(destination: OnboardingView()) {
-                Text("Finish")
+            Button {
+                guard
+                    let banner = storeVM.bannerImage,
+                    let icon = storeVM.searchIcon
+                else { return }
+                
+                isSubmitting = true
+                Task {
+                    do {
+                        try await storeVM.registerStore(
+                            storeName: storeVM.storeName,
+                            location: storeVM.location,
+                            cuisineTypes: storeVM.cuisineTypes,
+                            bannerImage: banner,
+                            searchIcon: icon,
+                            openDays: storeVM.openDays,
+                            openingTime: storeVM.openingTime,
+                            closingTime: storeVM.closingTime,
+                            sections: sections
+                        )
+                        isSubmitting = false
+                    } catch {
+                        isSubmitting = false
+                        print("Register store failed: \(error.localizedDescription)")
+                    }
+                }
+            } label: {
+                Text(isSubmitting ? "Submitting..." : "Finish")
                     .font(.headline)
                     .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
@@ -73,8 +102,18 @@ struct MenuSetupView: View {
                         in: RoundedRectangle(cornerRadius: 14)
                     )
             }
-            .padding(.horizontal)
-            .disabled(!canFinish)
+            .disabled(!canFinish || isSubmitting)
+
+        }
+
+        .onAppear {
+            if sections.isEmpty {
+                sections = storeVM.menuSections
+            }
+        }
+        
+        .onChange(of: sections) { _, new in
+            storeVM.menuSections = new
         }
 
         .sheet(item: $editingIndex) { edit in
@@ -281,5 +320,8 @@ private func formatRupiah(_ value: Int) -> String {
 }
 
 #Preview {
-    MenuSetupView()
+    NavigationView {
+        MenuSetupView()
+            .environmentObject(StoreRegistrationViewModel())
+    }
 }

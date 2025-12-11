@@ -391,14 +391,24 @@ extension AddMenuItemOverlay {
                 let finalStock = Int(stockText) ?? 0
 
                 let newItem = MenuItem(
+                    itemId: UUID().uuidString,
                     name: itemName,
+                    description: shortDescription,
                     price: finalPrice,
-                    stock: finalStock,
-                    shortDescription: shortDescription,
-                    prepMinutes: prepMinutes,
-                    imageName: "placeholder",
-                    imageFileName: fileName,
-                    customizationGroups: customizationGroups
+                    defaultStock: finalStock,
+                    prepTimeMinutes: prepMinutes,
+                    category: "",                // section title akan mengisi ini di MenuSetupView
+                    imageURL: "",                // nanti setelah upload gambar
+                    options: customizationGroups.map { group in
+                        MenuOptionGroup(
+                            category: group.title,
+                            minSelect: group.selectionType == "Choose 1" ? 1 : 0,
+                            maxSelect: group.selectionType == "Choose 1" ? 1 : group.options.count,
+                            choices: group.options.map {
+                                MenuChoice(name: $0.name, additionalPrice: $0.additionalPrice)
+                            }
+                        )
+                    }
                 )
 
                 onSave(newItem)

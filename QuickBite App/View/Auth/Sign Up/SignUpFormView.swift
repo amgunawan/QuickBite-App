@@ -8,73 +8,79 @@
 import SwiftUI
 import FirebaseAuth
 
+#if targetEnvironment(simulator)
+let IS_SIMULATOR = true
+#else
+let IS_SIMULATOR = false
+#endif
+
 struct SignUpFormView: View {
     let role: UserRole
-    @StateObject private var viewModel = EmailCheckViewModel()
+
+    // Validation helpers
+    @StateObject private var emailValidator = EmailCheckViewModel()
     @StateObject private var passwordVM = PasswordCheckViewModel()
+
+    // Injected AuthenticationViewModel
+    @EnvironmentObject var authVM: AuthenticationViewModel
+
     @State private var agreeTermsAndConditions = false
     @State private var showPassword = false
     @State private var goNextScreen = false
-    
-    // Google Sign In
     @State private var loginError = ""
-    @State private var isLoggedIn = false
-    @StateObject private var vm = AuthenticationViewModel()
-    
-    // Email Verification
-    @State private var userVerificationModal: Bool = false
-    
+
     private var canContinue: Bool {
-        viewModel.isEmailValid && agreeTermsAndConditions && passwordVM.isPasswordValid
+        emailValidator.isEmailValid && passwordVM.isPasswordValid && agreeTermsAndConditions
     }
-    
+
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 24) {
-                Text("Sign up as \(role)")
+
+                Text("Sign up as \(role.rawValue.capitalized)")
                     .font(.title)
                     .fontWeight(.bold)
-                
+
+                // MARK: - Email Field
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Email")
                         .font(.subheadline)
                         .fontWeight(.medium)
-                    
+
                     HStack {
                         Image(systemName: "envelope")
                             .foregroundColor(.gray)
-                        
-                        TextField("e-mail address", text: $vm.email)
+
+                        TextField("e-mail address", text: $authVM.email)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
                             .keyboardType(.emailAddress)
-                            .onChange(of: vm.email) { viewModel.email = $0 }
+                            .onChange(of: authVM.email) { newValue in
+                                emailValidator.email = newValue
+                            }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 12)
-                            .stroke(Color(.systemGray4))
-                    )
+                    .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
                 }
-                
-                // Password field
+
+                // MARK: - Password Field
                 HStack {
                     Image(systemName: "lock")
                         .foregroundColor(.gray)
-                    
+
                     if showPassword {
-                        TextField("password", text: $vm.password)
+                        TextField("password", text: $authVM.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .onChange(of: vm.password) { passwordVM.password = $0 }
+                            .onChange(of: authVM.password) { passwordVM.password = $0 }
                     } else {
-                        SecureField("password", text: $vm.password)
+                        SecureField("password", text: $authVM.password)
                             .autocapitalization(.none)
                             .disableAutocorrection(true)
-                            .onChange(of: vm.password) { passwordVM.password = $0 }
+                            .onChange(of: authVM.password) { passwordVM.password = $0 }
                     }
-                    
+
                     Button(action: { showPassword.toggle() }) {
                         Image(systemName: showPassword ? "eye.slash" : "eye")
                             .foregroundColor(.gray)
@@ -83,37 +89,38 @@ struct SignUpFormView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 12)
                 .background(RoundedRectangle(cornerRadius: 12).stroke(Color(.systemGray4)))
-                
-                // Password rules
+
+                // MARK: - Password Rules
                 VStack(alignment: .leading, spacing: 4) {
                     Text("Your password must contain at least:")
                         .font(.subheadline)
-                    
+
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(passwordVM.hasValidLength ? .green : .secondary)
                         Text("8 characters (max. 20)")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(passwordVM.hasLetterAndNumber ? .green : .secondary)
                         Text("1 letter and 1 number")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
-                    
+
                     HStack {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(passwordVM.hasSpecialCharacter ? .green : .secondary)
                         Text("1 special character (e.g., # ? ! $ & @)")
                             .font(.subheadline)
-                            .foregroundStyle(.secondary)
+                            .foregroundColor(.secondary)
                     }
                 }
-                
+
+                // MARK: - Terms & Conditions
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         agreeTermsAndConditions.toggle()
@@ -121,35 +128,24 @@ struct SignUpFormView: View {
                 } label: {
                     HStack(alignment: .top, spacing: 12) {
                         Image(systemName: agreeTermsAndConditions ? "checkmark.square.fill" : "square")
-                            .foregroundColor(agreeTermsAndConditions ? Color.orange : Color(uiColor: .tertiaryLabel))
+                            .foregroundColor(agreeTermsAndConditions ? .orange : .gray)
                             .imageScale(.large)
-                        
-                        Text("By signing up, you agree to our ")
-                        + Text("terms and conditions").foregroundColor(.blue)
-                        + Text(" and ")
-                        + Text("privacy policy").foregroundColor(.blue)
+
+                        (Text("By signing up, you agree to our ")
+                            + Text("terms and conditions").foregroundColor(.blue)
+                            + Text(" and ")
+                            + Text("privacy policy").foregroundColor(.blue))
+                            .font(.footnote)
+                            .foregroundColor(.gray)
+                            .multilineTextAlignment(.leading)
                     }
-                    .font(.footnote)
-                    .foregroundColor(.gray)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .multilineTextAlignment(.leading)
                 }
                 .buttonStyle(.plain)
-                
-                Button(action: {
-                    Task {
-                        do {
-                            print("DEBUG EMAIL:", vm.email)
-                            print("DEBUG PASSWORD:", vm.password)
 
-                            try await vm.signUp(role: role)
-                            try await vm.sendVerificationEmail()
-                            userVerificationModal = true
-                        } catch {
-                            loginError = error.localizedDescription
-                        }
-                    }
-                }) {
+                // MARK: - Continue Button
+                Button {
+                    Task { await performSignUp() }
+                } label: {
                     Text("Continue")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
@@ -159,64 +155,19 @@ struct SignUpFormView: View {
                         .cornerRadius(24)
                 }
                 .disabled(!canContinue)
-                .sheet(isPresented: $userVerificationModal) {
-                    VStack(spacing: 16) {
-                        Text("Email Verification")
-                            .font(.title2).bold()
-                        Text("We sent a verification email to \(vm.email). Please open it and click the verification link. Then come back and tap \"I've verified\".")
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(.secondary)
-                            .padding()
 
-                        Button("I've verified") {
-                            Task {
-                                do {
-                                    let verified = try await vm.reloadCurrentUser()
-                                    if verified {
-                                        userVerificationModal = false
-                                        goNextScreen = true
-                                    } else {
-                                        // keep modal open and show a message
-                                        loginError = "Email not verified yet. Please open the verification link in your inbox and try again."
-                                    }
-                                } catch {
-                                    loginError = error.localizedDescription
-                                }
-                            }
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.orange)
-
-                        Button("Resend verification email") {
-                            Task {
-                                do {
-                                    try await vm.sendVerificationEmail()
-                                    loginError = "Verification email resent."
-                                } catch {
-                                    loginError = error.localizedDescription
-                                }
-                            }
-                        }
-
-                        Button("Cancel") {
-                            userVerificationModal = false
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding()
-                }
-                
+                // MARK: - Divider
                 HStack {
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                     Text("or")
                         .foregroundColor(.gray)
-                        .font(.subheadline)
                     Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                 }
-                
-                Button(action: {
-                    vm.signInWithGoogle()
-                }) {
+
+                // MARK: - Google Sign In
+                Button {
+                    authVM.signInWithGoogle(role: role)
+                } label: {
                     HStack {
                         Image("GoogleIcon")
                             .resizable()
@@ -228,18 +179,15 @@ struct SignUpFormView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 12)
-                    .background(
-                        RoundedRectangle(cornerRadius: 24)
-                            .stroke(Color(.systemGray4))
-                    )
+                    .background(RoundedRectangle(cornerRadius: 24).stroke(Color(.systemGray4)))
                 }
-                
+
                 if !loginError.isEmpty {
                     Text(loginError)
                         .foregroundColor(.red)
-                        .padding()
+                        .padding(.top, 8)
                 }
-                
+
                 Spacer()
             }
             .padding(.horizontal, 24)
@@ -248,12 +196,29 @@ struct SignUpFormView: View {
                 case .customer:
                     UserContentView()
                         .navigationBarBackButtonHidden(true)
-
                 case .merchant:
                     SignUpFormTenantView()
                         .navigationBarBackButtonHidden(true)
                 }
             }
+            .onAppear {
+                emailValidator.email = authVM.email
+                passwordVM.password = authVM.password
+            }
+        }
+    }
+
+    // MARK: - Sign Up Logic
+    private func performSignUp() async {
+        do {
+            // Firebase signup + Firestore creation + loadCurrentUser
+            try await authVM.signUp(role: role)
+
+            // No email verification flow needed anymore
+            goNextScreen = true
+
+        } catch {
+            loginError = error.localizedDescription
         }
     }
 }

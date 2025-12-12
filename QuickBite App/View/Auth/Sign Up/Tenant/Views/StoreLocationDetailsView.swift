@@ -8,6 +8,8 @@ import SwiftUI
 struct StoreLocationDetailsView: View {
 
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    
+    @EnvironmentObject var authVM: AuthenticationViewModel
 
     let locations = ["UC Walk", "Denver Food"]
     let categories = ["Snacks", "Rice", "Noodles", "Chicken", "Korean", "Japanese", "Beverages", "Chinese", "Western"]
@@ -108,7 +110,14 @@ struct StoreLocationDetailsView: View {
             }
             .disabled(!canContinue)
             .simultaneousGesture(TapGesture().onEnded {
-                hideKeyboard()
+                Task {
+                    do {
+                        // update step to 2 (KTP)
+                        try await authVM.updateOnboardingStep(2)
+                    } catch {
+                        print("Failed to update onboarding step: \(error.localizedDescription)")
+                    }
+                }
             })
             .padding()
         }

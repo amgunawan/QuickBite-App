@@ -9,13 +9,14 @@ import SwiftUI
 
 struct MenuSetupView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    @Environment(\.dismiss) var dismiss
 
     // MARK: - Menu Data
     @State private var sections: [MenuSectionModel] = []
 
     // MARK: - UI States
     @State private var editingIndex: EditingItem? = nil
-    
     @State private var isSubmitting = false
 
     struct EditingItem: Identifiable {
@@ -25,14 +26,15 @@ struct MenuSetupView: View {
     }
 
     var body: some View {
-        VStack(spacing: 20) {
-
+        VStack(spacing: 0) {
             MenuHeader(
                 step: 2,
                 title: "Build your Quickbite Store",
                 subtitle: "Configure your store’s menu and branding"
             )
+            .padding(.bottom, 8)
 
+            // Content area
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
 
@@ -63,107 +65,139 @@ struct MenuSetupView: View {
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
             }
+            .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
+            .clipped()
+            .background(Color.clear)
 
-            // ✅ FINISH BUTTON WITH VALIDATION
-            Button {
-                guard
-                    let banner = storeVM.bannerImage,
-                    let icon = storeVM.searchIcon
-                else { return }
-                
-                isSubmitting = true
-                Task {
-                    do {
-                        try await storeVM.registerStore(
-                            storeName: storeVM.storeName,
-                            location: storeVM.location,
-                            cuisineTypes: storeVM.cuisineTypes,
-                            bannerImage: banner,
-                            searchIcon: icon,
-                            openDays: storeVM.openDays,
-                            openingTime: storeVM.openingTime,
-                            closingTime: storeVM.closingTime,
-                            sections: sections
-                        )
-                        isSubmitting = false
-                    } catch {
-                        isSubmitting = false
-                        print("Register store failed: \(error.localizedDescription)")
-                    }
-                }
-            } label: {
-                Text(isSubmitting ? "Submitting..." : "Finish")
-                    .font(.headline)
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(
-                        canFinish ? Color.orange : Color.gray.opacity(0.4),
-                        in: RoundedRectangle(cornerRadius: 14)
-                    )
+            Spacer(minLength: 8)
+
+            // Debug panel
+            HStack {
+                Text("canFinish: \(canFinish ? "YES" : "NO")")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(isSubmitting ? "Submitting..." : "")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
-            .disabled(!canFinish || isSubmitting)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 6)
 
-        }
-
+            // Finish button separated into a builder
+            finishButton()
+                .padding(.horizontal, 16)
+                .padding(.bottom, 20)
+        } // VStack
         .onAppear {
+            print("[MenuSetup] onAppear - sections count = \(sections.count)")
             if sections.isEmpty {
                 sections = storeVM.menuSections
             }
         }
-        
         .onChange(of: sections) { _, new in
             storeVM.menuSections = new
+            print("[MenuSetup] sections changed -> \(new.count)")
         }
-
+        .onChange(of: editingIndex) { old, new in
+            print("[MenuSetup] editingIndex changed:", new == nil ? "nil (closed)" : "open")
+        }
         .sheet(item: $editingIndex) { edit in
             AddMenuItemOverlay { newItem in
                 sections[edit.sec].items[edit.row] = newItem
                 editingIndex = nil
             }
+            .interactiveDismissDisabled(false)
             .presentationDetents([.fraction(0.92)])
             .presentationCornerRadius(22)
         }
     }
 
-    // MARK: - ✅ VALIDATION LOGIC (YOUR EXACT RULES)
+    // MARK: - Finish Button (extracted to help compiler)
+    @ViewBuilder
+    private func finishButton() -> some View {
+        Button {
+            print("[MenuSetup] Finish button tapped (UI). canFinish=\(canFinish), isSubmitting=\(isSubmitting)")
+
+            guard
+                let banner = storeVM.bannerImage,
+                let icon = storeVM.searchIcon
+            else {
+                print("[MenuSetup] Missing banner or icon — aborting")
+                return
+            }
+
+            if isSubmitting {
+                print("[MenuSetup] Already submitting — ignoring tap")
+                return
+            }
+
+            isSubmitting = true
+
+            Task {
+                do {
+                    print("[MenuSetup] calling registerStore...")
+                    try await storeVM.registerStore(
+                        storeName: storeVM.storeName,
+                        location: storeVM.location,
+                        cuisineTypes: storeVM.cuisineTypes,
+                        bannerImage: banner,
+                        searchIcon: icon,
+                        openDays: storeVM.openDays,
+                        openingTime: storeVM.openingTime,
+                        closingTime: storeVM.closingTime,
+                        sections: sections
+                    )
+                    print("[MenuSetup] registerStore succeeded")
+
+                    print("[MenuSetup] updating onboarding step -> 7")
+                    try await authVM.updateOnboardingStep(7)
+                    print("[MenuSetup] onboarding step updated (7)")
+
+                    // small delay to ensure Firestore/local session refresh
+                    try await Task.sleep(nanoseconds: 300_000_000) // 300ms
+
+                    isSubmitting = false
+
+                    await MainActor.run {
+                        print("[MenuSetup] dismissing MenuSetupView")
+                        dismiss()
+                    }
+                } catch {
+                    isSubmitting = false
+                    print("[MenuSetup] ERROR register/update:", error.localizedDescription)
+                }
+            }
+        } label: {
+            Text(isSubmitting ? "Submitting..." : "Finish")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+                .background(
+                    canFinish ? Color.orange : Color.gray.opacity(0.4),
+                    in: RoundedRectangle(cornerRadius: 14)
+                )
+        }
+        .contentShape(Rectangle())
+        .allowsHitTesting(true)
+        .highPriorityGesture(TapGesture().onEnded { /* presence increases priority */ })
+        .disabled(!canFinish || isSubmitting)
+        .accessibilityIdentifier("MenuSetup_FinishButton")
+    }
+
+    // MARK: - ✅ VALIDATION LOGIC
     private var canFinish: Bool {
-
         if sections.isEmpty { return false }
-
         for section in sections {
-
-            // Section name must NOT be empty
-            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return false
-            }
-
-            // Section must have at least 1 item
-            if section.items.isEmpty {
-                return false
-            }
-
+            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
+            if section.items.isEmpty { return false }
             for item in section.items {
-
-                // Item name NOT empty
-                if item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return false
-                }
-
-                // shortDescription ✅ allowed empty
-
-                // Price must be > 0
-                if item.price <= 0 {
-                    return false
-                }
-
-                // Prep time must be > 0
-                if item.prepMinutes <= 0 {
-                    return false
-                }
+                if item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
+                if item.price <= 0 { return false }
+                if item.prepMinutes <= 0 { return false }
             }
         }
-
         return true
     }
 
@@ -199,10 +233,8 @@ struct MenuSetupView: View {
         let section = sections[secIdx]
 
         VStack(alignment: .leading, spacing: 12) {
-
             HStack(spacing: 12) {
-                TextField("Enter section name",
-                          text: bindingTitle(for: secIdx))
+                TextField("Enter section name", text: bindingTitle(for: secIdx))
                     .font(.headline)
 
                 Button {
@@ -227,7 +259,6 @@ struct MenuSetupView: View {
         }
     }
 
-    // MARK: - Binding Section Title
     private func bindingTitle(for index: Int) -> Binding<String> {
         Binding(
             get: { sections[index].title },
@@ -235,9 +266,7 @@ struct MenuSetupView: View {
         )
     }
 
-    // MARK: - ADD ITEM (INVALID BY DEFAULT)
     private func addItem(in secIdx: Int) {
-
         let newItem = MenuItem(
             name: "",
             price: 0,
@@ -246,11 +275,11 @@ struct MenuSetupView: View {
             prepMinutes: 0,
             imageName: "placeholder"
         )
-
         sections[secIdx].items.insert(newItem, at: 0)
     }
 }
 
+// MARK: - MenuRow & helpers (unchanged)
 private struct MenuRow: View {
 
     let item: MenuItem

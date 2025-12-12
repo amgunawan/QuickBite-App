@@ -39,9 +39,22 @@
 		0BC1B1362EB0A13C006C6206 /* QuickBite AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		942714162EEBE8A800F1575E /* Exceptions for "QuickBite App" folder in "QuickBite" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Model/Untitled.swift,
+			);
+			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0BC1B1212EB0A13B006C6206 /* QuickBite App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				942714162EEBE8A800F1575E /* Exceptions for "QuickBite App" folder in "QuickBite" target */,
+			);
 			path = "QuickBite App";
 			sourceTree = "<group>";
 		};

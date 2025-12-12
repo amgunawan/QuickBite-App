@@ -31,19 +31,28 @@ class FoodCategoryViewModel: ObservableObject {
                 var result: [Restaurant] = []
                 
                 for doc in docs {
-                    let data = doc.data()
-                    
-                    let restaurant = Restaurant(
-                        id: doc.documentID,
-                        name: data["name"] as? String ?? "",
-                        rating: data["rating"] as? Double ?? 0.0,
-                        reviewCount: data["review_count"] as? Int ?? 0,
-                        bannerURL: data["banner_url"] as? String,
-                        cuisineType: data["cuisine_type"] as? [String] ?? []
-                    )
-                    
-                    result.append(restaurant)
+                    do {
+                        let restaurant = try doc.data(as: Restaurant.self)
+                        result.append(restaurant)
+                    } catch {
+                        print("❌ Decode restaurant error:", error)
+                    }
                 }
+
+//                for doc in docs {
+//                    let data = doc.data()
+//                    
+//                    let restaurant = Restaurant(
+//                        id: doc.documentID,
+//                        name: data["name"] as? String ?? "",
+//                        rating: data["rating"] as? Double ?? 0.0,
+//                        reviewCount: data["review_count"] as? Int ?? 0,
+//                        bannerURL: data["banner_url"] as? String,
+//                        cuisineType: data["cuisine_type"] as? [String] ?? []
+//                    )
+//                    
+//                    result.append(restaurant)
+//                }
                 
                 DispatchQueue.main.async {
                     self.stores = result

@@ -6,34 +6,33 @@
 //
 
 import SwiftUI
-
-
 struct RestaurantDetailView: View {
     
     let restaurant: Restaurant
     
     @StateObject private var viewModel = RestaurantDetailViewModel()
+    @EnvironmentObject var cart: CartViewModel
     
     @State private var selectedItemForOptions: MenuItemModel?
     @State private var showingCart = false
-    @StateObject private var topRatedVM = TopRatedRestaurantsViewModel()
-    
-    @StateObject private var cart = CartViewModel()
-    
-    @State private var isGroupOrderActive = false
     @State private var showingGroupCart = false
+    @State private var isGroupOrderActive = false
     
     @State private var groupName = "Angela's Group"
-    
     @State private var groupMembers: [UserMember] = [
-        UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
+        UserMember(
+            name: "Angela",
+            username: "@angela",
+            initial: "A",
+            color: .orange,
+            isCurrentUser: true
+        )
     ]
     
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 0, pinnedViews: [.sectionHeaders]) {
-                    
                     HeaderView(imageURL: restaurant.bannerURL ?? "")
                         .padding(.bottom)
                     
@@ -42,18 +41,18 @@ struct RestaurantDetailView: View {
                         categories: restaurant.cuisineType.joined(separator: ", "),
                         rating: restaurant.rating,
                         reviewCount: restaurant.reviewCount,
-                        pickupTime: "15-20 min", // Bisa dibuat dinamis nanti
+                        pickupTime: "15–20 min",
                         isGroupOrderActive: $isGroupOrderActive,
                         groupName: $groupName,
                         groupMembers: $groupMembers
                     )
                     .padding(.horizontal)
                     
-                    // MARK: - SECTION 1
+                    // Section 1
                     if viewModel.isLoading {
                         HStack {
                             Spacer()
-                            ProgressView("Sedang mengambil menu...")
+                            ProgressView("Loading menu...")
                                 .padding(.top, 50)
                             Spacer()
                         }
@@ -63,36 +62,31 @@ struct RestaurantDetailView: View {
                             .padding()
                     } else {
                         ForEach(viewModel.groupedMenu) { section in
-                            Section(header: CategoryHeaderView(title: section.category)) {
+                            Section(
+                                header: CategoryHeaderView(title: section.category)
+                            ) {
                                 ForEach(section.items) { item in
-                                    
-                                    // 1. Minta ViewModel hitung harga
                                     let priceInfo = viewModel.getPriceInfo(for: item)
                                     
-                                    // 2. Buat MenuRowLink dengan harga yang sudah dihitung
                                     MenuRowLink(
                                         item: item,
-                                        finalPrice: priceInfo.finalPrice,       // Harga Akhir (Diskon)
-                                        originalPrice: priceInfo.originalPrice, // Harga Coret (Jika ada)
+                                        finalPrice: priceInfo.finalPrice,
+                                        originalPrice: priceInfo.originalPrice,
                                         onAdd: {
-                                            self.selectedItemForOptions = item
+                                            selectedItemForOptions = item
                                         }
                                     )
                                 }
                             }
                         }
                     }
-                    
                 }
                 .padding(.bottom, cart.items.isEmpty ? 0 : 80)
             }
             
-            // MARK: - Checkout Bar
             if isGroupOrderActive {
-                // Tampilkan Bar Khusus Grup (Screenshot 1)
                 GroupOrderBottomBar(cart: cart, showGroupCart: $showingGroupCart)
             } else if !cart.items.isEmpty {
-                // Tampilkan Bar Checkout Biasa
                 CheckoutBarView(showCart: $showingCart)
             }
         }
@@ -100,63 +94,57 @@ struct RestaurantDetailView: View {
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            print("📢 Membuka Resto: \(restaurant.name)")
-            
-            // 1. Cek Apakah Link Menu Ada?
             if let menuLink = restaurant.menuDataURL, !menuLink.isEmpty {
-                print("✅ Link Menu Ditemukan: \(menuLink)")
                 viewModel.fetchMenu(from: menuLink)
-            } else {
-                print("❌ BAHAYA: Link Menu Kosong/Nil di Firebase!")
-                // Jangan panggil fetchMenu biar gak error
             }
-
-            // 2. Ambil Diskon
+            
             if let storeID = restaurant.id {
                 viewModel.fetchDiscounts(storeID: storeID)
             }
         }
+        
         .sheet(item: $selectedItemForOptions) { item in
-            
             let priceInfo = viewModel.getPriceInfo(for: item)
             
             MenuOptionsView(
                 restaurantName: restaurant.name,
                 restaurantId: restaurant.id ?? "",
-                item: item, // Kirim seluruh object model
+                item: item,
                 finalPrice: priceInfo.finalPrice,
                 originalPrice: priceInfo.originalPrice,
                 itemToEdit: nil
             )
             .environmentObject(cart)
         }
+        
         .sheet(isPresented: $showingCart) {
-            CartListView() // Pastikan View ini ada
-                .environmentObject(cart)
+            CartListView().environmentObject(cart)
         }
+        
         .sheet(isPresented: $showingGroupCart) {
-            GroupCartView().environmentObject(cart) // Pastikan View ini ada
+            GroupCartView().environmentObject(cart)
         }
         .scrollIndicators(.hidden)
     }
 }
 
-// MARK: - MENU ROW LINK
 struct MenuRowLink: View {
     let item: MenuItemModel
     let finalPrice: Double
     let originalPrice: Double?
     let onAdd: () -> Void
     
-    @EnvironmentObject var cart: CartViewModel // Inject Cart for Navigation
+    @EnvironmentObject var cart: CartViewModel
     
     var body: some View {
-        // Klik Baris -> Masuk ke MenuDetailView
-        NavigationLink(destination: MenuDetailView(
-            item: item,
-            customFinalPrice: finalPrice,
-            customOriginalPrice: originalPrice
-        ).environmentObject(cart)) { // Pass environment object explicitly
+        NavigationLink {
+            MenuDetailView(
+                item: item,
+                customFinalPrice: finalPrice,
+                customOriginalPrice: originalPrice
+            )
+            .environmentObject(cart)
+        } label: {
             MenuItemRow(
                 imageURL: item.imageURL,
                 name: item.name,
@@ -181,7 +169,6 @@ struct MenuItemRow: View {
     let originalPrice: Double?
     let onAdd: () -> Void
     
-    // Perbaikan logic quantity (sesuaikan dengan nama item)
     @EnvironmentObject var cart: CartViewModel
     
     var quantity: Int {
@@ -190,7 +177,6 @@ struct MenuItemRow: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // FOTO DARI URL
             if let stringUrl = imageURL, let url = URL(string: stringUrl) {
                 AsyncImage(url: url) { image in
                     image.resizable().scaledToFill()
@@ -221,12 +207,12 @@ struct MenuItemRow: View {
                 
                 Spacer()
                 
-                HStack(alignment: .bottom, spacing: 4) {
+                HStack(spacing: 4) {
                     Text("Rp\(formatPrice(price))")
                         .font(.system(size: 15, weight: .bold))
                         .foregroundColor(.orange)
                     
-                    if let originalPrice = originalPrice {
+                    if let originalPrice {
                         Text("Rp\(formatPrice(originalPrice))")
                             .font(.system(size: 12))
                             .foregroundColor(.gray)
@@ -234,7 +220,6 @@ struct MenuItemRow: View {
                     }
                 }
             }
-            
             Spacer()
             
             // TOMBOL PLUS/MINUS
@@ -280,13 +265,123 @@ struct MenuItemRow: View {
                 }
             }
         }
-        .frame(height: 90) // Kunci tinggi baris agar rapi
+        .frame(height: 90) 
     }
 }
 
-// ==================================================================
-// --- SUB-VIEWS (Components) ---
-// ==================================================================
+struct InfoView: View {
+    let name: String
+    let categories: String
+    let rating: Double
+    let reviewCount: Int
+    let pickupTime: String
+    
+    @Binding var isGroupOrderActive: Bool
+    @Binding var groupName: String
+    @Binding var groupMembers: [UserMember]
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(name).font(.system(size: 28, weight: .bold))
+                    Text(categories).font(.body).foregroundColor(.gray)
+                }
+                Spacer()
+                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName, groupMembers: $groupMembers)) {
+                    GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
+                }
+                .padding(.top, 4)          }
+            HStack(spacing: 4) {
+                Image(systemName: "star.fill").foregroundColor(.yellow)
+                Text(String(format: "%.1f", rating))
+                    .font(.system(size: 15, weight: .semibold))
+                Text("(\(reviewCount) penilaian)")
+                    .font(.system(size: 15))
+                    .foregroundColor(.gray)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.gray)
+            }
+            .padding(.top, 4)
+            
+            HStack {
+                Image(systemName: "clock")
+                    .foregroundColor(.orange)
+                Text("Pick up in \(pickupTime)")
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundColor(.orange)
+                Spacer()
+                Text("Details >")
+                    .font(.system(size: 15))
+                    .foregroundColor(.gray)
+            }
+            .padding(.top, 4)
+        }
+    }
+}
+
+
+struct HeaderView: View {
+    let imageURL: String
+    
+    var body: some View {
+        if let url = URL(string: imageURL) {
+            AsyncImage(url: url) { image in
+                image
+                    .resizable()
+                    .scaledToFill()
+            } placeholder: {
+                Rectangle()
+                    .fill(.gray.opacity(0.2))
+                    .overlay(ProgressView())
+            }
+            .frame(height: 220)
+            .clipped()
+        } else {
+            Rectangle()
+                .fill(.gray.opacity(0.2))
+                .frame(height: 220)
+        }
+    }
+}
+
+struct CategoryHeaderView: View {
+    let title: String
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            Rectangle()
+                .fill(Color.orange.opacity(0.3))
+                .frame(height: 8)
+                .padding(.vertical, 16)
+            
+            ZStack(alignment: .leading) {
+                Color.white.frame(height: 25)
+                Text(title)
+                    .font(.system(size: 15, weight: .medium))
+                    .padding(.horizontal)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .background(Color.white)
+    }
+}
+
+
+struct GroupOrderButton: View {
+    let title: String
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "person.2.fill")
+            Text(title).font(.system(size: 14, weight: .semibold))
+        }
+        .padding(.horizontal, 16).padding(.vertical, 10)
+        .background(Color.orange.opacity(0.08)).foregroundColor(.orange).cornerRadius(20)
+        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange, lineWidth: 1.5))
+    }
+}
 
 struct CheckoutBarView: View {
     
@@ -416,128 +511,9 @@ struct GroupOrderBottomBar: View {
     }
 }
 
-// MARK: - Header
-struct HeaderView: View {
-    let imageURL: String
-    
-    var body: some View {
-        if let url = URL(string: imageURL) {
-            AsyncImage(url: url) { image in
-                image
-                    .resizable()
-                    .scaledToFill()
-            } placeholder: {
-                Rectangle()
-                    .fill(.gray.opacity(0.2))
-                    .overlay(ProgressView())
-            }
-            .frame(height: 220)
-            .clipped()
-        } else {
-            Rectangle()
-                .fill(.gray.opacity(0.2))
-                .frame(height: 220)
-        }
-    }
-}
-
-// MARK: - Info View
-struct InfoView: View {
-    let name: String
-    let categories: String
-    let rating: Double
-    let reviewCount: Int
-    let pickupTime: String
-    
-    @Binding var isGroupOrderActive: Bool
-    @Binding var groupName: String
-    @Binding var groupMembers: [UserMember]
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(name).font(.system(size: 28, weight: .bold))
-                    Text(categories).font(.body).foregroundColor(.gray)
-                }
-                Spacer()
-                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName, groupMembers: $groupMembers)) {
-                    GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
-                }
-                .padding(.top, 4)          }
-            HStack(spacing: 4) {
-                Image(systemName: "star.fill").foregroundColor(.yellow)
-                Text(String(format: "%.1f", rating))
-                    .font(.system(size: 15, weight: .semibold))
-                Text("(\(reviewCount) penilaian)")
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.gray)
-            }
-            .padding(.top, 4)
-            
-            HStack {
-                Image(systemName: "clock")
-                    .foregroundColor(.orange)
-                Text("Pick up in \(pickupTime)")
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.orange)
-                Spacer()
-                Text("Details >")
-                    .font(.system(size: 15))
-                    .foregroundColor(.gray)
-            }
-            .padding(.top, 4)
-        }
-    }
-}
-
-// MARK: - Group Order Button
-struct GroupOrderButton: View {
-    let title: String
-    
-    var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "person.2.fill")
-            Text(title).font(.system(size: 14, weight: .semibold))
-        }
-        .padding(.horizontal, 16).padding(.vertical, 10)
-        .background(Color.orange.opacity(0.08)).foregroundColor(.orange).cornerRadius(20)
-        .overlay(RoundedRectangle(cornerRadius: 20).stroke(Color.orange, lineWidth: 1.5))
-    }
-}
-
-// MARK: - FIXED HEADER (IMPORTANT)
-struct CategoryHeaderView: View {
-    let title: String
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            Rectangle()
-                .fill(Color.orange.opacity(0.3))
-                .frame(height: 8)
-                .padding(.vertical, 16)
-            
-            ZStack(alignment: .leading) {
-                Color.white.frame(height: 25)
-                Text(title)
-                    .font(.system(size: 15, weight: .medium))
-                    .padding(.horizontal)
-                    .foregroundColor(.secondary)
-            }
-        }
-        .background(Color.white)
-    }
-}
-
-// MARK: - Menu Row
-
-
 struct RestaurantDetailView_Previews: PreviewProvider {
     static var previews: some View {
-        let dummyResto = Restaurant(
+        let dummy = Restaurant(
             id: "123",
             name: "Raburi Test",
             location: "UC Walk",
@@ -546,11 +522,11 @@ struct RestaurantDetailView_Previews: PreviewProvider {
             bannerURL: nil,
             searchURL: nil,
             cuisineType: ["Japanese", "Noodles"],
-            menuDataURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/menu.json"
+            menuDataURL: nil
         )
         
         NavigationStack {
-            RestaurantDetailView(restaurant: dummyResto)
+            RestaurantDetailView(restaurant: dummy)
         }
     }
 }

@@ -6,17 +6,31 @@
 //
 
 import Foundation
-import SwiftUI
 
 struct ActivityOrderModel: Identifiable {
-    let id = UUID()
-    
-    let date: String
-    let restaurantName: String
-    let mealName: String
+
+    // 🔑 ID HARUS documentID Firestore
+    let id: String
+    let orderId: String
+
+    // Status & ownership
+    let status: String
+    let storeId: String
+    let userId: String
+
+    // Item (ringkas untuk Activity)
+    let itemId: String
+    let quantity: Int
     let price: Int
-    
-    // rating = nil → user belum kasih rating
-    // rating = 1...5 → user sudah rating
+
+    // UI
+    let date: String
+    let totalCost: Int
+
+    // Optional (hasil join / future use)
+    let restaurantName: String?
+    let mealName: String?
+
+    // Rating
     var rating: Int?
 }

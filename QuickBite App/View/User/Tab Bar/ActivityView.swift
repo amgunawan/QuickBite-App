@@ -9,62 +9,33 @@ import SwiftUI
 
 struct ActivityView: View {
 
-    // MARK: - History Orders
-    @State private var historyOrders: [ActivityOrderModel] = [
-        ActivityOrderModel(date: "24 Okt, 13:00",
-                           restaurantName: "Raburi",
-                           mealName: "1 Chicken Katsu Shirokara Ramen",
-                           price: 32500,
-                           rating: nil),          // belum rating
+    // MARK: - ENVIRONMENT
+    @EnvironmentObject var cart: CartViewModel
 
-        ActivityOrderModel(date: "24 Okt, 13:00",
-                           restaurantName: "Raburi",
-                           mealName: "1 Chicken Katsu Shirokara Ramen",
-                           price: 32500,
-                           rating: 4),            // sudah rating
+    // MARK: - VIEW MODEL
+    @StateObject private var vm = ActivityViewModel()
 
-        ActivityOrderModel(date: "24 Okt, 13:00",
-                           restaurantName: "Raburi",
-                           mealName: "1 Chicken Katsu Shirokara Ramen",
-                           price: 32500,
-                           rating: 5)             // sudah rating
-    ]
-
-    // MARK: - In Progress Orders
-    @State private var progressOrders: [InProgressOrderModel] = [
-        InProgressOrderModel(date: "25 Okt, 16:00",
-                             restaurantName: "Kaya Boys",
-                             mealName: "1 Kaya Sandwiches",
-                             price: 15000,
-                             isReady: false),      // Ready in X
-
-        InProgressOrderModel(date: "25 Okt, 16:00",
-                             restaurantName: "Kaya Boys",
-                             mealName: "1 Kaya Sandwiches",
-                             price: 15000,
-                             isReady: true)        // Pick Up Available
-    ]
-
-    // MARK: - States
+    // MARK: - UI STATE
     @State private var selectedTab = 0
-    @State private var goToPreparedView = false
     @State private var goToPickUpView = false
+    @State private var selectedOrderId: String?
+    @State private var generatedQR: UIImage?
 
-    // Review navigation state
     @State private var showReviewView = false
-    @State private var selectedOrderIndex: Int? = nil
+    @State private var selectedOrderIndex: Int?
     @State private var tempRating: Int = 0
+
+    @State private var goToCart = false
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 16) {
 
-                // HEADER
-                VStack(spacing: 12) {
+                // ================= HEADER =================
+                VStack(alignment: .leading, spacing: 12) {
                     Text("Activity")
                         .font(.title)
                         .fontWeight(.bold)
-                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     Picker("", selection: $selectedTab) {
                         Text("History").tag(0)
@@ -74,61 +45,43 @@ struct ActivityView: View {
                 }
                 .padding(.horizontal)
 
+                // ================= CONTENT =================
                 ScrollView(showsIndicators: false) {
-
                     VStack(spacing: 16) {
 
-                        // MARK: - HISTORY TAB
+                        // ---------- HISTORY ----------
                         if selectedTab == 0 {
 
-                            ForEach(historyOrders.indices, id: \.self) { index in
-                                let order = historyOrders[index]
+                            if vm.historyOrders.isEmpty {
+                                emptyState("No completed orders yet")
+                            }
+
+                            ForEach(vm.historyOrders.indices, id: \.self) { index in
+                                let order = vm.historyOrders[index]
 
                                 VStack(spacing: 16) {
 
-                                    // Date & Status
                                     HStack {
                                         Text(order.date)
-                                            .font(.subheadline)
                                             .foregroundColor(.gray)
-
                                         Spacer()
-
                                         Text("Order Finished")
-                                            .font(.subheadline)
-                                            .fontWeight(.medium)
                                             .foregroundColor(.green)
                                     }
 
-                                    NavigationLink(
-                                        destination: OrderCompletedView(userRating: order.rating ?? 0,
-                                                                        didSubmitReview: order.rating != nil)
-                                            .onAppear {
-                                                // kirim rating ke halaman completed
-                                                // nanti kamu isi logicnya
-                                            }
-                                    ) {
-                                        orderCard(order: order)
-                                    }
-                                    .foregroundColor(.primary)
+                                    orderCard(order: order)
 
-                                    // MARK: - GIVE US RATING SECTION
+                                    // Rating
                                     if order.rating == nil {
-
                                         Divider()
-
                                         HStack {
                                             Text("Give us rating!")
-                                                .font(.subheadline)
-
                                             Spacer()
-
                                             HStack(spacing: 6) {
                                                 ForEach(1...5, id: \.self) { star in
                                                     Image(systemName: "star.fill")
-                                                        .foregroundColor(Color(.systemGray4))
+                                                        .foregroundColor(.gray)
                                                         .onTapGesture {
-                                                            // buka review view
                                                             tempRating = star
                                                             selectedOrderIndex = index
                                                             showReviewView = true
@@ -139,78 +92,60 @@ struct ActivityView: View {
                                     }
                                 }
                                 .padding()
-                                .background(RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color(.systemBackground)))
+                                .background(RoundedRectangle(cornerRadius: 16).fill(.white))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color(.systemGray5))
+                                        .stroke(.gray.opacity(0.2))
                                 )
                             }
                         }
 
-                        // MARK: - IN PROGRESS TAB
+                        // ---------- IN PROGRESS ----------
                         else {
-                            ForEach(progressOrders.indices, id: \.self) { index in
-                                let order = progressOrders[index]
 
+                            if vm.progressOrders.isEmpty {
+                                emptyState("No ongoing orders")
+                            }
+
+                            ForEach(vm.progressOrders) { order in
                                 VStack(spacing: 16) {
 
                                     HStack {
                                         Text(order.date)
-                                            .font(.subheadline)
                                             .foregroundColor(.gray)
-
                                         Spacer()
-
-                                        if !order.isReady {
-                                            HStack(spacing: 4) {
-                                                Text("Ready in:")
-                                                    .font(.subheadline)
-                                                    .fontWeight(.medium)
-                                                Text("10 minutes")
-                                                    .foregroundColor(.orange)
-                                            }
-                                        } else {
-                                            Text("Pick Up Available")
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
-                                                .foregroundColor(.green)
-                                        }
+                                        Text("Preparing")
+                                            .foregroundColor(.orange)
                                     }
 
                                     HStack(spacing: 12) {
-                                        Image("KayaBoys")
+
+                                        Image(systemName: "bag.fill")
                                             .resizable()
-                                            .frame(width: 64, height: 64)
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                            .scaledToFit()
+                                            .frame(width: 48, height: 48)
+                                            .foregroundColor(.orange)
 
                                         VStack(alignment: .leading, spacing: 4) {
-                                            Text(order.restaurantName)
+                                            Text(order.restaurantName ?? "Restaurant")
                                                 .font(.headline)
-                                                .fontWeight(.bold)
 
-                                            Text(order.mealName)
-                                                .font(.subheadline)
+                                            Text(order.mealName ?? order.itemId)
                                                 .foregroundColor(.secondary)
                                                 .lineLimit(1)
 
-                                            Text("Rp\(order.price)")
-                                                .font(.subheadline)
-                                                .fontWeight(.medium)
+                                            Text("Rp\(order.totalCost)")
                                                 .foregroundColor(.orange)
                                         }
 
                                         Spacer()
 
                                         Button {
-                                            if order.isReady {
-                                                goToPickUpView = true
-                                            } else {
-                                                goToPreparedView = true
-                                            }
+                                            selectedOrderId = order.orderId
+                                            generatedQR = QRGenerator().generate(from: order.orderId)
+                                            goToPickUpView = true
                                         } label: {
                                             Text("Track Order")
-                                                .font(.footnote)
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 16)
                                                 .padding(.vertical, 8)
@@ -220,11 +155,10 @@ struct ActivityView: View {
                                     }
                                 }
                                 .padding()
-                                .background(RoundedRectangle(cornerRadius: 16)
-                                    .fill(Color(.systemBackground)))
+                                .background(RoundedRectangle(cornerRadius: 16).fill(.white))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(Color(.systemGray5))
+                                        .stroke(.gray.opacity(0.2))
                                 )
                             }
                         }
@@ -234,13 +168,16 @@ struct ActivityView: View {
                 }
             }
 
-            // MARK: DESTINATIONS
-            .navigationDestination(isPresented: $goToPreparedView) {
-                OrderPreparedView()
-            }
+            // ================= NAVIGATION =================
             .navigationDestination(isPresented: $goToPickUpView) {
-                OrderPickUpView()
+                if let id = selectedOrderId {
+                    OrderPickUpView(
+                        qrImage: generatedQR,
+                        orderId: id
+                    )
+                }
             }
+
             .navigationDestination(isPresented: $showReviewView) {
                 if let idx = selectedOrderIndex {
                     ReviewView(
@@ -248,60 +185,95 @@ struct ActivityView: View {
                             get: { tempRating },
                             set: { tempRating = $0 }
                         ),
-                        didSubmit: Binding(
-                            get: { historyOrders[idx].rating != nil },
-                            set: { _ in }
-                        ),
-                        onSubmit: { finalRating in
-                            historyOrders[idx].rating = finalRating
+                        didSubmit: .constant(false),
+                        onSubmit: { rating in
+                            vm.historyOrders[idx].rating = rating
                         }
                     )
                 }
             }
+
+            .fullScreenCover(isPresented: $goToCart) {
+                NavigationStack {
+                    CartListView()
+                        .environmentObject(cart)
+                }
+            }
+
+            .onAppear {
+                vm.fetchOrders()
+            }
         }
     }
 
-    // MARK: - ORDER CARD VIEW
+    // ================= HELPER =================
+    private func emptyState(_ text: String) -> some View {
+        VStack {
+            Text(text)
+                .foregroundColor(.gray)
+                .padding(.top, 40)
+        }
+    }
+
+    // ================= BUY AGAIN =================
+//    private func handleBuyAgain(_ order: ActivityOrderModel) {
+//
+//        let newItem = CartItemModel(
+//            name: order.mealName ?? order.itemId,
+//            imageName: "",
+//            basePrice: Double(order.price),
+//            baseOriginalPrice: nil,
+//            quantity: order.quantity,
+//            note: "",
+//            noodleType: "",
+//            level: "",
+//            topping: "",
+//            optionsPrice: 0
+//        )
+//
+//        cart.add(item: newItem)
+//        goToCart = true
+//    }
+
+    // ================= ORDER CARD =================
     private func orderCard(order: ActivityOrderModel) -> some View {
         HStack(spacing: 12) {
-            Image("Raburi")
+
+            Image(systemName: "bag.fill")
                 .resizable()
-                .frame(width: 64, height: 64)
-                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .scaledToFit()
+                .frame(width: 48, height: 48)
+                .foregroundColor(.orange)
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(order.restaurantName)
+                Text(order.restaurantName ?? "Restaurant")
                     .font(.headline)
-                    .fontWeight(.bold)
 
-                Text(order.mealName)
-                    .font(.subheadline)
+                Text(order.mealName ?? order.itemId)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
 
-                Text("Rp\(order.price)")
-                    .font(.subheadline)
-                    .fontWeight(.medium)
+                Text("Rp\(order.totalCost)")
                     .foregroundColor(.orange)
             }
 
             Spacer()
 
-            Button(action: {}) {
+            Button {} label: {
                 Text("Buy Again")
-                    .font(.footnote)
                     .foregroundColor(.white)
                     .padding(.horizontal, 16)
                     .padding(.vertical, 8)
                     .background(Color.orange)
                     .clipShape(Capsule())
             }
+            .disabled(true)
+
         }
     }
-    
 }
-
 
 #Preview {
     ActivityView()
+        .environmentObject(CartViewModel())
 }

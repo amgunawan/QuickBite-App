@@ -2,12 +2,12 @@
 //  OrderPickUpView.swift
 //  QuickBite
 //
-//  Created by student on 26/11/25.
+//  Created by student on 26/11/25
 //
 
 import SwiftUI
-import CoreImage.CIFilterBuiltins
 
+// MARK: - MODEL
 struct OrderedItemPU: Identifiable {
     let id = UUID()
     let count: Int
@@ -15,33 +15,14 @@ struct OrderedItemPU: Identifiable {
     let price: Double
 }
 
+// MARK: - VIEW
 struct OrderPickUpView: View {
 
-    // QR CODE IMAGE
+    // DATA DARI ORDER CONFIRMATION
     let qrImage: UIImage?
     let orderId: String
 
-    init(orderId: String = "PREVIEW_ORDER_ID") {
-        self.orderId = orderId
-        self.qrImage = Self.generateQRCode(from: orderId)
-    }
-
-    static func generateQRCode(from string: String) -> UIImage? {
-        let context = CIContext()
-        let filter = CIFilter.qrCodeGenerator()
-        let data = Data(string.utf8)
-        filter.setValue(data, forKey: "inputMessage")
-
-        if let output = filter.outputImage {
-            let scaled = output.transformed(by: CGAffineTransform(scaleX: 10, y: 10))
-
-            if let cgimg = context.createCGImage(scaled, from: scaled.extent) {
-                return UIImage(cgImage: cgimg)
-            }
-        }
-        return nil
-    }
-
+    // DUMMY DATA (BISA DIGANTI DATA ASLI NANTI)
     @State private var items: [OrderedItemPU] = [
         OrderedItemPU(count: 1, name: "Chicken Katsu Shirokara Ramen", price: 35000),
         OrderedItemPU(count: 1, name: "Chicken Teriyaki Donburi", price: 42000)
@@ -60,6 +41,7 @@ struct OrderPickUpView: View {
     @State private var reviewCount: Int = 65
     @State private var estTime: String = "10–20 min"
 
+    // MARK: - COMPUTED
     private var totalMealCount: Int {
         items.reduce(0) { $0 + $1.count }
     }
@@ -72,11 +54,13 @@ struct OrderPickUpView: View {
         subtotal - discount + serviceFee
     }
 
+    // MARK: - BODY
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading) {
+            VStack(alignment: .leading, spacing: 12) {
 
-                VStack(alignment: .leading, spacing: 0) {
+                // HEADER
+                VStack(alignment: .leading) {
                     Text("\(totalMealCount) meal to pick up")
                         .font(.title)
                         .fontWeight(.semibold)
@@ -87,235 +71,99 @@ struct OrderPickUpView: View {
                 }
                 .padding(.horizontal)
 
-                Divider().padding(.vertical, 4)
+                Divider()
 
-                HStack(spacing: 8) {
-                    Image(systemName: "megaphone.fill")
-                        .foregroundColor(Color(hex: "#FF9500"))
-
-                    Text("Visit the restaurant to pick up your order")
-                        .font(.subheadline)
-                        .foregroundColor(Color(hex: "#FF9500"))
-                }
-                .padding(.horizontal)
-
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
-
-                VStack(spacing: 6) {
-
-                    HStack {
-                        Text("Order Details")
-                            .font(.subheadline)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-
-                    VStack(spacing: 6) {
-                        ForEach(items) { item in
-                            HStack {
-                                Text("\(item.count)x")
-                                    .font(.headline)
-
-                                Text(item.name)
-                                    .font(.headline).fontWeight(.regular)
-
-                                Spacer()
-
-                                Text("Rp\(formatPrice(item.price))")
-                                    .font(.headline).fontWeight(.regular)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
-                }
-
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
-
+                // QR SECTION
                 VStack(spacing: 10) {
-
                     Text("Scan QR at Restaurant")
                         .font(.headline)
 
-                    if let qrImage = qrImage {
+                    if let qrImage {
                         Image(uiImage: qrImage)
                             .resizable()
                             .scaledToFit()
                             .frame(height: 180)
-                            .padding(.top, 4)
                     } else {
-                        Text("QR Code unavailable")
-                            .foregroundColor(.secondary)
+                        ProgressView("Generating QR...")
                     }
 
                     Text("Order ID: \(orderId)")
                         .font(.caption)
                         .foregroundColor(.gray)
 
-                    Text("Take a screenshot of this QR code to pick up\nyour meal when the network is poor.")
-                        .multilineTextAlignment(.center)
+                    Text("Take a screenshot of this QR code to pick up your meal when the network is poor.")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
                         .padding(.horizontal)
-                        .padding(.top, 4)
-
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
+                .padding()
 
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
+                Divider()
 
-                // MARK: - Restaurant Info
+                // ORDER SUMMARY
                 VStack(alignment: .leading, spacing: 6) {
-
-                    Text("Restaurant Info")
-                        .font(.subheadline)
-
-                    HStack(spacing: 12) {
-
-                        Image("Raburi")
-                            .resizable()
-                            .cornerRadius(8)
-                            .frame(width: 62, height: 62)
-
-                        VStack(alignment: .leading, spacing: 4) {
-
-                            Text(restaurantName)
-                                .font(.headline)
-
-                            Text(restaurantCategory)
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(.yellow)
-
-                                Text("\(String(format: "%.1f", rating)) (\(reviewCount)) • \(estTime)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Spacer()
-                    }
-                }
-                .padding(.horizontal)
-
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 6) {
-
-                    Text("Things to Note")
-                        .font(.subheadline)
-
-                    VStack(alignment: .leading, spacing: 8) {
-
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "clock.arrow.circlepath")
-                                .foregroundColor(.secondary)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Expires within 5 hours of purchase")
-                                    .font(.subheadline).fontWeight(.semibold)
-
-                                Text("Pick up this order within 5 hours of purchase")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                        HStack(alignment: .top, spacing: 8) {
-                            Image(systemName: "clock")
-                                .foregroundColor(.secondary)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Pick up hours")
-                                    .font(.subheadline).fontWeight(.semibold)
-
-                                Text("Pick up during restaurant’s operating hours")
-                                    .font(.footnote)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
-
-                    }
-                }
-                .padding(.horizontal)
-
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 6) {
-
                     Text("Order Summary")
                         .font(.subheadline)
 
-                    VStack(spacing: 6) {
+                    SummaryRow(title: "Quantity", value: "\(totalMealCount)")
+                    SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(subtotal))")
 
-                        SummaryRow(title: "Quantity", value: "\(totalMealCount)")
-                        SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(subtotal))")
+                    SummaryRow(
+                        title: "Seller discount",
+                        value: "-Rp\(formatPrice(discount))",
+                        valueColor: .green
+                    )
 
-                        SummaryRow(
-                            title: "Seller discount",
-                            value: "-Rp\(formatPrice(discount))",
-                            valueColor: .green
-                        )
+                    SummaryRow(
+                        title: "Service Fee",
+                        value: "+Rp\(formatPrice(serviceFee))"
+                    )
 
-                        SummaryRow(
-                            title: "Service Fee",
-                            value: "+Rp\(formatPrice(serviceFee))"
-                        )
-
-                        SummaryRow(
-                            title: "Total",
-                            value: "Rp\(formatPrice(total))",
-                            weight: .semibold
-                        )
-                    }
-
-                    Divider().padding(.vertical, 4)
-
-                    VStack(spacing: 6) {
-                        SummaryRow(title: "Order number", value: orderNumber)
-                        SummaryRow(title: "Order date", value: orderDate)
-                        SummaryRow(title: "Payment method", value: paymentMethod)
-                    }
-                    .foregroundColor(.secondary)
+                    SummaryRow(
+                        title: "Total",
+                        value: "Rp\(formatPrice(total))",
+                        weight: .semibold
+                    )
                 }
                 .padding(.horizontal)
-                .padding(.vertical, 4)
 
-                Button(action: {}) {
+                Divider()
+
+                // ORDER INFO
+                VStack(spacing: 6) {
+                    SummaryRow(title: "Order number", value: orderNumber)
+                    SummaryRow(title: "Order date", value: orderDate)
+                    SummaryRow(title: "Payment method", value: paymentMethod)
+                }
+                .foregroundColor(.secondary)
+                .padding(.horizontal)
+
+                // BUY AGAIN BUTTON
+                Button(action: {
+                    // TODO: Navigate to home / reorder
+                }) {
                     Text("Buy Again")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color(hex: "#FF9500"))
+                        .background(Color.orange)
                         .cornerRadius(24)
                 }
                 .padding(.horizontal)
-
+                .padding(.top, 12)
             }
         }
-        .navigationBarBackButtonHidden(false)
+        .navigationBarBackButtonHidden(true)
     }
 }
 
+// MARK: - PREVIEW
 #Preview {
-    OrderPickUpView(orderId: "QB12345ABCDE")
+    OrderPickUpView(
+        qrImage: UIImage(systemName: "qrcode"),
+        orderId: "QB12345ABCDE"
+    )
 }

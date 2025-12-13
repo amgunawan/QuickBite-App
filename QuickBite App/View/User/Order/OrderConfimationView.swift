@@ -19,20 +19,18 @@ struct OrderConfirmationView: View {
     // State Status Toko (Open/Closed)
     @State private var storeStatusText: String = "Loading..."
     @State private var isStoreClosed: Bool = false
+    @State private var closingTime: String = "22:00"
     
     @State private var totalDiscountAmount: Int = 0
     
     // Default selection
-    @State private var selectedTime: TimeSlot? = TimeSlot(
-        timeRange: "12:00 PM",
-        status: "Right After your class! (Recommended)",
-        isRecommended: true,
-        isWarning: false
-    )
+    @State private var selectedTime: TimeSlot? = nil
     
     @State private var navigateToCompleted = false
     @State private var generatedQR: UIImage?
     @State private var generatedOrderId: String = ""
+    
+    @EnvironmentObject var calendarManager: CalendarManager
     
     var body: some View {
         VStack(spacing: 0) {
@@ -237,18 +235,31 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.orange)
                     }
                     
-                    Button(action: {
-                        placeOrder()
-                    }) {
-                        Text("Buy Now")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 32)
-                            .padding(.vertical, 12)
-                            .background(isStoreClosed ? Color.gray : Color.orange) // Disable visual jika tutup
-                            .cornerRadius(25)
+                    VStack(alignment: .trailing, spacing: 4) {
+                        Button(action: {
+                            placeOrder()
+                        }) {
+                            Text("Buy Now")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 32)
+                                .padding(.vertical, 12)
+                                .background((isStoreClosed || selectedTime == nil) ? Color.gray : Color.orange)
+                                .cornerRadius(25)
+                        }
+                        .disabled(isStoreClosed || selectedTime == nil)
+                        
+                        // NEW: Little text indicating why it is disabled
+                        if isStoreClosed {
+                            Text("Store is currently closed")
+                                .font(.system(size: 10))
+                                .foregroundColor(.red)
+                        } else if selectedTime == nil {
+                            Text("Select time to continue")
+                                .font(.system(size: 10))
+                                .foregroundColor(.red)
+                        }
                     }
-                    .disabled(isStoreClosed) // Matikan interaksi jika tutup
                 }
                 .padding()
                 .background(Color.white)
@@ -257,7 +268,8 @@ struct OrderConfirmationView: View {
         .navigationTitle("Order Confirmation")
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showingTimeSheet) {
-            PickUpTimeView(selectedTime: $selectedTime)
+            PickUpTimeView(selectedTime: $selectedTime, storeClosingTime: closingTime)
+                .environmentObject(calendarManager)
         }
         .navigationDestination(isPresented: $navigateToCompleted) {
             OrderPickUpView(
@@ -338,6 +350,8 @@ struct OrderConfirmationView: View {
                 if let todaySchedule = schedule[todayName] as? [String: Any],
                    let openStr = todaySchedule["open_time"] as? String,
                    let closeStr = todaySchedule["close_time"] as? String {
+                    
+                    self.closingTime = closeStr
                     
                     checkTimeStatus(open: openStr, close: closeStr)
                     
@@ -448,6 +462,7 @@ struct OrderConfirmationView_Previews: PreviewProvider {
         NavigationStack {
             OrderConfirmationView()
                 .environmentObject(CartViewModel())
+                .environmentObject(CalendarManager())
         }
     }
 }

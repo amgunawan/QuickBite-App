@@ -16,13 +16,15 @@ struct QuickBiteApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var storeVM = StoreRegistrationViewModel()
-    @StateObject private var cart = CartViewModel()   
+    @StateObject private var cart = CartViewModel()
+    @StateObject private var calendarManager = CalendarManager()
 
     var body: some Scene {
         WindowGroup {
             InitialView()
                 .environmentObject(storeVM)
                 .environmentObject(cart)
+                .environmentObject(calendarManager)
         }
     }
 }

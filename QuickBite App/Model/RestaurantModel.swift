@@ -10,7 +10,6 @@ import FirebaseFirestore
 
 struct Restaurant: Identifiable, Codable {
     
-    // 1. Gunakan @DocumentID agar ID dokumen (misal "RABURI") otomatis masuk sini
     @DocumentID var id: String?
     
     var name: String

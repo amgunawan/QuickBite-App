@@ -12,6 +12,7 @@ import GoogleSignIn
 import GoogleSignInSwift
 
 struct MainFormView: View {
+    
     @State private var selectedTab = 0
     @State private var email = ""
     @State private var password = ""
@@ -25,7 +26,8 @@ struct MainFormView: View {
     // Google Sign In
     @State private var loginError = ""
     @State private var isLoggedIn = false
-    @State private var vm = AuthenticationViewModel()
+    
+    @StateObject var vm = AuthenticationViewModel()
     
     var body: some View {
         NavigationStack {
@@ -175,7 +177,8 @@ struct MainFormView: View {
                 } else {
 
                     VStack(spacing: 16) {
-                        NavigationLink(destination: SignUpFormView(role: .customer)) {
+                        NavigationLink(destination: SignUpFormView(role: .customer)
+                            .environmentObject(vm)) {
                             Text("Sign up as user")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)
@@ -193,7 +196,8 @@ struct MainFormView: View {
                             Rectangle().frame(height: 1).foregroundColor(Color(.systemGray5))
                         }
                         
-                        NavigationLink(destination: SignUpFormView(role: .merchant)) {
+                        NavigationLink(destination: SignUpFormView(role: .merchant)
+                            .environmentObject(vm)) {
                             Text("Sign up as merchant")
                                 .fontWeight(.medium)
                                 .foregroundColor(.white)

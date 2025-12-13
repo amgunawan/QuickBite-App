@@ -12,6 +12,8 @@ import UIKit
 struct KTPVerificationView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
     
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
     @State private var isKtpUploaded = false
 
     // ✅ PhotosUI States
@@ -108,6 +110,15 @@ struct KTPVerificationView: View {
             NavigationLink(destination: PayoutSetupView(),
                            label: {
                 OrangeButton(title: "Continue", enabled: isKtpUploaded)
+            })
+            .simultaneousGesture(TapGesture().onEnded {
+                Task {
+                    do {
+                        try await authVM.updateOnboardingStep(3)
+                    } catch {
+                        print("Failed to update onboarding step: \(error.localizedDescription)")
+                    }
+                }
             })
             .padding()
         }

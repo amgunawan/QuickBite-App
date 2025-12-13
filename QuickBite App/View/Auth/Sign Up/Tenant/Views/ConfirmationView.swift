@@ -11,6 +11,8 @@ import FirebaseAuth
 struct ConfirmationView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
     
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
     let setupAction: () -> Void
     
     // ✅ Derived username from Firebase email
@@ -55,6 +57,15 @@ struct ConfirmationView: View {
             NavigationLink(destination: StoreBrandingView()) {
                 OrangeButton(title: "Start Menu Setup", enabled: true)
             }
+            .simultaneousGesture(TapGesture().onEnded {
+                Task {
+                    do {
+                        try await authVM.updateOnboardingStep(5)
+                    } catch {
+                        print("Failed to update onboarding step: \(error.localizedDescription)")
+                    }
+                }
+            })
             .padding(.horizontal, 60)
             
             Spacer()

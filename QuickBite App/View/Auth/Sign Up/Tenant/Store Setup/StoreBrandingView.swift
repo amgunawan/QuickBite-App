@@ -11,6 +11,8 @@ import PhotosUI
 struct StoreBrandingView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
     
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
     @State private var bannerPickedItem: PhotosPickerItem? = nil
     @State private var iconPickedItem: PhotosPickerItem? = nil
     @State private var bannerImage: UIImage? = nil
@@ -178,6 +180,15 @@ struct StoreBrandingView: View {
                            label: {
                 OrangeButton(title: "Continue to Menu Setup", enabled: canContinue)
             })
+            .simultaneousGesture(TapGesture().onEnded {
+                Task {
+                    do {
+                        try await authVM.updateOnboardingStep(6)
+                    } catch {
+                        print("Failed to update onboarding step: \(error)")
+                    }
+                }
+            })
             .padding()
         }
         .onAppear {
@@ -197,17 +208,23 @@ struct StoreBrandingView: View {
         }
         .onChange(of: bannerPickedItem) { _, newValue in
             handlePhotoPicker(item: newValue) { image, filename in
-                bannerImage = image
-                bannerFileName = filename
-                storeVM.bannerImage = image   // ✅ SAVE TO VIEWMODEL
+                Task { @MainActor in
+                    bannerImage = image
+                    bannerFileName = filename
+                    storeVM.bannerImage = image   // ✅ SAVE TO VIEWMODEL
+                    print("[Branding] stored banner -> storeVM OK")
+                }
             }
         }
 
         .onChange(of: iconPickedItem) { _, newValue in
             handlePhotoPicker(item: newValue) { image, filename in
-                iconImage = image
-                iconFileName = filename
-                storeVM.searchIcon = image   // ✅ SAVE TO VIEWMODEL
+                Task { @MainActor in
+                    iconImage = image
+                    iconFileName = filename
+                    storeVM.searchIcon = image   // ✅ SAVE TO VIEWMODEL
+                    print("[Branding] stored icon -> storeVM OK")
+                }
             }
         }
         
@@ -245,11 +262,16 @@ struct StoreBrandingView: View {
         completion: @escaping (UIImage, String) -> Void
     ) {
         guard let item else { return }
+
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let uiimg = UIImage(data: data) {
                 let filename = await item.itemIdentifier ?? "selected_file.png"
-                completion(uiimg, filename)
+
+                // Ensure completion and any ViewModel writes happen on the main actor
+                await MainActor.run {
+                    completion(uiimg, filename)
+                }
             }
         }
     }

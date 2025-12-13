@@ -120,7 +120,8 @@ class StoreRegistrationViewModel: ObservableObject {
         try await db.collection("users")
             .document(uid)
             .updateData([
-                "store_id": storeID
+                "store_id": storeID,
+                "onboarding_step": 8
             ])
 
         print("✅ STORE + USER LINKED SUCCESSFULLY")
@@ -219,21 +220,17 @@ class StoreRegistrationViewModel: ObservableObject {
 
         return schedule
     }
-//
-//    // -----------------------------------------------------
-//    // MARK: - TRACKING ITEM GENERATOR
-//    // -----------------------------------------------------
-//
-//    private func generateTrackingItems(from sections: [MenuSectionModel]) -> [[String: Any]] {
-//
-//        sections.flatMap { section in
-//            section.items.map { item in
-//                [
-//                    "item_id": UUID().uuidString,
-//                    "current_stock": item.stock,
-//                    "total_sold": 0
-//                ]
-//            }
-//        }
-//    }
+    
+    // -----------------------------------------------------
+    // MARK: - UPDATE ONBOARDING STEP
+    // -----------------------------------------------------
+    
+    func updateOnboardingStep(_ step: Int) async throws {
+        guard let uid = Auth.auth().currentUser?.uid else {
+            throw NSError(domain: "AUTH", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+        }
+        try await db.collection("users").document(uid).updateData([
+            "onboarding_step": step
+        ])
+    }
 }

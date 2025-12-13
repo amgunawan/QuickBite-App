@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct OnboardingView: View {
+    
+    @EnvironmentObject var authVM: AuthenticationViewModel
 
     var body: some View {
         NavigationStack {
@@ -32,6 +34,15 @@ struct OnboardingView: View {
                         enabled: true
                     )
                 }
+                .simultaneousGesture(TapGesture().onEnded {
+                    Task {
+                        do {
+                            try await authVM.updateOnboardingStep(8)
+                        } catch {
+                            print("Failed to update onboarding step: \(error.localizedDescription)")
+                        }
+                    }
+                })
                 .padding(.horizontal)
             }
             .padding(.vertical)

@@ -10,6 +10,8 @@ import SwiftUI
 struct PayoutSetupView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
     
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
     @State private var showBankPicker = false
     
     private let bankOptions = [
@@ -128,6 +130,15 @@ struct PayoutSetupView: View {
                     OrangeButton(title: "Complete Registration", enabled: canComplete)
                 }
             )
+            .simultaneousGesture(TapGesture().onEnded {
+                Task {
+                    do {
+                        try await authVM.updateOnboardingStep(4)
+                    } catch {
+                        print("Failed to update onboarding step: \(error.localizedDescription)")
+                    }
+                }
+            })
             .padding()
             .simultaneousGesture(TapGesture().onEnded {
                 hideKeyboard()

@@ -11,33 +11,30 @@ import FirebaseAuth
 
 struct InitialView: View {
     @State private var showSplash = true
-    @State private var userLoggedIn = (Auth.auth().currentUser != nil)
-    
+    @State private var listenerAttached = false
+
     @StateObject private var authVM = AuthenticationViewModel()
-    @State private var showSignInView: Bool = false
+    @StateObject private var storeVM = StoreRegistrationViewModel() // keep existing env usage
 
     var body: some View {
         ZStack {
-            VStack {
-                if userLoggedIn {
-                    UserContentView()
-                }
-                else {
+            Group {
+                // If no session -> show MainFormView (login / signup)
+                if authVM.currentUserSession == nil {
                     MainFormView()
+                        .environmentObject(authVM)
+                        .environmentObject(storeVM)
+                } else {
+                    // We have a user session; route according to role + onboardingStep
+                    OnboardingRouterView()
+                        .environmentObject(authVM)
+                        .environmentObject(storeVM)
                 }
             }
             .onAppear {
-                Auth.auth().addStateDidChangeListener { auth, user in
-                    guard let user = user else {
-                        userLoggedIn = false
-                        return
-                    }
-
-                    // ✅ ONLY allow navigation if email is verified
-                    userLoggedIn = user.isEmailVerified
-                }
+                // nothing else — the authVM already attaches listener in init()
             }
-            
+
             if showSplash {
                 SplashView {
                     withAnimation(.easeOut(duration: 0.6)) {
@@ -50,6 +47,7 @@ struct InitialView: View {
         }
     }
 }
+
 
 #Preview {
     InitialView()

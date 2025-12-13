@@ -6,357 +6,223 @@
 //
 
 import SwiftUI
+import PhotosUI
+import FirebaseStorage
 
 struct EditMenuTenantView: View {
     
     @Environment(\.dismiss) private var dismiss
+    @ObservedObject var viewModel: TenantMenuViewModel
     
     @State var item: MenuItem
     var onSave: (MenuItem) -> Void
     
-    private let minutesChoices = Array(stride(from: 5, through: 120, by: 5))
+    private let minuteChoices = Array(stride(from: 5, through: 120, by: 5))
     
-    @State private var customizationGroups: [CustomizationGroup] = [
-        CustomizationGroup(
-            title: "Noodle Type",
-            selectionType: "Choose 1",
-            options: [
-                CustomizationOption(name: "Thick", additionalPrice: 0),
-                CustomizationOption(name: "Thin", additionalPrice: 0)
-            ]
-        ),
-        CustomizationGroup(
-            title: "Level",
-            selectionType: "Choose 1",
-            options: [
-                CustomizationOption(name: "Sleeping (Lvl. 0)", additionalPrice: 0),
-                CustomizationOption(name: "Angry (Lvl. 5)", additionalPrice: 1550),
-                CustomizationOption(name: "Crazy (Lvl. 10)", additionalPrice: 3100)
-            ]
-        ),
-        CustomizationGroup(
-            title: "Topping",
-            selectionType: "Choose 1",
-            options: [
-                CustomizationOption(name: "Classic", additionalPrice: 0),
-                CustomizationOption(name: "Chicken Chashu", additionalPrice: 12400),
-                CustomizationOption(name: "US Beef", additionalPrice: 21700)
-            ]
-        ),
-        CustomizationGroup(
-            title: "Condiment",
-            selectionType: "Choose at least 2",
-            options: [
-                CustomizationOption(name: "Fried chillies", additionalPrice: 0),
-                CustomizationOption(name: "Fried onions", additionalPrice: 0),
-                CustomizationOption(name: "Chilli powder", additionalPrice: 0)
-            ]
-        )
-    ]
+    @State private var optionGroups: [MenuOptionGroup]
+    
+    // image picking
+    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var localImage: UIImage? = nil
+    @State private var fileName: String = "No file chosen"
+    
+    init(item: MenuItem, viewModel: TenantMenuViewModel, onSave: @escaping (MenuItem) -> Void) {
+        self._item = State(initialValue: item)
+        self._optionGroups = State(initialValue: item.options)
+        self.viewModel = viewModel
+        self.onSave = onSave
+    }
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
                 
                 ScrollView(showsIndicators: false) {
-                    
                     VStack(alignment: .leading, spacing: 22) {
                         
-                        itemPictureSection
+                        imageSection
                         Divider()
                         
-                        itemInformationSection
+                        infoSection
                         Divider()
                         
                         customizationSection
-                        
                     }
                     .padding(.horizontal, 16)
-                    .padding(.top, 12)
+                    .padding(.top, 16)
                 }
                 
-                VStack {
-                    Button {
-                        var updated = item                      // copy
-                        updated.customizationGroups = customizationGroups  // simpan perubahan
-                        
-                        onSave(updated)                         // kirim kembali ke parent
-                        dismiss()
-                    } label: {
-                        Text("Save Changes")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 14)
-                            .background(
-                                Color.orange,
-                                in: RoundedRectangle(cornerRadius: 14)
-                            )
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                
+                saveButton
             }
-            .navigationTitle("Edit Item")
+            .navigationTitle("Edit Menu")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .primaryAction) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark")
-                            .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.secondary)
                     }
                 }
             }
         }
-        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
-        .toolbarBackground(.visible, for: .navigationBar)
+        .presentationDetents([.fraction(0.95)])
+        .presentationCornerRadius(22)
+        .background(Color.white)
     }
 }
 
-private extension EditMenuTenantView {
+extension EditMenuTenantView {
     
-    func addNewSection() {
-        let newSection = CustomizationGroup(
-            title: "New Section",
-            selectionType: "Choose 1",
-            options: []
-        )
-        customizationGroups.append(newSection)
-    }
+    // ========================================================
+    // MARK: - IMAGE SECTION (STYLE MATCH AddMenuItemOverlay)
+    // ========================================================
     
-    func addOption(to group: CustomizationGroup) {
-        if let index = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-            let newOption = CustomizationOption(
-                name: "New Option",
-                additionalPrice: 0
-            )
-            customizationGroups[index].options.append(newOption)
-        }
-    }
-}
-
-private extension EditMenuTenantView {
-    var itemPictureSection: some View {
+    var imageSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             
-            Text("Item Picture")
+            Text("Item Image")
                 .font(.system(size: 17, weight: .semibold))
             
             HStack(alignment: .top, spacing: 14) {
                 
-                Image(item.imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 98, height: 98)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(Color(.systemGray5))
+                    
+                    if let img = localImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 98, height: 98)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        StorageImageView(imageURL: item.imageURL)
+                            .frame(width: 98, height: 98)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+                }
+                .frame(width: 98, height: 98)
                 
                 VStack(alignment: .leading, spacing: 10) {
                     
-                    HStack(spacing: 10) {
-                        Button {} label: {
-                            Text("Choose File")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.orange)
-                                .padding(.horizontal, 14)
-                                .padding(.vertical, 8)
-                                .background(Capsule().fill(Color.orange.opacity(0.15)))
-                        }
-                        .fixedSize()
-                        
-                        Text(item.imageFileName)
-                            .font(.system(size: 13))
-                            .foregroundColor(.gray)
-                            .lineLimit(1)
+                    // MATCH AddMenuItemOverlay BUTTON
+                    PhotosPicker(selection: $pickedPhoto, matching: .images) {
+                        Text("Choose File")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.orange)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 8)
+                            .background(Capsule().fill(Color.orange.opacity(0.15)))
                     }
+                    
+                    
                     
                     Text("A clear, square image looks best")
                         .font(.system(size: 13))
                         .foregroundColor(.secondary)
-                    
-                    // Stock
-                    HStack(spacing: 10) {
-                        Text("Current Stock:")
-                            .font(.system(size: 15))
-                        
-                        HStack(spacing: 0) {
-                            Button {
-                                if item.stock > 0 { item.stock -= 1 }
-                            } label: {
-                                Image(systemName: "minus")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.gray)
-                                    .frame(width: 32, height: 32)
-                            }
-                            
-                            Text("\(item.stock)")
-                                .font(.system(size: 15, weight: .medium))
-                                .frame(width: 40)
-                            
-                            Button {
-                                if item.stock < 999 { item.stock += 1 }
-                            } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.gray)
-                                    .frame(width: 32, height: 32)
-                            }
-                        }
-                        .background(
-                            RoundedRectangle(cornerRadius: 10)
-                                .stroke(Color.gray.opacity(0.3))
-                        )
-                    }
-                    .padding(.top, 4)
                 }
                 
                 Spacer()
             }
         }
+        .onChange(of: pickedPhoto) { _, _ in
+            Task { await uploadPickedImage() }
+        }
     }
     
-    var itemInformationSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
+    // Upload Image to Firebase
+    private func uploadPickedImage() async {
+        guard let pickedPhoto else { return }
+        
+        do {
+            if let data = try await pickedPhoto.loadTransferable(type: Data.self),
+               let img = UIImage(data: data) {
+                self.localImage = img
+                self.fileName = pickedPhoto.itemIdentifier ?? "image.jpg"
+                
+                let filename = "IMG-\(UUID().uuidString.prefix(6)).jpg"
+                
+                viewModel.uploadImage(data, filename: filename, category: item.category) { url in
+                    if let url = url {
+                        DispatchQueue.main.async {
+                            self.item.imageURL = "\(url)?v=\(UUID().uuidString)"
+                        }
+                    }
+                }
+            }
+        } catch {
+            print("Error:", error)
+        }
+    }
+    
+    
+    // ========================================================
+    // MARK: - ITEM INFORMATION SECTION
+    // ========================================================
+    
+    var infoSection: some View {
+        VStack(alignment: .leading, spacing: 18) {
             
             Text("Item Information")
                 .font(.system(size: 17, weight: .semibold))
             
-            // NAME
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Item Name")
-                    .font(.caption)
-                
-                TextField("Enter name", text: $item.name)
-                    .font(.system(size: 15))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .frame(height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
-                    )
-            }
+            field(title: "Name", text: $item.name)
+            field(title: "Short Description", text: $item.description, multiline: true)
             
-            // DESCRIPTION
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Short description")
-                    .font(.caption)
-
-                ZStack(alignment: .topLeading) {
-
-                    if item.shortDescription.isEmpty {
-                        Text("A short, enticing description...")
-                            .foregroundColor(.gray.opacity(0.5))
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 10)
-                            .allowsHitTesting(false)
-                    }
-
-                    CustomTextEditor(text: $item.shortDescription, wordLimit: 100)
-                        .frame(minHeight: 90)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .scrollContentBackground(.hidden)
-                        .background(Color.clear)
-                }
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3))
-                        .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
-                )
-
-                // ✅ LIVE WORD COUNTER
-                HStack {
-                    Spacer()
-
-                    let wordCount = item.shortDescription
-                        .split(whereSeparator: { $0.isWhitespace || $0.isNewline })
-                        .count
-
-                    Text("\(wordCount) / 100 words")
-                        .font(.caption)
-                        .foregroundColor(
-                            wordCount >= 100 ? .red :
-                            wordCount >= 70 ? .orange :
-                            .secondary
+            HStack(spacing: 12) {
+                fieldNumber(title: "Base Price (Rp)", value: $item.price)
+                // STOCK
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Stock / Day").font(.caption)
+                    
+                    TextField("0", value: $item.currentStock, formatter: NumberFormatter.decimalNoGrouping)
+                        .keyboardType(.numberPad)
+                        .padding(10)
+                        .background(
+                            RoundedRectangle(cornerRadius: 10)
+                                .stroke(Color.gray.opacity(0.3))
                         )
                 }
-            }
-
-            
-            // PRICE + PREP TIME
-            HStack(spacing: 12) {
-                
-                // PRICE
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Base Price (Rp)")
-                        .font(.caption)
+                    fieldNumber(title: "Prep Time (Max)", value: $item.prepTimeMinutes)
                     
-                    TextField("35000",
-                              value: $item.price,
-                              formatter: NumberFormatter.decimalNoGrouping)
-                    .keyboardType(.numberPad)
-                    .font(.system(size: 15))
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .frame(height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.3))
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
-                    )
                 }
                 
-                // PREP TIME
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Prep Time (Minimum)")
-                        .font(.caption)
-                    
-                    HStack(spacing: 8) {
-                        Picker("", selection: $item.prepMinutes) {
-                            ForEach(minutesChoices, id: \.self) { m in
-                                Text("\(m)").tag(m)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.orange)
-                        
-                        Text("mins")
-                            .foregroundColor(.secondary)
-                    }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .frame(height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color.gray.opacity(0.3))
-                            .background(RoundedRectangle(cornerRadius: 10).fill(Color.white))
-                    )
-                }
             }
-            HStack {
-                (
-                    Text("Customer sees: ") +
-                    Text("\(item.prepMinutes + 10)")
-                        .fontWeight(.semibold)
-                        .foregroundColor(.orange) +
-                    Text(" mins (\(item.prepMinutes) min prep + 10 min buffer)")
-                )
-                .font(.system(size: 13))
-            }
-            .padding(.horizontal, 21)
-            .padding(.vertical, 10)
-            .background(RoundedRectangle(cornerRadius: 10).fill(Color.orange.opacity(0.12)))
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.orange.opacity(0.25)))
-            
-            Text("Time must be accurate within 10 mins tolerance to avoid penalty")
-                .font(.caption2)
-                .foregroundColor(.red)
-                .padding(.horizontal, 14)
         }
     }
+    
+    private func field(title: String, text: Binding<String>, multiline: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption)
+            
+            if multiline {
+                TextEditor(text: text)
+                    .frame(minHeight: 80)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+            } else {
+                TextField("", text: text)
+                    .padding(10)
+                    .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+            }
+        }
+    }
+    
+    private func fieldNumber(title: String, value: Binding<Int>) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption)
+            TextField("0", value: value, formatter: NumberFormatter.decimalNoGrouping)
+                .keyboardType(.numberPad)
+                .padding(10)
+                .background(RoundedRectangle(cornerRadius: 10).stroke(Color.gray.opacity(0.3)))
+        }
+    }
+    
+    
+    // ========================================================
+    // MARK: - CUSTOMIZATION SECTION (MATCH OVERLAY DESIGN)
+    // ========================================================
     
     var customizationSection: some View {
         VStack(alignment: .leading, spacing: 22) {
@@ -364,69 +230,49 @@ private extension EditMenuTenantView {
             Text("Customization Options")
                 .font(.system(size: 17, weight: .semibold))
             
-            ForEach($customizationGroups) { $group in
+            ForEach($optionGroups) { $group in
                 
                 VStack(alignment: .leading, spacing: 10) {
+                    
+                    // HEADER with delete button
                     HStack {
-                        TextField("Section Name", text: $group.title)
+                        TextField("Section Name", text: $group.category)
                             .font(.system(size: 14, weight: .semibold))
                         
                         Spacer()
                         
-                        Button("Delete Group") {
-                            if let index = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-                                customizationGroups.remove(at: index)
+                        Button {
+                            if let idx = optionGroups.firstIndex(where: { $0.id == group.id }) {
+                                optionGroups.remove(at: idx)
                             }
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
                         }
-                        .foregroundColor(.red)
-                        .font(.system(size: 13))
                     }
                     .padding(10)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
                     
-                    // OPTIONS LIST
+                    // MIN + MAX selection
+                    HStack {
+                        Stepper("Min: \(group.minSelect)", value: $group.minSelect)
+                        Stepper("Max: \(group.maxSelect)", value: $group.maxSelect)
+                    }
+                    .font(.caption)
+                    
+                    // OPTION LIST
                     VStack(spacing: 12) {
-                        ForEach($group.options) { $option in
-                            HStack(spacing: 10) {
-                                
-                                // Editable Option Name
-                                TextField("Name", text: $option.name)
-                                    .font(.system(size: 15))
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 8)
-                                    .frame(height: 40)
-                                    .background(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                    )
-                                
-                                Text("Rp +")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(.gray)
-                                
-                                // Price field
-                                TextField("0",
-                                          value: $option.additionalPrice,
-                                          formatter: NumberFormatter.decimalNoGrouping)
-                                .keyboardType(.numberPad)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 8)
-                                .frame(width: 90, height: 40)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 10)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                            }
+                        ForEach($group.choices) { $choice in
+                            optionRow(option: $choice)
                         }
                         
-                        // ADD OPTION KHUSUS GROUP INI
                         Button {
-                            addOption(to: group)
+                            group.choices.append(MenuChoice(name: "", additionalPrice: 0))
                         } label: {
                             Text("+ Add option")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color.orange)
+                                .foregroundColor(.orange)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
                                 .background(Capsule().fill(Color.orange.opacity(0.12)))
@@ -434,43 +280,80 @@ private extension EditMenuTenantView {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
-                .padding(.bottom, 4)
             }
             
+            // ADD NEW GROUP
             Button {
-                addNewSection()
+                optionGroups.append(
+                    MenuOptionGroup(category: "", minSelect: 1, maxSelect: 1, choices: [])
+                )
             } label: {
                 Text("Add New Section")
-                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
+                    .font(.system(size: 14, weight: .semibold))
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(Capsule().fill(Color.orange))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
     }
+    
+    private func optionRow(option: Binding<MenuChoice>) -> some View {
+        HStack(spacing: 10) {
+            
+            TextField("Name", text: option.name)
+                .padding(10)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.gray.opacity(0.3))
+                )
+            
+            Text("Rp +")
+                .foregroundColor(.gray)
+            
+            TextField("0", value: option.additionalPrice, formatter: NumberFormatter.decimalNoGrouping)
+                .keyboardType(.numberPad)
+                .padding(10)
+                .frame(width: 80)
+                .background(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.gray.opacity(0.3))
+                )
+        }
+    }
+    
+    
+    // ========================================================
+    // MARK: - SAVE BUTTON
+    // ========================================================
+    
+    var saveButton: some View {
+        VStack {
+            Button {
+                var updated = item
+                updated.options = optionGroups
+                onSave(updated)
+                dismiss()
+            } label: {
+                Text("Save Changes")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.orange, in: RoundedRectangle(cornerRadius: 14))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background(Color.white)
+    }
 }
 
 extension NumberFormatter {
     static var decimalNoGrouping: NumberFormatter {
-        let f = NumberFormatter()
-        f.numberStyle = .none
-        return f
+        let nf = NumberFormatter()
+        nf.numberStyle = .none
+        return nf
     }
-}
-
-#Preview {
-    EditMenuTenantView(
-        item: MenuItem(
-            name: "Sample Item",
-            price: 35000,
-            stock: 10,
-            shortDescription: "Dummy description for preview.",
-            prepMinutes: 15,
-            imageName: "ChickenKatsuShirokaraRamen",
-            imageFileName: "default.jpg"
-        ),
-        onSave: { _ in }
-    )
 }

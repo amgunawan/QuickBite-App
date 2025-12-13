@@ -166,19 +166,19 @@ class StoreRegistrationViewModel: ObservableObject {
                 let upload = MenuItemUploadModel(
                     item_id: itemUUID,
                     name: item.name,
-                    description: item.shortDescription,
+                    description: item.description,
                     price: item.price,
-                    default_stock: item.stock,
-                    prep_time_minutes: item.prepMinutes,
+                    default_stock: item.defaultStock,
+                    prep_time_minutes: item.prepTimeMinutes,
                     category: section.title,
-                    image_url: "" // leave empty for now or fill if you uploaded item images
+                    image_url: item.imageURL
                 )
                 flatItems.append(upload)
 
                 // Generate tracking item using same item_id
                 let tracking: [String: Any] = [
                     "item_id": itemUUID,
-                    "current_stock": item.stock,
+                    "current_stock": item.defaultStock,
                     "total_sold": 0
                 ]
                 trackingItems.append(tracking)

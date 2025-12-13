@@ -158,7 +158,7 @@ struct MenuSetupView: View {
                 }
 
                 // Prep time must be > 0
-                if item.prepMinutes <= 0 {
+                if item.prepTimeMinutes <= 0 {
                     return false
                 }
             }
@@ -239,14 +239,17 @@ struct MenuSetupView: View {
     private func addItem(in secIdx: Int) {
 
         let newItem = MenuItem(
+            itemId: "ITEM_\(UUID().uuidString.prefix(6))",
             name: "",
+            description: "",
             price: 0,
-            stock: 10,
-            shortDescription: "",
-            prepMinutes: 0,
-            imageName: "placeholder"
+            defaultStock: 10,
+            prepTimeMinutes: 0,
+            category: sections[secIdx].title,
+            imageURL: "",
+            options: [],
+            currentStock: 10
         )
-
         sections[secIdx].items.insert(newItem, at: 0)
     }
 }
@@ -258,13 +261,19 @@ private struct MenuRow: View {
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-
-            Image(item.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 72, height: 72)
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .allowsHitTesting(false)
+            AsyncImage(url: URL(string: item.imageURL)) { phase in
+                if let img = phase.image {
+                    img.resizable().scaledToFill()
+                } else if phase.error != nil {
+                    Image("placeholder")
+                        .resizable()
+                        .scaledToFill()
+                } else {
+                    ProgressView()
+                }
+            }
+            .frame(width: 72, height: 72)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             VStack(alignment: .leading, spacing: 6) {
 
@@ -272,9 +281,9 @@ private struct MenuRow: View {
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
 
-                StatusBadge(status: item.status)
+                StatusBadge(status: item.stockStatus)
 
-                Text("Rp\(formatRupiah(item.price))")
+                Text("Rp\(formatPrice(Double(item.price)))")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.orange)
             }
@@ -310,13 +319,6 @@ private struct StatusBadge: View {
             .padding(.vertical, 4)
             .background(bg, in: Capsule())
     }
-}
-
-private func formatRupiah(_ value: Int) -> String {
-    let f = NumberFormatter()
-    f.numberStyle = .decimal
-    f.groupingSeparator = "."
-    return f.string(from: NSNumber(value: value)) ?? "\(value)"
 }
 
 #Preview {

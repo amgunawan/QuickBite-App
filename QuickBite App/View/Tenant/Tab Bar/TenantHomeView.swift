@@ -185,7 +185,7 @@ struct TenantHomeView: View {
                     AllReviewsTenantView()
 
                 case .manageStock:
-                    ManageMenuStockTenantView()
+                    ManageMenuStockTenantView(storeId: storeId)
                 }
             }
 

@@ -90,6 +90,7 @@ struct TenantProfileCard: View {
 }
 
 struct TenantProfileView: View {
+    let storeId = "2plb4UCwxjle2Yy6PTdj"
     @State private var tenantusername = "sharontan1"
     @State private var tenantemail =
             UserDefaults.standard.string(forKey: "tenant.email") ?? "sharontan1@gmail.com"
@@ -136,7 +137,8 @@ struct TenantProfileView: View {
                     // === Menu List ===
                     List {
                         Section(header: Text("Store Management")) {
-                            NavigationLink { ManageMenuStockTenantView() } label: {
+                            NavigationLink { ManageMenuStockTenantView(storeId: storeId) }
+                            label: {
                                 TenantSettingsRowLabel(systemIcon: "fork.knife", tint: .gray, title: "Manage Menu & Stock")
                             }
                             NavigationLink { EditStoreDetailsTenantView() } label: {

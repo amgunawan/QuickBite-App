@@ -88,7 +88,7 @@ struct EditProfileTenantView: View {
                     
                     // FULL NAME
                     VStack(alignment: .leading, spacing: 6) {
-                        labelRequired("Full Name")
+                        label("Full Name")
                         HStack {
                             TextField("Your full name", text: $tenantfullName)
                                 .textInputAutocapitalization(.words)
@@ -251,6 +251,12 @@ struct EditProfileTenantView: View {
         }
         .font(.subheadline)
         .foregroundColor(.secondary)
+    }
+    
+    private func label(_ text: String) -> some View {
+        Text(text)
+            .font(.subheadline)
+            .foregroundColor(.secondary)
     }
     
     private func row(icon: String, title: String) -> some View {

@@ -7,135 +7,174 @@ import SwiftUI
 import FirebaseStorage
 
 struct ManageMenuStockTenantView: View {
-    
+
     @StateObject private var viewModel: TenantMenuViewModel
-    
+
+    // EDIT FLOW
     @State private var selectedItem: MenuItem? = nil
-    @State private var showEditSheet = false
-    @State private var showAddSheet = false     // 👉 Sheet untuk Add Item
-    
-    // storeId di-pass dari parent page
+
+    // ADD FLOW
+    @State private var showAddSheet = false
+    @State private var pendingCategory: String = ""
+
+    // DELETE FLOW
+    @State private var itemToDelete: MenuItem? = nil
+    @State private var showDeleteAlert = false
+
     init(storeId: String) {
-        _viewModel = StateObject(wrappedValue: TenantMenuViewModel(storeId: storeId))
+        _viewModel = StateObject(
+            wrappedValue: TenantMenuViewModel(storeId: storeId)
+        )
     }
-    
+
     var body: some View {
-        ScrollView {
+        List {
+
+            // ===============================
+            // LOADING
+            // ===============================
             if viewModel.isLoading {
-                ProgressView("Loading...")
-                    .padding()
+                HStack {
+                    Spacer()
+                    ProgressView("Loading...")
+                    Spacer()
+                }
             }
-            
+
+            // ===============================
+            // ERROR
+            // ===============================
             else if let error = viewModel.errorMessage {
                 VStack(spacing: 10) {
                     Text(error)
                         .foregroundColor(.red)
                         .multilineTextAlignment(.center)
-                    
+
                     Button("Retry") {
                         viewModel.refresh()
                     }
-                    .padding(.top, 4)
                 }
-                .padding()
+                .frame(maxWidth: .infinity)
             }
-            
+
+            // ===============================
+            // CONTENT
+            // ===============================
             else {
-                VStack(spacing: 16) {
-                    ForEach(viewModel.sections) { section in
-                        SectionCard(
-                            title: section.title,
-                            onAddItem: {
-                                viewModel.addItem(to: section.title)   // Insert placeholder
-                                showAddSheet = true                    // Open AddOverlay
+                ForEach(viewModel.sections) { section in
+
+                    Section {
+
+                        ForEach(section.items) { item in
+                            MenuRow(item: item) {
+                                // ✅ FIX: langsung buka edit (tidak perlu tap dua kali)
+                                selectedItem = item
                             }
-                        ) {
-                            VStack(spacing: 12) {
-                                ForEach(section.items) { item in
-                                    MenuRow(item: item) {
-                                        selectedItem = item
-                                        showEditSheet = true
-                                    }
+                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                                Button(role: .destructive) {
+                                    itemToDelete = item
+                                    showDeleteAlert = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
                                 }
                             }
                         }
+
+                    } header: {
+                        SectionHeader(
+                            title: section.title,
+                            onAddItem: {
+                                pendingCategory = section.title
+                                viewModel.addItem(to: section.title)
+                                showAddSheet = true
+                            }
+                        )
                     }
                 }
-                .padding(.top, 12)
             }
         }
+        .listStyle(.plain)
         .navigationTitle("Manage Menu & Stock")
         .navigationBarTitleDisplayMode(.inline)
-        
-        // ===================================================
-        // SHEET: EDIT ITEM
-        // ===================================================
-        .sheet(isPresented: $showEditSheet) {
-            if let item = selectedItem {
-                EditMenuTenantView(item: item, viewModel: viewModel) { updated in
-                    viewModel.updateItem(updated)
-                    showEditSheet = false
+
+        // ===============================
+        // EDIT ITEM
+        // ===============================
+        .sheet(item: $selectedItem) { item in
+            EditMenuTenantView(
+                item: item,
+                viewModel: viewModel
+            ) { updated in
+                viewModel.updateItem(updated)
+                selectedItem = nil
+            }
+            .presentationDetents([.fraction(0.95)])
+            .presentationCornerRadius(22)
+        }
+
+        // ===============================
+        // ADD ITEM
+        // ===============================
+        .sheet(isPresented: $showAddSheet) {
+            if viewModel.newItemDraft != nil {
+                AddMenuItemOverlay { completedItem in
+                    var fixed = completedItem
+                    fixed.category = pendingCategory
+                    viewModel.saveNewItem(fixed)
+                    showAddSheet = false
                 }
                 .presentationDetents([.fraction(0.95)])
-                .presentationDragIndicator(.visible)
                 .presentationCornerRadius(22)
             }
         }
-        
-        // ===================================================
-        // SHEET: ADD NEW ITEM (after pressing Add Item)
-        // ===================================================
-        .sheet(isPresented: $showAddSheet) {
-            if let draft = viewModel.newItemDraft {
-                AddMenuItemOverlay(onSave: { completedItem in
-                    viewModel.saveNewItem(completedItem)
-                    showAddSheet = false
-                })
-                .presentationDetents([.fraction(0.95)])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(22)
+
+        // ===============================
+        // DELETE CONFIRMATION
+        // ===============================
+        .alert(
+            "Delete Menu",
+            isPresented: $showDeleteAlert,
+            presenting: itemToDelete
+        ) { item in
+
+            Button("Delete", role: .destructive) {
+                viewModel.deleteItem(item)
             }
+
+            Button("Cancel", role: .cancel) { }
+
+        } message: { item in
+            Text("Are you sure you want to delete \"\(item.name)\"?")
         }
     }
 }
 
 // ======================================================================
-// MARK: - SECTION CARD
+// MARK: - SECTION HEADER (UI SAMA)
 // ======================================================================
 
-private struct SectionCard<Content: View>: View {
-    
+private struct SectionHeader: View {
+
     let title: String
     let onAddItem: () -> Void
-    @ViewBuilder let content: Content
-    
+
     var body: some View {
-        VStack(spacing: 12) {
-            
-            HStack {
-                Text(title)
-                    .font(.headline)
-                
-                Spacer()
-                
-                Button(action: onAddItem) {
-                    Text("Add Item")
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(Color.orange, in: Capsule())
-                }
+        HStack {
+            Text(title)
+                .font(.headline)
+
+            Spacer()
+
+            Button(action: onAddItem) {
+                Text("Add Item")
+                    .font(.caption.weight(.semibold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color.orange, in: Capsule())
             }
-            .padding(.horizontal)
-            
-            Divider()
-                .overlay(Color.orange.opacity(0.25))
-                .padding(.horizontal)
-            
-            content
-                .padding(.horizontal)
         }
+        .padding(.vertical, 8)
     }
 }
 
@@ -173,11 +212,5 @@ struct StorageImageView: View {
                 self.uiImage = img
             }
         }
-    }
-}
-
-#Preview {
-    NavigationStack {
-        ManageMenuStockTenantView(storeId: "2plb4UCwxjle2Yy6PTdj")
     }
 }

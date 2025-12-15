@@ -10,7 +10,8 @@ import Foundation
 
 struct FinancialPayoutsTenantView: View {
     @Environment(\.dismiss) private var dismiss
-
+    @StateObject private var vm = FinancialPayoutsViewModel(storeId: "2plb4UCwxjle2Yy6PTdj")
+    
     private let bankOptions = [
         "Bank Central Asia (BCA)",
         "Bank Mandiri",
@@ -21,41 +22,36 @@ struct FinancialPayoutsTenantView: View {
         "Bank Permata",
         "Bank Panin",
         "Bank Maybank Indonesia",
-        "Bank OCBC NISP"
+        "Bank OCBC NISP",
+        "Bank Jago"
     ]
-
-    @State private var bankName: String = "Bank Central Asia (BCA)"
-    @State private var accountHolder: String = "Sharon Tanjaya"
-    @State private var accountNumber: String = "8985354436"
-    @State private var nmid: String = "ID8475917492837"
-
+    
     @State private var showBankPicker = false
-    @State private var isDirty = false
-
+    
     private var isValid: Bool {
-        !bankName.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !accountHolder.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !accountNumber.trimmingCharacters(in: .whitespaces).isEmpty &&
-        !nmid.trimmingCharacters(in: .whitespaces).isEmpty
+        !vm.bankName.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !vm.accountHolder.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !vm.accountNumber.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !vm.nmid.trimmingCharacters(in: .whitespaces).isEmpty
     }
-
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-
+                
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Bank Account Details")
                         .font(.title3).bold()
-
+                    
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Bank Name").font(.subheadline).foregroundColor(.secondary)
-
+                        
                         Button {
                             showBankPicker = true
                         } label: {
                             HStack {
-                                Text(bankName.isEmpty ? "Select bank" : bankName)
-                                    .foregroundColor(bankName.isEmpty ? .secondary : .primary)
+                                Text(vm.bankName.isEmpty ? "Select bank" : vm.bankName)
+                                    .foregroundColor(vm.bankName.isEmpty ? .secondary : .primary)
                                 Spacer()
                                 Image(systemName: "chevron.down").foregroundColor(.gray)
                             }
@@ -64,46 +60,55 @@ struct FinancialPayoutsTenantView: View {
                                         in: RoundedRectangle(cornerRadius: 4, style: .continuous))
                         }
                     }
-
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Account Holder Name").font(.subheadline).foregroundColor(.secondary)
-                        TextField("Enter account holder name", text: $accountHolder.onChange { isDirty = true })
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .fieldStyle()
+                        TextField(
+                            "Enter account holder name",
+                            text: $vm.accountHolder
+                        )
+                        .onChange(of: vm.accountHolder) { _ in
+                            vm.markDirty()
+                        }
+                        .fieldStyle()
                         Text("Account holder name must match the name on KTP uploaded")
                             .font(.footnote).foregroundColor(.secondary)
                     }
-
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Account Number").font(.subheadline).foregroundColor(.secondary)
-                        TextField("Enter account number", text: $accountNumber.onChange {
-                            // keep numeric only (opsional)
-                            accountNumber = accountNumber.filter { $0.isNumber }
-                            isDirty = true
-                        })
+                        TextField(
+                            "Enter account number",
+                            text: $vm.accountNumber
+                        )
                         .keyboardType(.numberPad)
+                        .onChange(of: vm.accountNumber) { newValue in
+                            vm.numericAccountOnly(newValue)
+                        }
                         .fieldStyle()
                     }
-
+                    
                     Divider().padding(.top, 4)
                 }
-
+                
                 VStack(alignment: .leading, spacing: 12) {
                     Text("QRIS")
                         .font(.title3).bold()
-
+                    
                     VStack(alignment: .leading, spacing: 6) {
                         Text("NMID (National Merchant ID)").font(.subheadline).foregroundColor(.secondary)
-                        TextField("Enter NMID", text: $nmid.onChange { isDirty = true })
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .keyboardType(.asciiCapable)
+                        TextField("Enter NMID", text: $vm.nmid)
+                            .onChange(of: vm.nmid) { _ in
+                                vm.markDirty()
+                            }
                             .fieldStyle()
                         Text("This is required for integrated digital payments. It should be provided by your QRIS provider.")
                             .font(.footnote).foregroundColor(.secondary)
                     }
                 }
+            }
+            .onAppear {
+                vm.fetchPayoutDetails()
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
@@ -116,23 +121,27 @@ struct FinancialPayoutsTenantView: View {
         .safeAreaInset(edge: .bottom) {
             HStack {
                 Button {
-                    dismiss()
+                    vm.savePayoutDetails {
+                        dismiss()
+                    }
                 } label: {
                     Text("Save Changes")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
-                        .background(isDirty && isValid ? Color.orange : Color.orange.opacity(0.4))
+                        .background(vm.isDirty && vm.isValid
+                                    ? Color.orange
+                                    : Color.orange.opacity(0.4))
                         .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                        .clipShape(RoundedRectangle(cornerRadius: 22))
                 }
-                .disabled(!(isDirty && isValid))
+                .disabled(!(vm.isDirty && vm.isValid))
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
             .padding(.bottom, 12)
         }
-
+        
         .sheet(isPresented: $showBankPicker) {
             VStack(spacing: 4) {
                 HStack {
@@ -144,27 +153,27 @@ struct FinancialPayoutsTenantView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 24)
                 .padding(.bottom, 10)
-
+                
                 Divider()
-
+                
                 ScrollView {
                     VStack(spacing: 0) {
                         ForEach(bankOptions, id: \.self) { bank in
                             Button {
-                                bankName = bank
-                                isDirty = true
+                                vm.bankName = bank
+                                vm.markDirty()
                                 showBankPicker = false
                             } label: {
                                 HStack {
                                     Text(bank)
-                                        .foregroundColor(.primary)   // hitam
-                                        .font(.body)
+                                        .foregroundColor(.primary)
                                     Spacer()
                                 }
                                 .padding(.horizontal, 16)
                                 .padding(.vertical, 14)
                             }
                             .buttonStyle(.plain)
+                            
                             Divider().padding(.leading, 16)
                         }
                     }
@@ -196,9 +205,3 @@ private extension Binding where Value == String {
         )
     }
 }
-
-//#Preview {
-//    NavigationStack {
-//        FinancialPayoutsTenantView()
-//    }
-//}

@@ -39,22 +39,9 @@
 		0BC1B1362EB0A13C006C6206 /* QuickBite AppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "QuickBite AppUITests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		942714162EEBE8A800F1575E /* Exceptions for "QuickBite App" folder in "QuickBite" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Model/Untitled.swift,
-			);
-			target = 0BC1B11E2EB0A13B006C6206 /* QuickBite */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0BC1B1212EB0A13B006C6206 /* QuickBite App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				942714162EEBE8A800F1575E /* Exceptions for "QuickBite App" folder in "QuickBite" target */,
-			);
 			path = "QuickBite App";
 			sourceTree = "<group>";
 		};
@@ -447,7 +434,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HWAV4P2XC6;
+				DEVELOPMENT_TEAM = SY4L78Q5L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "QuickBite-Info.plist";
@@ -463,7 +450,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = UC.QuickBite.Application;
+				PRODUCT_BUNDLE_IDENTIFIER = "UC.QuickBite-Apps";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
@@ -482,7 +469,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = HWAV4P2XC6;
+				DEVELOPMENT_TEAM = SY4L78Q5L7;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "QuickBite-Info.plist";
@@ -498,7 +485,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = UC.QuickBite.Application;
+				PRODUCT_BUNDLE_IDENTIFIER = "UC.QuickBite-Apps";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;

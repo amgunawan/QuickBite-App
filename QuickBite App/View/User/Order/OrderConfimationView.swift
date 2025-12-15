@@ -273,7 +273,7 @@ struct OrderConfirmationView: View {
         }
         .navigationDestination(isPresented: $navigateToCompleted) {
             OrderPickUpView(
-              //  qrImage: generatedQR,
+                qrImage: generatedQR,
                 orderId: generatedOrderId
             )
             .navigationBarBackButtonHidden(true)

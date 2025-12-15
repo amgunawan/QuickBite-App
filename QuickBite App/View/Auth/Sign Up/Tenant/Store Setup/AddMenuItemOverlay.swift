@@ -395,17 +395,17 @@ extension AddMenuItemOverlay {
                     name: itemName,
                     description: shortDescription,
                     price: finalPrice,
-                    defaultStock: finalStock,
-                    prepTimeMinutes: prepMinutes,
                     category: "",                // section title akan mengisi ini di MenuSetupView
                     imageURL: "",                // nanti setelah upload gambar
+                    defaultStock: finalStock,
+                    prepTimeMinutes: prepMinutes,
                     options: customizationGroups.map { group in
                         MenuOptionGroup(
                             category: group.title,
                             minSelect: group.selectionType == "Choose 1" ? 1 : 0,
                             maxSelect: group.selectionType == "Choose 1" ? 1 : group.options.count,
                             choices: group.options.map {
-                                MenuChoice(name: $0.name, additionalPrice: $0.additionalPrice)
+                                MenuOptionChoice(name: $0.name, additionalPrice: $0.additionalPrice)
                             }
                         )
                     }

@@ -13,7 +13,7 @@ struct RestaurantDetailView: View {
     @StateObject private var viewModel = RestaurantDetailViewModel()
     @EnvironmentObject var cart: CartViewModel
     
-    @State private var selectedItemForOptions: MenuItemModel?
+    @State private var selectedItemForOptions: MenuItem?
     @State private var showingCart = false
     @State private var showingGroupCart = false
     @State private var isGroupOrderActive = false
@@ -129,7 +129,7 @@ struct RestaurantDetailView: View {
 }
 
 struct MenuRowLink: View {
-    let item: MenuItemModel
+    let item: MenuItem
     let finalPrice: Double
     let originalPrice: Double?
     let onAdd: () -> Void

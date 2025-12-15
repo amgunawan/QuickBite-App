@@ -7,6 +7,82 @@
 
 import SwiftUI
 
+struct OptionGroupView: View {
+    let category: MenuOptionGroup
+    @Binding var selections: [String: Set<MenuOptionChoice>]
+
+    var isMultiSelect: Bool {
+        category.maxSelect > 1
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+
+            // Header
+            HStack {
+                Text(category.category)
+                    .font(.system(size: 16, weight: .semibold))
+                Spacer()
+                Text(subtitle)
+                    .font(.system(size: 14))
+                    .foregroundColor(isRequirementMet ? .gray : .orange)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, 10)
+            .background(Color(.systemGray6))
+
+            // Choices
+            VStack(spacing: 0) {
+                ForEach(category.choices, id: \.name) { choice in
+                    OptionRowView(
+                        name: choice.name,
+                        price: Double(choice.additionalPrice),
+                        isSelected: selections[category.category]?.contains(choice) ?? false,
+                        isMultiSelect: isMultiSelect
+                    ) {
+                        toggle(choice)
+                    }
+                    .padding(.horizontal)
+
+                    if choice.name != category.choices.last?.name {
+                        Divider().padding(.horizontal)
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Helpers
+
+    var isRequirementMet: Bool {
+        let count = selections[category.category]?.count ?? 0
+        return count >= category.minSelect
+    }
+
+    var subtitle: String {
+        if category.maxSelect == 1 { return "Choose 1" }
+        if category.minSelect == 0 { return "Optional (Max \(category.maxSelect))" }
+        return "Choose \(category.minSelect) - \(category.maxSelect)"
+    }
+
+    func toggle(_ choice: MenuOptionChoice) {
+        var current = selections[category.category] ?? []
+
+        if current.contains(choice) {
+            current.remove(choice)
+        } else {
+            if category.maxSelect == 1 {
+                current = [choice]
+            } else if current.count < category.maxSelect {
+                current.insert(choice)
+            }
+        }
+
+        selections[category.category] = current
+    }
+}
+
+
 struct MenuOptionsView: View {
     
     @EnvironmentObject var cart: CartViewModel
@@ -17,7 +93,7 @@ struct MenuOptionsView: View {
     let restaurantId: String
     
     // Data Menu
-    let item: MenuItemModel
+    let item: MenuItem
     let finalPrice: Double
     let originalPrice: Double?
     var itemToEdit: CartItemModel? = nil
@@ -30,7 +106,7 @@ struct MenuOptionsView: View {
     @State private var selections: [String: Set<MenuOptionChoice>] = [:]
     
     // Init Custom
-    init(restaurantName: String, restaurantId: String, item: MenuItemModel, finalPrice: Double, originalPrice: Double?, itemToEdit: CartItemModel? = nil) {
+    init(restaurantName: String, restaurantId: String, item: MenuItem, finalPrice: Double, originalPrice: Double?, itemToEdit: CartItemModel? = nil) {
         self.restaurantName = restaurantName
         self.restaurantId = restaurantId
         self.item = item
@@ -49,7 +125,7 @@ struct MenuOptionsView: View {
         var total: Double = 0
         for (_, choices) in selections {
             for choice in choices {
-                total += Double(choice.price)
+                total += Double(choice.additionalPrice)
             }
         }
         return total
@@ -101,48 +177,12 @@ struct MenuOptionsView: View {
                             
                             // 2. DYNAMIC OPTIONS LOOP
                             if let options = item.options {
-                                ForEach(options, id: \.category) { category in
-                                    
-                                    // Tentukan apakah ini Checkbox atau Radio
-                                    let isMultiSelect = category.maxSelect > 1
-                                    
-                                    VStack(alignment: .leading, spacing: 0) {
-                                        // Section Header
-                                        HStack {
-                                            Text(category.category)
-                                                .font(.system(size: 16, weight: .semibold))
-                                            Spacer()
-                                            
-                                            // Helper Text
-                                            let subtitle = getSubtitle(min: category.minSelect, max: category.maxSelect)
-                                            Text(subtitle)
-                                                .font(.system(size: 14))
-                                                .foregroundColor(isRequirementMet(category: category) ? .gray : .orange)
-                                        }
-                                        .padding(.horizontal)
-                                        .padding(.vertical, 10)
-                                        .frame(maxWidth: .infinity, alignment: .leading)
-                                        .background(Color(.systemGray6))
-                                        
-                                        // Choices Loop
-                                        VStack(spacing: 0) {
-                                            ForEach(category.choices, id: \.name) { choice in
-                                                OptionRowView(
-                                                    name: choice.name,
-                                                    price: Double(choice.price),
-                                                    isSelected: isSelected(category: category.category, choice: choice),
-                                                    isMultiSelect: isMultiSelect, // Kirim tipe seleksi
-                                                    action: {
-                                                        toggleSelection(category: category, choice: choice)
-                                                    }
-                                                )
-                                                .padding(.horizontal)
-                                                
-                                                if choice.name != category.choices.last?.name {
-                                                    Divider().padding(.horizontal)
-                                                }
-                                            }
-                                        }
+                                if let options = item.options {
+                                    ForEach(options, id: \.category) { category in
+                                        OptionGroupView(
+                                            category: category,
+                                            selections: $selections
+                                        )
                                     }
                                 }
                             }
@@ -207,7 +247,7 @@ struct MenuOptionsView: View {
     
     // --- LOGIC HELPERS ---
     
-    func isRequirementMet(category: MenuOptionCategory) -> Bool {
+    func isRequirementMet(category: MenuOptionGroup) -> Bool {
         let count = selections[category.category]?.count ?? 0
         return count >= category.minSelect
     }
@@ -222,7 +262,7 @@ struct MenuOptionsView: View {
         return selections[category]?.contains(choice) ?? false
     }
     
-    func toggleSelection(category: MenuOptionCategory, choice: MenuOptionChoice) {
+    func toggleSelection(category: MenuOptionGroup, choice: MenuOptionChoice) {
         var currentSet = selections[category.category] ?? []
         
         if currentSet.contains(choice) {
@@ -243,35 +283,47 @@ struct MenuOptionsView: View {
     
     func addToCart() {
         var finalSelections: [CartOptionSelection] = []
+
         for (catName, choices) in selections {
             for choice in choices {
-                finalSelections.append(CartOptionSelection(
+                let selection = CartOptionSelection(
                     categoryName: catName,
                     choiceName: choice.name,
-                    price: Double(choice.price)
-                ))
+                    price: Double(choice.additionalPrice)
+                )
+                finalSelections.append(selection)
             }
         }
+
         finalSelections.sort { $0.categoryName < $1.categoryName }
-        
+
+        let resolvedId: UUID = itemToEdit?.id ?? UUID()
+        let resolvedImage: String = item.imageURL ?? ""
+        let resolvedPrepTime: Int = item.prepTimeMinutes ?? 0
+
         let newItem = CartItemModel(
-            id: itemToEdit?.id ?? UUID(),
-            menuItemId: item.id, // Mengambil ID asli dari MenuItemModel
+            id: resolvedId,
+            menuItemId: item.id,
             name: item.name,
-            imageName: item.imageURL ?? "",
+            imageName: resolvedImage,
             basePrice: finalPrice,
             baseOriginalPrice: originalPrice,
-            prepTime: item.prepTime,
+            prepTime: resolvedPrepTime,
             quantity: quantity,
             note: note,
             selectedOptions: finalSelections
         )
-        
+
         if itemToEdit != nil {
             cart.updateItem(newItem)
         } else {
-            cart.add(item: newItem, restaurantName: restaurantName, restaurantId: restaurantId)
+            cart.add(
+                item: newItem,
+                restaurantName: restaurantName,
+                restaurantId: restaurantId
+            )
         }
+
         dismiss()
     }
 }
@@ -461,22 +513,23 @@ struct NoteEntrySheetView: View {
 // MARK: - PREVIEW
 struct MenuOptionsView_Previews: PreviewProvider {
     static var previews: some View {
-        let dummyItem = MenuItemModel(
-            id: "1",
+        let dummyItem = MenuItem(
+            itemId: "1",
             name: "Ramen Preview",
             description: "Desc",
             price: 35000,
             category: "Ramen",
             imageURL: nil,
+            defaultStock: nil,
+            prepTimeMinutes: 10,
             options: [
-                MenuOptionCategory(
-                    id: UUID(),
+                MenuOptionGroup(
                     category: "Noodle Type",
                     minSelect: 1,
                     maxSelect: 1,
                     choices: [
-                        MenuOptionChoice(name: "Thick", price: 0),
-                        MenuOptionChoice(name: "Thin", price: 0)
+                        MenuOptionChoice(name: "Thick", additionalPrice: 0),
+                        MenuOptionChoice(name: "Thin", additionalPrice: 0)
                     ]
                 )
             ]

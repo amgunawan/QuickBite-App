@@ -19,13 +19,23 @@ struct MenuSetupView: View {
     @State private var editingIndex: EditingItem? = nil
     @State private var isSubmitting = false
 
-    struct EditingItem: Identifiable {
+    struct EditingItem: Identifiable, Equatable {
         let id = UUID()
         let sec: Int
         let row: Int
     }
 
+    // MARK: - BODY
     var body: some View {
+        mainContent
+            .overlay(editSheet)
+            .onAppear(perform: onAppear)
+            .onChange(of: sections, perform: onSectionsChange)
+            .onChange(of: editingIndex, perform: onEditingChange)
+    }
+
+    // MARK: - MAIN CONTENT
+    private var mainContent: some View {
         VStack(spacing: 0) {
             MenuHeader(
                 step: 2,
@@ -34,140 +44,91 @@ struct MenuSetupView: View {
             )
             .padding(.bottom, 8)
 
-            // Content area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-
-                    Text("Menu Sections")
-                        .font(.headline)
-
-                    if sections.isEmpty {
-                        emptyMenuPlaceholder
-                    }
-
-                    ForEach(sections.indices, id: \.self) { secIdx in
-                        simpleSectionView(secIdx)
-                    }
-
-                    if !sections.isEmpty {
-                        Button {
-                            sections.append(MenuSectionModel(title: "", items: []))
-                        } label: {
-                            Text("Add New Section")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundColor(.white)
-                                .padding(.vertical, 12)
-                                .frame(maxWidth: .infinity)
-                                .background(Color.orange, in: Capsule())
-                        }
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 20)
-            }
-            .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
-            .clipped()
-            .background(Color.clear)
+            menuScrollView
 
             Spacer(minLength: 8)
 
-            // Debug panel
-            HStack {
-                Text("canFinish: \(canFinish ? "YES" : "NO")")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-                Spacer()
-                Text(isSubmitting ? "Submitting..." : "")
-                    .font(.caption)
-                    .foregroundColor(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 6)
+            debugPanel
 
-            // Finish button separated into a builder
             finishButton()
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
-        } // VStack
-        .onAppear {
-            print("[MenuSetup] onAppear - sections count = \(sections.count)")
-            if sections.isEmpty {
-                sections = storeVM.menuSections
-            }
-        }
-        .onChange(of: sections) { _, new in
-            storeVM.menuSections = new
-            print("[MenuSetup] sections changed -> \(new.count)")
-        }
-        .onChange(of: editingIndex) { old, new in
-            print("[MenuSetup] editingIndex changed:", new == nil ? "nil (closed)" : "open")
-        }
-        .sheet(item: $editingIndex) { edit in
-            AddMenuItemOverlay { newItem in
-                sections[edit.sec].items[edit.row] = newItem
-                editingIndex = nil
-            }
-            .interactiveDismissDisabled(false)
-            .presentationDetents([.fraction(0.92)])
-            .presentationCornerRadius(22)
         }
     }
 
-    // MARK: - Finish Button (extracted to help compiler)
+    // MARK: - SCROLL VIEW
+    private var menuScrollView: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                Text("Menu Sections")
+                    .font(.headline)
+
+                if sections.isEmpty {
+                    emptyMenuPlaceholder
+                }
+
+                ForEach(sections.indices, id: \.self) { secIdx in
+                    simpleSectionView(secIdx)
+                }
+
+                if !sections.isEmpty {
+                    addSectionButton
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.bottom, 20)
+        }
+        .frame(maxHeight: UIScreen.main.bounds.height * 0.55)
+    }
+
+    // MARK: - ADD SECTION BUTTON
+    private var addSectionButton: some View {
+        Button {
+            sections.append(MenuSectionModel(title: "", items: []))
+        } label: {
+            Text("Add New Section")
+                .font(.subheadline.weight(.semibold))
+                .foregroundColor(.white)
+                .padding(.vertical, 12)
+                .frame(maxWidth: .infinity)
+                .background(Color.orange, in: Capsule())
+        }
+    }
+
+    // MARK: - DEBUG PANEL
+    private var debugPanel: some View {
+        HStack {
+            Text("canFinish: \(canFinish ? "YES" : "NO")")
+                .font(.caption)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(isSubmitting ? "Submitting..." : "")
+                .font(.caption)
+                .foregroundColor(.secondary)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 6)
+    }
+
+    // MARK: - EDIT SHEET
+    private var editSheet: some View {
+        EmptyView()
+            .sheet(item: $editingIndex) { edit in
+                AddMenuItemOverlay { newItem in
+                    sections[edit.sec].items[edit.row] = newItem
+                    editingIndex = nil
+                }
+                .interactiveDismissDisabled(false)
+                .presentationDetents([.fraction(0.92)])
+                .presentationCornerRadius(22)
+            }
+    }
+
+    // MARK: - FINISH BUTTON
     @ViewBuilder
     private func finishButton() -> some View {
         Button {
-            print("[MenuSetup] Finish button tapped (UI). canFinish=\(canFinish), isSubmitting=\(isSubmitting)")
-
-            guard
-                let banner = storeVM.bannerImage,
-                let icon = storeVM.searchIcon
-            else {
-                print("[MenuSetup] Missing banner or icon — aborting")
-                return
-            }
-
-            if isSubmitting {
-                print("[MenuSetup] Already submitting — ignoring tap")
-                return
-            }
-
-            isSubmitting = true
-
-            Task {
-                do {
-                    print("[MenuSetup] calling registerStore...")
-                    try await storeVM.registerStore(
-                        storeName: storeVM.storeName,
-                        location: storeVM.location,
-                        cuisineTypes: storeVM.cuisineTypes,
-                        bannerImage: banner,
-                        searchIcon: icon,
-                        openDays: storeVM.openDays,
-                        openingTime: storeVM.openingTime,
-                        closingTime: storeVM.closingTime,
-                        sections: sections
-                    )
-                    print("[MenuSetup] registerStore succeeded")
-
-                    print("[MenuSetup] updating onboarding step -> 7")
-                    try await authVM.updateOnboardingStep(7)
-                    print("[MenuSetup] onboarding step updated (7)")
-
-                    // small delay to ensure Firestore/local session refresh
-                    try await Task.sleep(nanoseconds: 300_000_000) // 300ms
-
-                    isSubmitting = false
-
-                    await MainActor.run {
-                        print("[MenuSetup] dismissing MenuSetupView")
-                        dismiss()
-                    }
-                } catch {
-                    isSubmitting = false
-                    print("[MenuSetup] ERROR register/update:", error.localizedDescription)
-                }
-            }
+            handleFinishTap()
         } label: {
             Text(isSubmitting ? "Submitting..." : "Finish")
                 .font(.headline)
@@ -179,68 +140,48 @@ struct MenuSetupView: View {
                     in: RoundedRectangle(cornerRadius: 14)
                 )
         }
-        .contentShape(Rectangle())
-        .allowsHitTesting(true)
-        .highPriorityGesture(TapGesture().onEnded { /* presence increases priority */ })
         .disabled(!canFinish || isSubmitting)
         .accessibilityIdentifier("MenuSetup_FinishButton")
     }
 
-    // MARK: - ✅ VALIDATION LOGIC
-    private var canFinish: Bool {
-        if sections.isEmpty { return false }
-        for section in sections {
-            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
-            if section.items.isEmpty { return false }
-            for item in section.items {
-                // Item name NOT empty
-                if item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    return false
-                }
+    // MARK: - FINISH LOGIC
+    private func handleFinishTap() {
+        guard
+            let banner = storeVM.bannerImage,
+            let icon = storeVM.searchIcon,
+            !isSubmitting
+        else { return }
 
-                // shortDescription ✅ allowed empty
+        isSubmitting = true
 
-                // Price must be > 0
-                if item.price <= 0 {
-                    return false
-                }
+        Task {
+            do {
+                try await storeVM.registerStore(
+                    storeName: storeVM.storeName,
+                    location: storeVM.location,
+                    cuisineTypes: storeVM.cuisineTypes,
+                    bannerImage: banner,
+                    searchIcon: icon,
+                    openDays: storeVM.openDays,
+                    openingTime: storeVM.openingTime,
+                    closingTime: storeVM.closingTime,
+                    sections: sections
+                )
 
-                // Prep time must be > 0
-                if item.prepTimeMinutes <= 0 {
-                    return false
+                try await authVM.updateOnboardingStep(7)
+                try await Task.sleep(nanoseconds: 300_000_000)
+
+                await MainActor.run {
+                    isSubmitting = false
+                    dismiss()
                 }
-                if item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { return false }
-                if item.price <= 0 { return false }
-                if item.prepMinutes <= 0 { return false }
+            } catch {
+                await MainActor.run {
+                    isSubmitting = false
+                }
+                print("[MenuSetup] ERROR:", error.localizedDescription)
             }
         }
-        return true
-    }
-
-    // MARK: - EMPTY PLACEHOLDER
-    private var emptyMenuPlaceholder: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "fork.knife")
-                .font(.system(size: 34))
-                .foregroundColor(.orange)
-
-            Text("Your menu is currently empty")
-                .foregroundColor(.secondary)
-
-            Button {
-                sections.append(MenuSectionModel(title: "", items: []))
-            } label: {
-                Text("Add Menu Section")
-                    .font(.subheadline).bold()
-                    .foregroundColor(.white)
-                    .padding(.vertical, 10)
-                    .padding(.horizontal, 20)
-                    .background(Color.orange, in: Capsule())
-            }
-        }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(RoundedRectangle(cornerRadius: 16).stroke(Color(.systemGray4)))
     }
 
     // MARK: - SECTION VIEW
@@ -275,6 +216,7 @@ struct MenuSetupView: View {
         }
     }
 
+    // MARK: - BINDINGS & HELPERS
     private func bindingTitle(for index: Int) -> Binding<String> {
         Binding(
             get: { sections[index].title },
@@ -288,82 +230,82 @@ struct MenuSetupView: View {
             name: "",
             description: "",
             price: 0,
-            defaultStock: 10,
-            prepTimeMinutes: 0,
             category: sections[secIdx].title,
             imageURL: "",
+            defaultStock: 10,
+            prepTimeMinutes: 0,
             options: [],
             currentStock: 10
         )
         sections[secIdx].items.insert(newItem, at: 0)
     }
-}
 
-// MARK: - MenuRow & helpers (unchanged)
-private struct MenuRow: View {
+    // MARK: - VALIDATION
+    private var canFinish: Bool {
+        guard !sections.isEmpty else { return false }
 
-    let item: MenuItem
-    let onEdit: () -> Void
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            AsyncImage(url: URL(string: item.imageURL)) { phase in
-                if let img = phase.image {
-                    img.resizable().scaledToFill()
-                } else if phase.error != nil {
-                    Image("placeholder")
-                        .resizable()
-                        .scaledToFill()
-                } else {
-                    ProgressView()
-                }
+        for section in sections {
+            if section.title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return false
             }
-            .frame(width: 72, height: 72)
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            VStack(alignment: .leading, spacing: 6) {
-
-                Text(item.name)
-                    .font(.subheadline.weight(.semibold))
-                    .lineLimit(2)
-
-                StatusBadge(status: item.stockStatus)
-
-                Text("Rp\(formatPrice(Double(item.price)))")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundColor(.orange)
+            if section.items.isEmpty {
+                return false
             }
-
-            Spacer()
-
-            Button(action: { onEdit() }) {
-                Text("Edit")
-                    .font(.caption.weight(.semibold))
-                    .foregroundColor(.orange)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 6)
-                    .background(Color.orange.opacity(0.15), in: Capsule())
+            for item in section.items where !isValid(item) {
+                return false
             }
         }
+        return true
     }
-}
 
-private struct StatusBadge: View {
-    let status: StockStatus
-    var body: some View {
-        let (textColor, bg): (Color, Color) = {
-            switch status {
-            case .inStock: return (.white, .green)
-            case .lowStock: return (.black, .yellow.opacity(0.9))
-            case .outOfStock: return (.white, .red)
+    private func isValid(_ item: MenuItem) -> Bool {
+        !item.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        item.price > 0 &&
+        (item.prepTimeMinutes ?? 0) > 0
+    }
+
+    // MARK: - EMPTY STATE
+    private var emptyMenuPlaceholder: some View {
+        VStack(spacing: 12) {
+            Image(systemName: "fork.knife")
+                .font(.system(size: 34))
+                .foregroundColor(.orange)
+
+            Text("Your menu is currently empty")
+                .foregroundColor(.secondary)
+
+            Button {
+                sections.append(MenuSectionModel(title: "", items: []))
+            } label: {
+                Text("Add Menu Section")
+                    .font(.subheadline.bold())
+                    .foregroundColor(.white)
+                    .padding(.vertical, 10)
+                    .padding(.horizontal, 20)
+                    .background(Color.orange, in: Capsule())
             }
-        }()
-        return Text(status.rawValue)
-            .font(.caption2.weight(.semibold))
-            .foregroundColor(textColor)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 4)
-            .background(bg, in: Capsule())
+        }
+        .padding()
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(Color(.systemGray4))
+        )
+    }
+
+    // MARK: - LIFECYCLE HANDLERS
+    private func onAppear() {
+        if sections.isEmpty {
+            sections = storeVM.menuSections
+        }
+    }
+
+    private func onSectionsChange(_ new: [MenuSectionModel]) {
+        storeVM.menuSections = new
+    }
+
+    private func onEditingChange(_ new: EditingItem?) {
+        print("[MenuSetup] editingIndex:", new == nil ? "closed" : "open")
     }
 }
 
@@ -371,5 +313,6 @@ private struct StatusBadge: View {
     NavigationView {
         MenuSetupView()
             .environmentObject(StoreRegistrationViewModel())
+            .environmentObject(AuthenticationViewModel())
     }
 }

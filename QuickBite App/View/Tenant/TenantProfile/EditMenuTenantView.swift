@@ -28,7 +28,7 @@ struct EditMenuTenantView: View {
     
     init(item: MenuItem, viewModel: TenantMenuViewModel, onSave: @escaping (MenuItem) -> Void) {
         self._item = State(initialValue: item)
-        self._optionGroups = State(initialValue: item.options)
+        self._optionGroups = State(initialValue: item.options ?? [])
         self.viewModel = viewModel
         self.onSave = onSave
     }
@@ -96,7 +96,7 @@ extension EditMenuTenantView {
                             .frame(width: 98, height: 98)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     } else {
-                        StorageImageView(imageURL: item.imageURL)
+                        StorageImageView(imageURL: item.imageURL ?? "")
                             .frame(width: 98, height: 98)
                             .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
@@ -142,7 +142,11 @@ extension EditMenuTenantView {
                 
                 let filename = "IMG-\(UUID().uuidString.prefix(6)).jpg"
                 
-                viewModel.uploadImage(data, filename: filename, category: item.category) { url in
+                viewModel.uploadImage(
+                    data,
+                    filename: filename,
+                    category: item.category ?? ""
+                ) { url in
                     if let url = url {
                         DispatchQueue.main.async {
                             self.item.imageURL = "\(url)?v=\(UUID().uuidString)"
@@ -167,8 +171,15 @@ extension EditMenuTenantView {
                 .font(.system(size: 17, weight: .semibold))
             
             field(title: "Name", text: $item.name)
-            field(title: "Short Description", text: $item.description, multiline: true)
-            
+            field(
+                title: "Short Description",
+                text: Binding(
+                    get: { item.description ?? "" },
+                    set: { item.description = $0 }
+                ),
+                multiline: true
+            )
+
             HStack(spacing: 12) {
                 fieldNumber(title: "Base Price (Rp)", value: $item.price)
                 // STOCK
@@ -184,8 +195,13 @@ extension EditMenuTenantView {
                         )
                 }
                 VStack(alignment: .leading, spacing: 6) {
-                    fieldNumber(title: "Prep Time (Max)", value: $item.prepTimeMinutes)
-                    
+                    fieldNumber(
+                        title: "Prep Time (Max)",
+                        value: Binding(
+                            get: { item.prepTimeMinutes ?? 0 },
+                            set: { item.prepTimeMinutes = $0 }
+                        )
+                    )
                 }
                 
             }
@@ -268,7 +284,9 @@ extension EditMenuTenantView {
                         }
                         
                         Button {
-                            group.choices.append(MenuChoice(name: "", additionalPrice: 0))
+                            group.choices.append(
+                                MenuOptionChoice(name: "", additionalPrice: 0)
+                            )
                         } label: {
                             Text("+ Add option")
                                 .font(.system(size: 14, weight: .semibold))
@@ -299,7 +317,7 @@ extension EditMenuTenantView {
         }
     }
     
-    private func optionRow(option: Binding<MenuChoice>) -> some View {
+    private func optionRow(option: Binding<MenuOptionChoice>) -> some View {
         HStack(spacing: 10) {
             
             TextField("Name", text: option.name)

@@ -15,37 +15,37 @@ import Combine
 @MainActor
 class StoreRegistrationViewModel: ObservableObject {
 
-    // CORE STORE IDENTITY
-//    @Published var username: String = FetchedResultsStore.shared.currentUser?.email ?? ""
+    // MARK: - CORE STORE IDENTITY
     @Published var storeName: String = ""
     @Published var location: String = ""
     @Published var cuisineTypes: [String] = []
 
-    // BRANDING
+    // MARK: - BRANDING
     @Published var bannerImage: UIImage? = nil
     @Published var searchIcon: UIImage? = nil
 
-    // SCHEDULE
+    // MARK: - SCHEDULE
     @Published var openDays: Set<Weekday> = []
     @Published var openingTime: Date = Date()
     @Published var closingTime: Date = Date()
 
-    // MENU
+    // MARK: - MENU (NEW MODEL)
     @Published var menuSections: [MenuSectionModel] = []
-    
-    //KTP
+
+    // MARK: - KTP
     @Published var ktpImage: UIImage? = nil
 
-    // PAYOUT
+    // MARK: - PAYOUT
     @Published var payoutAccountHolder: String = ""
     @Published var payoutAccountNumber: String = ""
     @Published var payoutBankName: String = ""
     @Published var payoutNMID: String = ""
-    
+
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
 
-    // ✅ MAIN ENTRY POINT (called from Finish button later)
+    // MARK: - MAIN ENTRY POINT
+
     func registerStore(
         storeName: String,
         location: String,
@@ -62,11 +62,11 @@ class StoreRegistrationViewModel: ObservableObject {
             throw NSError(domain: "AUTH", code: 401)
         }
 
-        // 1️⃣ CREATE STORE DOCUMENT ID
+        // 1️⃣ CREATE STORE DOCUMENT
         let storeRef = db.collection("stores").document()
         let storeID = storeRef.documentID
 
-        // 2️⃣ UPLOAD IMAGES TO STORAGE (USING storeID)
+        // 2️⃣ UPLOAD IMAGES
         let bannerURL = try await uploadImage(
             bannerImage,
             path: "\(storeID)/main/banner.jpg"
@@ -77,7 +77,7 @@ class StoreRegistrationViewModel: ObservableObject {
             path: "\(storeID)/main/search.jpg"
         )
 
-        // 3️⃣ UPLOAD MENU.JSON
+        // 3️⃣ UPLOAD MENU.JSON + TRACKING
         let (menuJSONURL, trackingItems) = try await uploadMenuJSON(
             sections: sections,
             storeID: storeID
@@ -90,12 +90,9 @@ class StoreRegistrationViewModel: ObservableObject {
             closingTime: closingTime
         )
 
-//        // 5️⃣ GENERATE TRACKING ITEMS
-//        let trackingItems = generateTrackingItems(from: sections)
-
-        // 6️⃣ SAVE STORE DOCUMENT
+        // 5️⃣ SAVE STORE DOCUMENT
         let storeData: [String: Any] = [
-            "owner_id": uid,                   
+            "owner_id": uid,
             "name": storeName,
             "location": location,
             "cuisine_type": cuisineTypes,
@@ -116,7 +113,7 @@ class StoreRegistrationViewModel: ObservableObject {
 
         try await storeRef.setData(storeData)
 
-        // 7️⃣ LINK STORE TO USER
+        // 6️⃣ LINK STORE TO USER
         try await db.collection("users")
             .document(uid)
             .updateData([
@@ -124,9 +121,8 @@ class StoreRegistrationViewModel: ObservableObject {
                 "onboarding_step": 8
             ])
 
-        print("✅ STORE + USER LINKED SUCCESSFULLY")
+        print("✅ STORE REGISTRATION COMPLETE")
     }
-
 
     // -----------------------------------------------------
     // MARK: - IMAGE UPLOAD
@@ -139,15 +135,14 @@ class StoreRegistrationViewModel: ObservableObject {
         }
 
         let ref = storage.reference().child(path)
-
         _ = try await ref.putDataAsync(data)
-
         let url = try await ref.downloadURL()
+
         return url.absoluteString
     }
 
     // -----------------------------------------------------
-    // MARK: - MENU JSON UPLOAD
+    // MARK: - MENU JSON UPLOAD (ADAPTED TO EXISTING MODEL)
     // -----------------------------------------------------
 
     private func uploadMenuJSON(
@@ -155,46 +150,49 @@ class StoreRegistrationViewModel: ObservableObject {
         storeID: String
     ) async throws -> (menuURL: String, trackingItems: [[String: Any]]) {
 
-        // Build flatItems and reuse the same item_id for tracking
-        var flatItems: [MenuItemUploadModel] = []
+        var menuUploads: [MenuItemUploadModel] = []
         var trackingItems: [[String: Any]] = []
 
         for section in sections {
             for item in section.items {
-                // Use deterministic ID: UUID here (or you can use custom)
-                let itemUUID = UUID().uuidString
 
                 let upload = MenuItemUploadModel(
-                    item_id: itemUUID,
+                    item_id: item.itemId,
                     name: item.name,
-                    description: item.description,
+                    description: item.description ?? "",
                     price: item.price,
-                    default_stock: item.defaultStock,
-                    prep_time_minutes: item.prepTimeMinutes,
+                    default_stock: item.defaultStock ?? 0,
+                    prep_time_minutes: item.prepTimeMinutes ?? 0,
                     category: section.title,
-                    image_url: item.imageURL
+                    image_url: item.imageURL ?? ""
                 )
-                flatItems.append(upload)
 
-                // Generate tracking item using same item_id
+                menuUploads.append(upload)
+
                 let tracking: [String: Any] = [
-                    "item_id": itemUUID,
-                    "current_stock": item.defaultStock,
+                    "item_id": item.itemId,
+                    "current_stock": item.defaultStock ?? 0,
                     "total_sold": 0
                 ]
+
                 trackingItems.append(tracking)
             }
         }
 
-        let data = try JSONEncoder().encode(flatItems)
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.prettyPrinted]
+
+        let data = try encoder.encode(menuUploads)
         let ref = storage.reference().child("\(storeID)/menu.json")
+
         _ = try await ref.putDataAsync(data)
         let url = try await ref.downloadURL()
+
         return (menuURL: url.absoluteString, trackingItems: trackingItems)
     }
 
     // -----------------------------------------------------
-    // MARK: - STORE SCHEDULE GENERATOR
+    // MARK: - STORE SCHEDULE
     // -----------------------------------------------------
 
     private func generateSchedule(
@@ -220,17 +218,22 @@ class StoreRegistrationViewModel: ObservableObject {
 
         return schedule
     }
-    
+
     // -----------------------------------------------------
     // MARK: - UPDATE ONBOARDING STEP
     // -----------------------------------------------------
-    
+
     func updateOnboardingStep(_ step: Int) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
-            throw NSError(domain: "AUTH", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
+            throw NSError(
+                domain: "AUTH",
+                code: 401,
+                userInfo: [NSLocalizedDescriptionKey: "Not authenticated"]
+            )
         }
-        try await db.collection("users").document(uid).updateData([
-            "onboarding_step": step
-        ])
+
+        try await db.collection("users")
+            .document(uid)
+            .updateData(["onboarding_step": step])
     }
 }

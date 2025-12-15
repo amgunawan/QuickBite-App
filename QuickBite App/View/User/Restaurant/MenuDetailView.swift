@@ -16,7 +16,7 @@ struct MenuDetailView: View {
     @EnvironmentObject var cart: CartViewModel
     
     // Properti untuk menerima data
-    let item: MenuItemModel
+    let item: MenuItem
     let customFinalPrice: Double
     let customOriginalPrice: Double?
     
@@ -164,8 +164,8 @@ struct MenuDetailView: View {
 struct MenuDetailView_Previews: PreviewProvider {
     static var previews: some View {
         // Bikin Dummy Model untuk Preview
-        let dummyItem = MenuItemModel(
-            id: "1",
+        let dummyItem = MenuItem(
+            itemId: "1",
             name: "Chicken Katsu Shirokara Ramen",
             description: "Ramen kuah pedas putih dengan ayam katsu renyah.",
             price: 35000,

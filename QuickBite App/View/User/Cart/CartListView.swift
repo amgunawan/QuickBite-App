@@ -64,8 +64,8 @@ struct CartListView: View {
             // EDIT ITEM
             // ======================
             .sheet(item: $itemToEdit) { cartItem in
-                let tempMenuItem = MenuItemModel(
-                    id: cartItem.id.uuidString,
+                let tempMenuItem = MenuItem(
+                    itemId: cartItem.id.uuidString,
                     name: cartItem.name,
                     description: nil,
                     price: Int(cartItem.basePrice),

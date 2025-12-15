@@ -128,7 +128,7 @@ class TenantMenuViewModel: ObservableObject {
             if let track = trackingItems.first(where: { $0.itemId == id }) {
                 allItems[index].currentStock = track.currentStock
             } else {
-                allItems[index].currentStock = allItems[index].defaultStock
+                allItems[index].currentStock = allItems[index].defaultStock ?? 0
             }
         }
         
@@ -146,7 +146,7 @@ class TenantMenuViewModel: ObservableObject {
         var result: [MenuSectionModel] = []
         
         for (category, items) in grouped {
-            result.append(MenuSectionModel(title: category, items: items))
+            result.append(MenuSectionModel(title: category ?? "Uncategorized", items: items))
         }
         
         result.sort { $0.title < $1.title }
@@ -363,10 +363,10 @@ class TenantMenuViewModel: ObservableObject {
             name: "",
             description: "",
             price: 0,
-            defaultStock: 10,
-            prepTimeMinutes: 10,
             category: category,
             imageURL: "",
+            defaultStock: 10,
+            prepTimeMinutes: 10,
             options: [],
             currentStock: 0
         )

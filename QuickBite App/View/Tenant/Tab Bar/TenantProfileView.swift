@@ -38,6 +38,8 @@ struct TenantSettingsRowLabel: View {
 }
 
 struct TenantProfileCard: View {
+    @StateObject private var vm = TenantProfileViewModel()
+    
     let username: String
     let email: String
     var image: UIImage? = nil
@@ -90,25 +92,16 @@ struct TenantProfileCard: View {
 }
 
 struct TenantProfileView: View {
+    @StateObject private var vm = TenantProfileViewModel()
+    
     let storeId = "2plb4UCwxjle2Yy6PTdj"
-    @State private var tenantusername = "sharontan1"
-    @State private var tenantemail =
-            UserDefaults.standard.string(forKey: "tenant.email") ?? "sharontan1@gmail.com"
-    @State private var tenantlanguage = "English"
-
     @State private var showEditProfile = false
-    @State private var tenantfullName =
-            UserDefaults.standard.string(forKey: "tenant.fullName") ?? "Sharon Tan"
-    @State private var tenantphoneCode =
-            UserDefaults.standard.string(forKey: "tenant.phoneCode") ?? "+62"
-    @State private var tenantphone =
-            UserDefaults.standard.string(forKey: "tenant.phone") ?? "82134584979"
-
-    @State private var tenantProfileImage: UIImage? = nil
+    @State private var tenantlanguage = "English"
 
     var body: some View {
         NavigationStack {
             ZStack(alignment: .top) {
+
                 VStack(spacing: 0) {
                     HeaderBackgroundView(height: 100)
                     Spacer()
@@ -123,54 +116,118 @@ struct TenantProfileView: View {
                         .padding(.bottom, 20)
                         .frame(maxWidth: .infinity, alignment: .leading)
 
+                    // === PROFILE CARD ===
                     TenantProfileCard(
-                        username: tenantusername,
-                        email: tenantemail,
-                        image: tenantProfileImage
+                        username: vm.tenantUsername,
+                        email: vm.tenantEmail,
+                        image: vm.tenantProfileImage
                     ) {
                         showEditProfile = true
                     }
                     .padding(.horizontal)
                     .offset(y: -10)
                     .zIndex(1)
+
                     Spacer()
-                    // === Menu List ===
+
+                    // === MENU LIST ===
                     List {
                         Section(header: Text("Store Management")) {
-                            NavigationLink { ManageMenuStockTenantView(storeId: storeId) }
-                            label: {
-                                TenantSettingsRowLabel(systemIcon: "fork.knife", tint: .gray, title: "Manage Menu & Stock")
+                            NavigationLink {
+                                ManageMenuStockTenantView(storeId: storeId)
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "fork.knife",
+                                    tint: .gray,
+                                    title: "Manage Menu & Stock"
+                                )
                             }
-                            NavigationLink { EditStoreDetailsTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "shippingbox", tint: .gray, title: "Edit Store Details")
+
+                            NavigationLink {
+                                EditStoreDetailsTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "shippingbox",
+                                    tint: .gray,
+                                    title: "Edit Store Details"
+                                )
                             }
-                            NavigationLink { FinancialPayoutsTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "creditcard", tint: .gray, title: "Financial & Payouts")
+
+                            NavigationLink {
+                                FinancialPayoutsTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "creditcard",
+                                    tint: .gray,
+                                    title: "Financial & Payouts"
+                                )
                             }
                         }
-                        .foregroundColor(.black)
 
                         Section("Account & Support") {
-                            NavigationLink { ChangePasswordTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "lock.fill", tint: .gray, title: "Change Password")
+                            NavigationLink {
+                                ChangePasswordTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "lock.fill",
+                                    tint: .gray,
+                                    title: "Change Password"
+                                )
                             }
-                            NavigationLink { LanguageSelectionTenantView(selectedLanguage: $tenantlanguage) } label: {
-                                TenantSettingsRowLabel(systemIcon: "globe", tint: .gray, title: "Languages", trailing: tenantlanguage)
+
+                            NavigationLink {
+                                LanguageSelectionTenantView(
+                                    selectedLanguage: $tenantlanguage
+                                )
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "globe",
+                                    tint: .gray,
+                                    title: "Languages",
+                                    trailing: tenantlanguage
+                                )
                             }
-                            NavigationLink { HelpSupportTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "questionmark.circle", tint: .gray, title: "Help & Support")
+
+                            NavigationLink {
+                                HelpSupportTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "questionmark.circle",
+                                    tint: .gray,
+                                    title: "Help & Support"
+                                )
                             }
-                            NavigationLink { FAQTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "questionmark.bubble", tint: .gray, title: "FAQ")
+
+                            NavigationLink {
+                                FAQTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "questionmark.bubble",
+                                    tint: .gray,
+                                    title: "FAQ"
+                                )
                             }
-                            NavigationLink { TermsServiceTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "doc.text", tint: .gray, title: "Terms & Service")
+
+                            NavigationLink {
+                                TermsServiceTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "doc.text",
+                                    tint: .gray,
+                                    title: "Terms & Service"
+                                )
                             }
-                            NavigationLink { ManageAccountTenantView() } label: {
-                                TenantSettingsRowLabel(systemIcon: "gearshape", tint: .gray, title: "Manage Account")
+
+                            NavigationLink {
+                                ManageAccountTenantView()
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "gearshape",
+                                    tint: .gray,
+                                    title: "Manage Account"
+                                )
                             }
                         }
-                        .foregroundColor(.black)
                     }
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
@@ -178,37 +235,28 @@ struct TenantProfileView: View {
                 }
             }
             .toolbar(.hidden, for: .navigationBar)
+
+            // === EDIT PROFILE ===
             .navigationDestination(isPresented: $showEditProfile) {
                 EditProfileTenantView(
-                    tenantusername: tenantusername,
-                    tenantfullName: $tenantfullName,
-                    tenantphoneCode: $tenantphoneCode,
-                    tenantphone: $tenantphone,
-                    tenantemail: $tenantemail,
+                    viewModel: vm,
+                    tenantusername: vm.tenantUsername,
+                    tenantfullName: $vm.tenantFullName,
+                    tenantemail: .constant(vm.tenantEmail),
                     onSave: {
-                        showEditProfile = false
-                        reloadAvatar()   // kalau kamu punya fungsi ini
+                        Task {
+                            await vm.updateFullName(vm.tenantFullName)
+                            showEditProfile = false
+                        }
                     }
                 )
             }
         }
         .onAppear {
-            reloadAvatar()
-            
-            // === FIX: RELOAD FULL NAME ===
-            if let savedName = UserDefaults.standard.string(forKey: "tenant.fullName") {
-                tenantfullName = savedName
+            vm.loadTenantFromEmail()
+            Task {
+                await vm.loadProfileImage()
             }
         }
     }
-
-    private func reloadAvatar() {
-        if let data = UserDefaults.standard.data(forKey: "tenant.avatar"),
-           let img = UIImage(data: data) {
-            tenantProfileImage = img
-        } else {
-            tenantProfileImage = nil
-        }
-    }
 }
-

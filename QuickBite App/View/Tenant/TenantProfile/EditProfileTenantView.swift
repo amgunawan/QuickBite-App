@@ -10,11 +10,12 @@ import PhotosUI
 import UIKit
 
 struct EditProfileTenantView: View {
+    @ObservedObject var viewModel: TenantProfileViewModel
+    
+    @State private var showDeleteAlert = false
     
     let tenantusername: String
     @Binding var tenantfullName: String
-    @Binding var tenantphoneCode: String
-    @Binding var tenantphone: String
     @Binding var tenantemail: String
     
     var onSave: () -> Void
@@ -112,28 +113,6 @@ struct EditProfileTenantView: View {
                         )
                     }
                     
-                    // PHONE (LOCKED)
-                    VStack(alignment: .leading, spacing: 6) {
-                        labelRequired("Phone Number")
-                        HStack(spacing: 8) {
-                            HStack(spacing: 6) {
-                                Text("🇮🇩")
-                                Text(tenantphoneCode)
-                            }
-                            .padding(.horizontal, 10)
-                            .frame(height: 44)
-                            .background(Color(.secondarySystemBackground),
-                                        in: RoundedRectangle(cornerRadius: 8))
-                            
-                            TextField("", text: $tenantphone)
-                                .padding(10)
-                                .background(Color(.secondarySystemBackground),
-                                            in: RoundedRectangle(cornerRadius: 8))
-                                .disabled(true)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
                         TextField("", text: $tenantemail)
@@ -146,11 +125,13 @@ struct EditProfileTenantView: View {
                     }
                     
                     Button {
-                        if let data = profileImage?.jpegData(compressionQuality: 0.9) {
-                            UserDefaults.standard.set(data, forKey: "tenant.avatar")
+                        Task {
+                            if let img = profileImage {
+                                await viewModel.updateProfileImage(img)
+                            }
+                            onSave()
+                            dismiss()
                         }
-                        onSave()
-                        dismiss()
                     } label: {
                         Text("Save")
                             .fontWeight(.medium)
@@ -166,10 +147,11 @@ struct EditProfileTenantView: View {
                 .padding(.bottom, 40)
             }
         }
+        .onTapGesture {
+            hideKeyboard()
+        }
         .onAppear {
-            if let data = UserDefaults.standard.data(forKey: "tenant.avatar") {
-                profileImage = UIImage(data: data)
-            }
+            profileImage = viewModel.tenantProfileImage
         }
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
@@ -200,11 +182,49 @@ struct EditProfileTenantView: View {
                     row(icon: "camera.fill", title: "Take Photo")
                 }
                 
+                if profileImage != nil {
+                    Divider()
+                    
+                    Button {
+                        showDeleteAlert = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle().fill(Color.red.opacity(0.15))
+                                Image(systemName: "trash.fill")
+                                    .foregroundColor(.red)
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                            .frame(width: 32, height: 32)
+                            
+                            Text("Delete Profile Picture")
+                                .foregroundColor(.red)
+                            
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
+                }
+                
                 Spacer(minLength: 0)
             }
             .padding()
-            .presentationDetents([.height(180)])
+            .presentationDetents([.height(240)])
             .presentationDragIndicator(.visible)
+        }
+        .alert("Delete Profile Picture?", isPresented: $showDeleteAlert) {
+            Button("Delete", role: .destructive) {
+                Task {
+                    await viewModel.deleteProfileImage()
+                    profileImage = nil
+                    showPhotoOptions = false
+                }
+            }
+
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This action cannot be undone.")
         }
         
         // GALLERY PICKER
@@ -250,5 +270,12 @@ struct EditProfileTenantView: View {
         }
         .padding(.vertical, 12)
         .contentShape(Rectangle())
+    }
+    
+    private func onDeleteProfilePicture() {
+        Task {
+            await viewModel.deleteProfileImage()
+            profileImage = nil // langsung update UI ke default avatar
+        }
     }
 }

@@ -24,7 +24,7 @@ struct OrderPreparedView: View {
     private let storage = Storage.storage()
 
     @State private var items: [OrderedItem] = []
-    @State private var orderStatus: String = "preparing"
+    @State private var orderStatus: String = "pending"
     @State private var orderNumber: String = "-"
     @State private var orderDate: String = "-"
     @State private var qrImage: UIImage?
@@ -69,7 +69,7 @@ struct OrderPreparedView: View {
                 DispatchQueue.main.async {
 
                     self.orderNumber = self.orderId
-                    self.orderStatus = data["status"] as? String ?? "preparing"
+                    self.orderStatus = data["status"] as? String ?? "pending"
 
                     // ✅ ORDER DATE (PASTI MUNCUL)
                     if let ts = data["created_at"] as? Timestamp {
@@ -107,7 +107,7 @@ struct OrderPreparedView: View {
                     }
 
                     // QR
-                    if self.orderStatus == "preparing" {
+                    if self.orderStatus == "pending" {
                         self.qrImage = nil
                     }
 
@@ -201,14 +201,13 @@ struct OrderPreparedView: View {
 
                 // STATUS & QR
                 VStack(spacing: 16) {
-
                     Text("Order in Preparation")
                         .font(.headline)
                         .multilineTextAlignment(.center)
 
                     ZStack {
-                        if orderStatus == "preparing" {
-                            Image("Prepared")
+                        if orderStatus == "pending" {
+                            Image("Pending")
                                 .resizable()
                                 .scaledToFit()
                                 .frame(height: 180)
@@ -225,7 +224,7 @@ struct OrderPreparedView: View {
                     .frame(maxWidth: .infinity)   
 
                     Text(
-                        orderStatus == "preparing"
+                        orderStatus == "pending"
                         ? "The restaurant is preparing your order.\nThe QR code will appear when it’s ready."
                         : "Show this QR code to the tenant."
                     )

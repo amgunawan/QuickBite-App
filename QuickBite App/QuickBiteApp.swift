@@ -19,6 +19,7 @@ struct QuickBiteApp: App {
     @StateObject private var cart = CartViewModel()
     @StateObject private var calendarManager = CalendarManager()
     @StateObject private var tenantSession = TenantSession()
+    @StateObject private var navState = AppNavigationState()
     
     
     var body: some Scene {
@@ -28,6 +29,7 @@ struct QuickBiteApp: App {
                 .environmentObject(cart)
                 .environmentObject(calendarManager)
                 .environmentObject(tenantSession)
+                .environmentObject(navState)
                 .onAppear {
                     tenantSession.loadTenant()
                 }

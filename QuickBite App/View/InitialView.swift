@@ -10,31 +10,43 @@ import Firebase
 import FirebaseAuth
 
 struct InitialView: View {
+
     @State private var showSplash = true
-    @State private var listenerAttached = false
 
     @StateObject private var authVM = AuthenticationViewModel()
-    @StateObject private var storeVM = StoreRegistrationViewModel() // keep existing env usage
+    @StateObject private var storeVM = StoreRegistrationViewModel()
+
+    @EnvironmentObject var navState: AppNavigationState
 
     var body: some View {
         ZStack {
+
+            // ===== MAIN CONTENT =====
             Group {
-                // If no session -> show MainFormView (login / signup)
                 if authVM.currentUserSession == nil {
+
+                    // 🔐 LOGIN / SIGNUP
                     MainFormView()
                         .environmentObject(authVM)
                         .environmentObject(storeVM)
+
                 } else {
-                    // We have a user session; route according to role + onboardingStep
-                    OnboardingRouterView()
-                        .environmentObject(authVM)
-                        .environmentObject(storeVM)
+
+                    if authVM.currentUserSession == nil {
+                        MainFormView()
+                            .environmentObject(authVM)
+                            .environmentObject(storeVM)
+                    } else {
+                        UserContentView()   // 🔥 INI DIGANTI
+                            .environmentObject(authVM)
+                            .environmentObject(storeVM)
+                            .environmentObject(navState)
+                    }
+
                 }
             }
-            .onAppear {
-                // nothing else — the authVM already attaches listener in init()
-            }
 
+            // ===== SPLASH =====
             if showSplash {
                 SplashView {
                     withAnimation(.easeOut(duration: 0.6)) {
@@ -48,7 +60,7 @@ struct InitialView: View {
     }
 }
 
-
 #Preview {
     InitialView()
+        .environmentObject(AppNavigationState()) // ✅ PREVIEW FIX
 }

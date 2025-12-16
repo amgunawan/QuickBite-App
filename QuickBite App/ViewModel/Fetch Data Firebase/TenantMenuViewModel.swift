@@ -185,6 +185,20 @@ class TenantMenuViewModel: ObservableObject {
         saveAllToBackend()
     }
     
+    // MARK: - PUBLIC: Delete item
+    func deleteItem(_ item: MenuItem) {
+
+        // Remove from main list
+        allItems.removeAll { $0.itemId == item.itemId }
+
+        // Remove tracking
+        trackingItems.removeAll { $0.itemId == item.itemId }
+
+        buildSectionsUI()
+        saveAllToBackend()
+    }
+
+    
     // MARK: ===============================================================
     // MARK: - IMAGE LISTING FOR CATEGORY (Storage)
     // MARK: ===============================================================
@@ -195,7 +209,7 @@ class TenantMenuViewModel: ObservableObject {
             return
         }
         
-        let folderPath = "\(storeFolder)/\(category)"
+        let folderPath = "\(storeFolder)/\(category.storageSafeKey)"
         let ref = Storage.storage().reference().child(folderPath)
         
         ref.listAll { result, error in
@@ -227,7 +241,8 @@ class TenantMenuViewModel: ObservableObject {
             return
         }
         
-        let path = "\(storeFolder)/\(category)/\(filename)"
+        let safeCategory = category.storageSafeKey
+        let path = "\(storeFolder)/\(safeCategory)/\(filename)"
         let ref = Storage.storage().reference().child(path)
         
         ref.putData(data, metadata: nil) { metadata, error in
@@ -389,5 +404,13 @@ class TenantMenuViewModel: ObservableObject {
         prepareNewItem(for: sectionTitle)
     }
 
+}
+
+extension String {
+    var storageSafeKey: String {
+        self
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: " ", with: "")
+    }
 }
 

@@ -13,8 +13,8 @@ struct InitialView: View {
 
     @State private var showSplash = true
 
-    @StateObject private var authVM = AuthenticationViewModel()
-    @StateObject private var storeVM = StoreRegistrationViewModel()
+    @EnvironmentObject private var authVM: AuthenticationViewModel
+    @EnvironmentObject private var storeVM: StoreRegistrationViewModel
 
     @EnvironmentObject var navState: AppNavigationState
 

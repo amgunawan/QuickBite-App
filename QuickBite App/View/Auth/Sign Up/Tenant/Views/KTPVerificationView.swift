@@ -112,6 +112,7 @@ struct KTPVerificationView: View {
                 OrangeButton(title: "Continue", enabled: isKtpUploaded)
             })
             .simultaneousGesture(TapGesture().onEnded {
+                storeVM.saveDraft()
                 Task {
                     do {
                         try await authVM.updateOnboardingStep(3)

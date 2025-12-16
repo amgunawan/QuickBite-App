@@ -164,7 +164,7 @@ class AuthenticationViewModel: ObservableObject {
     }
 
     // MARK: - Load current user Firestore doc and populate session
-    func loadCurrentUser(uid: String) async throws {
+    func loadCurrentUser(uid: String) async throws -> AppUserSession {
         let docRef = db.collection("users").document(uid)
         let snap = try await docRef.getDocument()
 
@@ -179,9 +179,12 @@ class AuthenticationViewModel: ObservableObject {
         let storeId = data["store_id"] as? String
 
         let session = AppUserSession(uid: uid, email: email, role: role, onboardingStep: onboardingStep, storeId: storeId)
+
         await MainActor.run {
             self.currentUserSession = session
         }
+
+        return session
     }
 
     // MARK: - Update onboarding step (updates Firestore AND local session)
@@ -202,6 +205,32 @@ class AuthenticationViewModel: ObservableObject {
             }
         }
     }
+    
+    // MARK: - Finalize Merchant Onboarding
+    // MARK: - Finalize Merchant Onboarding
+        func finalizeMerchantOnboarding(storeId: String) async throws {
+            guard let uid = Auth.auth().currentUser?.uid else {
+                throw NSError(domain: "AUTH", code: 401)
+            }
+
+            // 1. Update Firestore
+            try await db.collection("users")
+                .document(uid)
+                .updateData([
+                    "store_id": storeId,
+                    "onboarding_step": 8
+                ])
+
+            // 2. Update Local Session INSTANTLY (Don't wait for loadCurrentUser)
+            await MainActor.run {
+                if var current = self.currentUserSession {
+                    current.storeId = storeId
+                    current.onboardingStep = 8 // Force the step to 8
+                    self.currentUserSession = current
+                    print("✅ Local session updated to Step 8. Redirecting...")
+                }
+            }
+        }
 
     // MARK: - GOOGLE SIGN IN (unchanged, but load session if needed)
     func signInWithGoogle(role: UserRole? = nil) {

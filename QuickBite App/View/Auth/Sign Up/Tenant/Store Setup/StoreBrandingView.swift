@@ -181,6 +181,7 @@ struct StoreBrandingView: View {
                 OrangeButton(title: "Continue to Menu Setup", enabled: canContinue)
             })
             .simultaneousGesture(TapGesture().onEnded {
+                storeVM.saveDraft()
                 Task {
                     do {
                         try await authVM.updateOnboardingStep(6)

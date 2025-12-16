@@ -10,7 +10,6 @@ import SwiftUI
 struct MenuSetupView: View {
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
     @EnvironmentObject var authVM: AuthenticationViewModel
-    @Environment(\.dismiss) var dismiss
 
     // MARK: - Menu Data
     @State private var sections: [MenuSectionModel] = []
@@ -25,7 +24,6 @@ struct MenuSetupView: View {
         let row: Int
     }
 
-    // MARK: - BODY
     var body: some View {
         mainContent
             .overlay(editSheet)
@@ -45,11 +43,7 @@ struct MenuSetupView: View {
             .padding(.bottom, 8)
 
             menuScrollView
-
             Spacer(minLength: 8)
-
-            debugPanel
-
             finishButton()
                 .padding(.horizontal, 16)
                 .padding(.bottom, 20)
@@ -95,21 +89,6 @@ struct MenuSetupView: View {
         }
     }
 
-    // MARK: - DEBUG PANEL
-    private var debugPanel: some View {
-        HStack {
-            Text("canFinish: \(canFinish ? "YES" : "NO")")
-                .font(.caption)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(isSubmitting ? "Submitting..." : "")
-                .font(.caption)
-                .foregroundColor(.secondary)
-        }
-        .padding(.horizontal, 16)
-        .padding(.bottom, 6)
-    }
-
     // MARK: - EDIT SHEET
     private var editSheet: some View {
         EmptyView()
@@ -145,6 +124,7 @@ struct MenuSetupView: View {
     }
 
     // MARK: - FINISH LOGIC
+    // MARK: - FINISH LOGIC
     private func handleFinishTap() {
         guard
             let banner = storeVM.bannerImage,
@@ -156,7 +136,7 @@ struct MenuSetupView: View {
 
         Task {
             do {
-                try await storeVM.registerStore(
+                let storeID = try await storeVM.registerStore(
                     storeName: storeVM.storeName,
                     location: storeVM.location,
                     cuisineTypes: storeVM.cuisineTypes,
@@ -168,12 +148,11 @@ struct MenuSetupView: View {
                     sections: sections
                 )
 
-                try await authVM.updateOnboardingStep(7)
-                try await Task.sleep(nanoseconds: 300_000_000)
+                try await authVM.finalizeMerchantOnboarding(storeId: storeID)
 
                 await MainActor.run {
                     isSubmitting = false
-                    dismiss()
+                    storeVM.clearDraft()
                 }
             } catch {
                 await MainActor.run {

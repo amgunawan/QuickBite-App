@@ -10,6 +10,7 @@ import SwiftUI
 struct OnboardingView: View {
     
     @EnvironmentObject var authVM: AuthenticationViewModel
+    @EnvironmentObject var storeVM: StoreRegistrationViewModel
 
     var body: some View {
         NavigationStack {
@@ -35,6 +36,7 @@ struct OnboardingView: View {
                     )
                 }
                 .simultaneousGesture(TapGesture().onEnded {
+                    storeVM.saveDraft()
                     Task {
                         do {
                             try await authVM.updateOnboardingStep(8)

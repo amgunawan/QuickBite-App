@@ -96,40 +96,74 @@ class StoreRegistrationViewModel: ObservableObject {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw NSError(domain: "AUTH", code: 401)
         }
+
         try await assertStoreNameIsUnique(storeName)
-        
-        let sanitizedStoreName = sanitizeStoreName(storeName)
-        
-        // 1️⃣ CREATE STORE DOCUMENT
+
+        let sanitizedStoreName = sanitizeFolderName(storeName)
+
+        // 1️⃣ CREATE STORE DOC
         let storeRef = db.collection("stores").document()
         let storeID = storeRef.documentID
 
-        // 2️⃣ UPLOAD IMAGES
-        let bannerURL = try await uploadImage(
+        // 2️⃣ UPLOAD MAIN IMAGES
+        let resizedBanner = ImageResizeHelper.resize(
             bannerImage,
-            path: "\(storeID)/main/banner.jpg"
+            mode: .ratio16x9,
+            maxSize: 1600
         )
 
-        let searchURL = try await uploadImage(
+        let bannerURL = try await uploadImage(
+            resizedBanner,
+            path: "\(sanitizedStoreName)/main/banner.jpg"
+        )
+
+        let searchURL = try await uploadImageToStorage(
             searchIcon,
-            path: "\(storeID)/main/search.jpg"
+            path: "\(sanitizedStoreName)/main/search.jpg"
         )
 
-        // 3️⃣ UPLOAD MENU.JSON + TRACKING
-        let (menuJSONURL, trackingItems) = try await uploadMenuJSON(
-            sections: sections,
-            storeID: storeID,
-            storeName: sanitizedStoreName
+        // 3️⃣ UPLOAD ITEM IMAGES
+        var preparedSections = sections
+
+        for secIndex in preparedSections.indices {
+            let section = preparedSections[secIndex]
+            let sanitizedCategory = sanitizeFolderName(section.title)
+
+            for itemIndex in section.items.indices {
+                var item = section.items[itemIndex]
+
+                guard let image = item.draftImage else { continue }
+                
+                let squareImage = ImageResizeHelper.resize(
+                    image,
+                    mode: .square,
+                    maxSize: 800
+                )
+
+                let path = "\(sanitizedStoreName)/\(sanitizedCategory)/\(item.itemId).jpg"
+
+                let uploadedURL = try await uploadImageToStorage(squareImage, path: path)
+                item.imageURL = uploadedURL
+                item.draftImage = nil
+
+                preparedSections[secIndex].items[itemIndex] = item
+            }
+        }
+
+        // 4️⃣ UPLOAD MENU.JSON
+        let menuURL = try await uploadMenuJSON(
+            sections: preparedSections,
+            sanitizedStoreName: sanitizedStoreName
         )
 
-        // 4️⃣ GENERATE SCHEDULE
+        // 5️⃣ GENERATE SCHEDULE
         let schedule = generateSchedule(
             openDays: openDays,
             openingTime: openingTime,
             closingTime: closingTime
         )
 
-        // 5️⃣ SAVE STORE DOCUMENT
+        // 6️⃣ SAVE STORE DOCUMENT
         let storeData: [String: Any] = [
             "owner_id": uid,
             "name": storeName,
@@ -138,31 +172,14 @@ class StoreRegistrationViewModel: ObservableObject {
             "cuisine_type": cuisineTypes,
             "banner_url": bannerURL,
             "search_url": searchURL,
-            "menu_data_url": menuJSONURL,
+            "menu_data_url": menuURL,
             "rating": 0,
             "review_count": 0,
-            "store_schedule": schedule,
-            "tracking_item": trackingItems,
-            "payout_details": [
-                "account_holder": payoutAccountHolder,
-                "account_number": payoutAccountNumber,
-                "bank_name": payoutBankName,
-                "nmid": payoutNMID
-            ]
+            "store_schedule": schedule
         ]
 
         try await storeRef.setData(storeData)
 
-//        // 6️⃣ LINK STORE TO USER
-//        try await db.collection("users")
-//            .document(uid)
-//            .updateData([
-//                "store_id": storeID,
-//                "onboarding_step": 8
-//            ])
-
-        print("✅ STORE REGISTRATION COMPLETE")
-        
         return storeID
     }
 
@@ -187,78 +204,26 @@ class StoreRegistrationViewModel: ObservableObject {
     // MARK: - MENU JSON UPLOAD (ADAPTED TO EXISTING MODEL)
     // -----------------------------------------------------
 
-    private func uploadMenuJSON(
+    func uploadMenuJSON(
         sections: [MenuSectionModel],
-        storeID: String,
-        storeName: String
-    ) async throws -> (menuURL: String, trackingItems: [[String: Any]]) {
+        sanitizedStoreName: String
+    ) async throws -> String {
 
-        var menuUploads: [MenuItemUploadModel] = []
-        var trackingItems: [[String: Any]] = []
-
-        // 🅰️ Store prefix (first letter, uppercase, spaces removed)
-        let cleanStoreName = storeName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: " ", with: "")
-
-        let storePrefix = cleanStoreName.first.map {
-            String($0).uppercased()
-        } ?? "X"
-
-        for section in sections {
-
-            // 🅱️ Section prefix (first letter, uppercase, spaces removed)
-            let cleanSectionName = section.title
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-                .replacingOccurrences(of: " ", with: "")
-
-            let sectionPrefix = cleanSectionName.first.map {
-                String($0).uppercased()
-            } ?? "X"
-
-            var itemIndex = 1   // 🔢 reset numbering per section
-
-            for item in section.items {
-
-                let formattedItemID = "\(storePrefix)\(sectionPrefix)\(itemIndex)"
-                itemIndex += 1
-
-                let upload = MenuItemUploadModel(
-                    item_id: formattedItemID,
-                    name: item.name,
-                    description: item.description ?? "",
-                    price: item.price,
-                    default_stock: item.defaultStock ?? 0,
-                    prep_time_minutes: item.prepTimeMinutes ?? 0,
-                    category: section.title,
-                    image_url: item.imageURL ?? ""
-                )
-
-                menuUploads.append(upload)
-
-                let tracking: [String: Any] = [
-                    "item_id": formattedItemID,
-                    "current_stock": item.defaultStock ?? 0,
-                    "total_sold": 0
-                ]
-
-                trackingItems.append(tracking)
-            }
-        }
+        let allItems = sections.flatMap { $0.items }
 
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted]
 
-        let data = try encoder.encode(menuUploads)
+        let data = try encoder.encode(allItems)
 
-        // 📁 Store folder name = store name without spaces
-        let ref = storage.reference()
-            .child("\(cleanStoreName)/menu.json")
+        let ref = Storage.storage()
+            .reference()
+            .child("\(sanitizedStoreName)/menu.json")
 
         _ = try await ref.putDataAsync(data)
         let url = try await ref.downloadURL()
 
-        return (menuURL: url.absoluteString, trackingItems: trackingItems)
+        return url.absoluteString
     }
 
     // -----------------------------------------------------

@@ -1,5 +1,5 @@
 //
-//  ManageMenuTenantView.swift
+//  ManageMenuStockTenantView.swift
 //  QuickBite App
 //
 
@@ -27,79 +27,18 @@ struct ManageMenuStockTenantView: View {
         )
     }
 
+    // =========================================================
+    // MARK: - BODY
+    // =========================================================
     var body: some View {
         List {
-
-            // ===============================
-            // LOADING
-            // ===============================
-            if viewModel.isLoading {
-                HStack {
-                    Spacer()
-                    ProgressView("Loading...")
-                    Spacer()
-                }
-            }
-
-            // ===============================
-            // ERROR
-            // ===============================
-            else if let error = viewModel.errorMessage {
-                VStack(spacing: 10) {
-                    Text(error)
-                        .foregroundColor(.red)
-                        .multilineTextAlignment(.center)
-
-                    Button("Retry") {
-                        viewModel.refresh()
-                    }
-                }
-                .frame(maxWidth: .infinity)
-            }
-
-            // ===============================
-            // CONTENT
-            // ===============================
-            else {
-                ForEach(viewModel.sections) { section in
-
-                    Section {
-
-                        ForEach(section.items) { item in
-                            MenuRow(item: item) {
-                                // ✅ FIX: langsung buka edit (tidak perlu tap dua kali)
-                                selectedItem = item
-                            }
-                            .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                Button(role: .destructive) {
-                                    itemToDelete = item
-                                    showDeleteAlert = true
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-
-                    } header: {
-                        SectionHeader(
-                            title: section.title,
-                            onAddItem: {
-                                pendingCategory = section.title
-                                viewModel.addItem(to: section.title)
-                                showAddSheet = true
-                            }
-                        )
-                    }
-                }
-            }
+            contentView
         }
         .listStyle(.plain)
         .navigationTitle("Manage Menu & Stock")
         .navigationBarTitleDisplayMode(.inline)
 
-        // ===============================
-        // EDIT ITEM
-        // ===============================
+        // EDIT SHEET
         .sheet(item: $selectedItem) { item in
             EditMenuTenantView(
                 item: item,
@@ -112,9 +51,7 @@ struct ManageMenuStockTenantView: View {
             .presentationCornerRadius(22)
         }
 
-        // ===============================
-        // ADD ITEM
-        // ===============================
+        // ADD SHEET
         .sheet(isPresented: $showAddSheet) {
             if viewModel.newItemDraft != nil {
                 AddMenuItemOverlay { completedItem in
@@ -128,23 +65,101 @@ struct ManageMenuStockTenantView: View {
             }
         }
 
-        // ===============================
-        // DELETE CONFIRMATION
-        // ===============================
+        // DELETE ALERT
         .alert(
             "Delete Menu",
             isPresented: $showDeleteAlert,
             presenting: itemToDelete
         ) { item in
-
             Button("Delete", role: .destructive) {
                 viewModel.deleteItem(item)
             }
-
             Button("Cancel", role: .cancel) { }
-
         } message: { item in
             Text("Are you sure you want to delete \"\(item.name)\"?")
+        }
+    }
+
+    // =========================================================
+    // MARK: - CONTENT SWITCH
+    // =========================================================
+    @ViewBuilder
+    private var contentView: some View {
+        if viewModel.isLoading {
+            loadingView
+        } else if let error = viewModel.errorMessage {
+            errorView(error)
+        } else {
+            menuSections
+        }
+    }
+
+    // =========================================================
+    // MARK: - LOADING
+    // =========================================================
+    private var loadingView: some View {
+        HStack {
+            Spacer()
+            ProgressView("Loading...")
+            Spacer()
+        }
+    }
+
+    // =========================================================
+    // MARK: - ERROR
+    // =========================================================
+    private func errorView(_ error: String) -> some View {
+        VStack(spacing: 10) {
+            Text(error)
+                .foregroundColor(.red)
+                .multilineTextAlignment(.center)
+
+            Button("Retry") {
+                viewModel.refresh()
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // =========================================================
+    // MARK: - MENU SECTIONS
+    // =========================================================
+    private var menuSections: some View {
+        ForEach(viewModel.sections) { section in
+            Section {
+                ForEach(section.items) { item in
+                    MenuRow(
+                        item: item,
+                        showStockBadge: true   // ← restore required parameter
+                    ) {
+                        selectedItem = item
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        deleteButton(for: item)
+                    }
+                }
+            } header: {
+                SectionHeader(
+                    title: section.title,
+                    onAddItem: {
+                        pendingCategory = section.title
+                        viewModel.addItem(to: section.title)
+                        showAddSheet = true
+                    }
+                )
+            }
+        }
+    }
+
+    // =========================================================
+    // MARK: - DELETE BUTTON
+    // =========================================================
+    private func deleteButton(for item: MenuItem) -> some View {
+        Button(role: .destructive) {
+            itemToDelete = item
+            showDeleteAlert = true
+        } label: {
+            Label("Delete", systemImage: "trash")
         }
     }
 }
@@ -152,7 +167,6 @@ struct ManageMenuStockTenantView: View {
 // ======================================================================
 // MARK: - SECTION HEADER (UI SAMA)
 // ======================================================================
-
 private struct SectionHeader: View {
 
     let title: String
@@ -181,11 +195,11 @@ private struct SectionHeader: View {
 // ======================================================================
 // MARK: - ASYNC IMAGE LOADER
 // ======================================================================
-
 struct StorageImageView: View {
+
     let imageURL: String
     @State private var uiImage: UIImage? = nil
-    
+
     var body: some View {
         ZStack {
             if let uiImage = uiImage {
@@ -201,15 +215,15 @@ struct StorageImageView: View {
         .onAppear { loadImage() }
         .onChange(of: imageURL) { _, _ in loadImage() }
     }
-    
+
     private func loadImage() {
         uiImage = nil
         guard !imageURL.isEmpty else { return }
-        
+
         let ref = Storage.storage().reference(forURL: imageURL)
-        ref.getData(maxSize: 3 * 1024 * 1024) { data, error in
+        ref.getData(maxSize: 3 * 1024 * 1024) { data, _ in
             if let data = data, let img = UIImage(data: data) {
-                self.uiImage = img
+                uiImage = img
             }
         }
     }

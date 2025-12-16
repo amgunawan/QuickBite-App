@@ -47,8 +47,10 @@ struct KTPVerificationView: View {
                             VStack(spacing: 12) {
                                 Image(uiImage: img)
                                     .resizable()
-                                    .scaledToFit()
+                                    .scaledToFill()
                                     .frame(maxWidth: .infinity)
+                                    .aspectRatio(16/9, contentMode: .fill)
+                                    .clipped()
                                     .cornerRadius(8)
 
                                 Text("Uploaded Successfully!")
@@ -88,7 +90,8 @@ struct KTPVerificationView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 40)
+                                .aspectRatio(16/9, content reopening: .fit)
+                                .padding(.vertical, 24)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(10)
                                 .overlay(
@@ -164,7 +167,7 @@ struct KTPVerificationView: View {
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self),
                    let uiImage = UIImage(data: data) {
-                    storeVM.ktpImage = uiImage
+                    storeVM.ktpImage = ImageResizeHelper.resize(uiImage, mode: .ratio16x9)
                     isKtpUploaded = true
                 }
             }

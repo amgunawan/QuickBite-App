@@ -93,8 +93,11 @@ struct MenuSetupView: View {
     private var editSheet: some View {
         EmptyView()
             .sheet(item: $editingIndex) { edit in
-                AddMenuItemOverlay { newItem in
-                    sections[edit.sec].items[edit.row] = newItem
+                let existing = sections[edit.sec].items[edit.row]
+                let category = sections[edit.sec].title
+
+                AddMenuItemOverlay(existingItem: existing, category: category) { saved in
+                    sections[edit.sec].items[edit.row] = saved
                     editingIndex = nil
                 }
                 .interactiveDismissDisabled(false)

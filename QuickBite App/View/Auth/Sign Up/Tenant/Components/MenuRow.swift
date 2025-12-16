@@ -24,8 +24,11 @@ struct MenuRow: View {
         HStack(alignment: .top, spacing: 12) {
 
             // IMAGE
-            MenuRowImage(imageURL: item.imageURL)
-
+            MenuRowImage(
+                imageURL: item.imageURL,
+                draftImage: item.draftImage
+            )
+            
             // INFO
             VStack(alignment: .leading, spacing: 6) {
 

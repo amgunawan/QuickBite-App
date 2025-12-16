@@ -207,7 +207,6 @@ class AuthenticationViewModel: ObservableObject {
     }
     
     // MARK: - Finalize Merchant Onboarding
-    // MARK: - Finalize Merchant Onboarding
         func finalizeMerchantOnboarding(storeId: String) async throws {
             guard let uid = Auth.auth().currentUser?.uid else {
                 throw NSError(domain: "AUTH", code: 401)

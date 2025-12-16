@@ -68,8 +68,13 @@ class TenantMenuViewModel: ObservableObject {
             self.menuDataURL = url
             
             // extract store folder (ex: "Raburi")
-            self.storeFolderName = MenuItem.extractStoreFolder(from: url)
-            
+            if let sanitized = data["sanitized_name"] as? String {
+                self.storeFolderName = sanitized
+            } else {
+                self.finishError("sanitized_name missing in Firestore.")
+                return
+            }
+
             // tracking_item array
             if let trackingArray = data["tracking_item"] as? [[String: Any]] {
                 do {

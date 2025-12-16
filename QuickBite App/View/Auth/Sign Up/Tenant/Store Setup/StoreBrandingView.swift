@@ -51,10 +51,10 @@ struct StoreBrandingView: View {
                                 Image(uiImage: img)
                                     .resizable()
                                     .scaledToFill()
-                                    .frame(height: 120)
+                                    .aspectRatio(16/9, contentMode: .fill)
                                     .frame(maxWidth: .infinity)
                                     .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
                             } else {
                                 VStack {
                                     Image(systemName: "photo.fill.on.rectangle.fill")
@@ -209,10 +209,11 @@ struct StoreBrandingView: View {
         }
         .onChange(of: bannerPickedItem) { _, newValue in
             handlePhotoPicker(item: newValue) { image, filename in
+                let resized = ImageResizeHelper.resize(image, mode: .ratio16x9)
                 Task { @MainActor in
-                    bannerImage = image
+                    bannerImage = resized
                     bannerFileName = filename
-                    storeVM.bannerImage = image   // ✅ SAVE TO VIEWMODEL
+                    storeVM.bannerImage = resized   // ✅ SAVE TO VIEWMODEL
                     print("[Branding] stored banner -> storeVM OK")
                 }
             }
@@ -220,6 +221,7 @@ struct StoreBrandingView: View {
 
         .onChange(of: iconPickedItem) { _, newValue in
             handlePhotoPicker(item: newValue) { image, filename in
+                let resized = ImageResizeHelper.resize(image, mode: .square)
                 Task { @MainActor in
                     iconImage = image
                     iconFileName = filename

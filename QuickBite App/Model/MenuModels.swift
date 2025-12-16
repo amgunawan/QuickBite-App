@@ -2,24 +2,15 @@
 //  MenuModels.swift
 //  QuickBite
 //
-//  Created by student on 11/12/25.
-//
 
 import Foundation
 import SwiftUI
 
-// MARK: - Menu Item (Unified)
+// MARK: - Menu Item
 
 struct MenuItem: Identifiable, Codable, Hashable {
-    
-    static func extractStoreFolder(from gsURL: String) -> String? {
-            // Example: gs://bucket/Raburi/menu.json
-            let components = gsURL.components(separatedBy: "/")
-            guard components.count >= 2 else { return nil }
-            return components.dropLast().last
-        }
-    
-    // MARK: - JSON Fields
+
+    // MARK: JSON Fields
     var itemId: String
     var name: String
     var description: String?
@@ -29,14 +20,21 @@ struct MenuItem: Identifiable, Codable, Hashable {
     var defaultStock: Int?
     var prepTimeMinutes: Int?
     var options: [MenuOptionGroup]?
-    
-    // MARK: - Runtime Fields (Merged from TrackingItem)
+
+    // MARK: Runtime-only
+    var draftImage: UIImage? = nil
     var currentStock: Int = 0
     var totalSold: Int = 0
     
-    // MARK: - Identifiable
+    // MARK: - Stock Status (UI Helper)
+    var stockStatus: StockStatus {
+        if currentStock <= 0 { return .outOfStock }
+        if currentStock <= 5 { return .lowStock }
+        return .inStock
+    }
+
     var id: String { itemId }
-    
+
     enum CodingKeys: String, CodingKey {
         case itemId = "item_id"
         case name
@@ -48,22 +46,9 @@ struct MenuItem: Identifiable, Codable, Hashable {
         case prepTimeMinutes = "prep_time_minutes"
         case options
     }
-    
-    // MARK: - Safe Option Access
+
     var nonOptionalOptions: [MenuOptionGroup] {
         options ?? []
-    }
-    
-    // MARK: - Stock Status (UI Helper)
-    var stockStatus: StockStatus {
-        if currentStock <= 0 { return .outOfStock }
-        if currentStock <= 5 { return .lowStock }
-        return .inStock
-    }
-    
-    // MARK: - Image Helpers
-    var imageFileName: String {
-        URL(string: imageURL ?? "")?.lastPathComponent ?? ""
     }
 }
 
@@ -75,7 +60,7 @@ struct MenuOptionGroup: Codable, Identifiable, Hashable {
     var minSelect: Int
     var maxSelect: Int
     var choices: [MenuOptionChoice]
-    
+
     enum CodingKeys: String, CodingKey {
         case category
         case minSelect = "min_select"
@@ -90,25 +75,19 @@ struct MenuOptionChoice: Codable, Identifiable, Hashable {
     var id = UUID()
     var name: String
     var additionalPrice: Int
-    
+
     enum CodingKeys: String, CodingKey {
         case name
         case additionalPrice = "additional_price"
     }
 }
 
-// MARK: - Firestore Tracking Stock
+// MARK: - Menu Section
 
-struct TrackingItem: Codable, Hashable {
-    var itemId: String
-    var currentStock: Int
-    var totalSold: Int
-    
-    enum CodingKeys: String, CodingKey {
-        case itemId = "item_id"
-        case currentStock = "current_stock"
-        case totalSold = "total_sold"
-    }
+struct MenuSectionModel: Identifiable, Hashable {
+    let id = UUID()
+    var title: String
+    var items: [MenuItem]
 }
 
 enum StockStatus: String, Codable {
@@ -117,9 +96,14 @@ enum StockStatus: String, Codable {
     case outOfStock = "Out of Stock"
 }
 
-struct MenuSectionModel: Identifiable, Hashable {
-    let id = UUID()
-    var title: String
-    var items: [MenuItem]
-}
+struct TrackingItem: Codable, Hashable {
+    var itemId: String
+    var currentStock: Int
+    var totalSold: Int
 
+    enum CodingKeys: String, CodingKey {
+        case itemId = "item_id"
+        case currentStock = "current_stock"
+        case totalSold = "total_sold"
+    }
+}

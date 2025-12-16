@@ -33,7 +33,7 @@ struct QuickBiteApp: App {
                 .environmentObject(storeVM)
                 .environmentObject(cart)
                 .environmentObject(calendarManager)
-//                .environmentObject(tenantSession)
+                .environmentObject(tenantSession)
                 .environmentObject(authVM)
                 .environmentObject(navState)
                 .onAppear {

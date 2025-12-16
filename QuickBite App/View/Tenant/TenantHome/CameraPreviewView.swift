@@ -70,7 +70,6 @@ struct CameraPreviewView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UIView, context: Context) {
-        /// Flash mode
         if let device = AVCaptureDevice.default(for: .video),
            device.hasTorch {
             try? device.lockForConfiguration()

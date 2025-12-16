@@ -8,27 +8,45 @@
 import SwiftUI
 
 struct UserContentView: View {
+
+    // 🔑 GLOBAL STATES (SATU INSTANCE)
+    @EnvironmentObject var navState: AppNavigationState
+    @EnvironmentObject var cart: CartViewModel
+
     var body: some View {
-        TabView {
+
+        TabView(selection: $navState.selectedTab){
+
+            // ================= HOME =================
             HomeView()
+                .environmentObject(navState)
+                .environmentObject(cart)
+                .tag(0)
                 .tabItem {
                     Label("Home", systemImage: "house.fill")
                 }
-            
+
+            // ================= ACTIVITY =================
             ActivityView()
-                .padding(.bottom)
+                .environmentObject(navState)
+                .environmentObject(cart)      
+                .tag(1)
                 .tabItem {
                     Label("Activity", systemImage: "clock.fill")
                 }
-            
+
+            // ================= QUEST =================
             QuestView()
-                .padding(.bottom)
+                .environmentObject(navState)
+                .tag(2)
                 .tabItem {
                     Label("Quest", systemImage: "trophy.fill")
                 }
-            
+
+            // ================= PROFILE =================
             ProfileView()
-                .padding(.bottom)
+                .environmentObject(navState)
+                .tag(3)
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")
                 }
@@ -39,4 +57,6 @@ struct UserContentView: View {
 
 #Preview {
     UserContentView()
+        .environmentObject(AppNavigationState())
+        .environmentObject(CartViewModel())
 }

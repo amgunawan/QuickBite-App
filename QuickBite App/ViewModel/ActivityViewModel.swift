@@ -5,79 +5,116 @@
 //  Created by jessica tedja on 12/12/25.
 //
 
-import Foundation
+import SwiftUI
 import FirebaseFirestore
 import Combine
 
-@MainActor
 final class ActivityViewModel: ObservableObject {
-
+    
+    // MARK: - PUBLISHED STATE
     @Published var historyOrders: [ActivityOrderModel] = []
     @Published var progressOrders: [ActivityOrderModel] = []
-
+    
+    // MARK: - PRIVATE
     private let db = Firestore.firestore()
-
-    // nanti ganti dari FirebaseAuth.currentUser
-    private let userPath = "/users/xKU2P7crq1OOckA3tK83uHNOTwR2"
-
+    private var listener: ListenerRegistration?
+    
+    // MARK: - FETCH ORDERS (REALTIME)
     func fetchOrders() {
-        db.collection("orders")
-            .whereField("user_id", isEqualTo: userPath)
+        
+        // Hapus listener lama (hindari duplicate)
+        listener?.remove()
+        
+        listener = db
+            .collection("orders")
+        // 🔥 pakai timestamp yang ADA di database kamu
             .order(by: "created_at", descending: true)
-            .getDocuments { [weak self] snapshot, error in
-                guard let self else { return }
-
+            .addSnapshotListener { snapshot, error in
+                
                 if let error = error {
-                    print("❌ fetchOrders error:", error.localizedDescription)
+                    print("🔥 Activity fetch error:", error.localizedDescription)
                     return
                 }
-
-                let formatter = DateFormatter()
-                formatter.dateFormat = "dd MMM, HH:mm"
-
-                let orders = snapshot?.documents.compactMap { doc -> ActivityOrderModel? in
-                    let d = doc.data()
-
-                    guard
-                        let status = d["status"] as? String,
-                        let storeId = d["store_id"] as? String,
-                        let userId = d["user_id"] as? String,
-                        let totalCost = d["total_cost"] as? Int
-                    else { return nil }
-
-                    // ambil item pertama (ringkas untuk Activity)
-                    guard
-                        let items = d["items"] as? [[String: Any]],
-                        let firstItem = items.first,
-                        let itemId = firstItem["item_id"] as? String,
-                        let price = firstItem["price"] as? Int,
-                        let quantity = firstItem["quantity"] as? Int
-                    else { return nil }
-
-                    let createdAt = (d["created_at"] as? Timestamp)?.dateValue()
-                    let dateString = createdAt != nil
-                        ? formatter.string(from: createdAt!)
-                        : "-"
-
-                    return ActivityOrderModel(
+                
+                guard let documents = snapshot?.documents else { return }
+                
+                var history: [ActivityOrderModel] = []
+                var progress: [ActivityOrderModel] = []
+                
+                for doc in documents {
+                    let data = doc.data()
+                    
+                    // ===== BASIC FIELDS =====
+                    let status = (data["status"] as? String ?? "pending").lowercased()
+                    
+                    let createdDate: String = {
+                        if let ts = data["created_at"] as? Timestamp {
+                            return ts.dateValue().formatted(
+                                date: .abbreviated,
+                                time: .shortened
+                            )
+                        }
+                        return "-"
+                    }()
+                    let items = data["items"] as? [String] ?? []
+                    
+                    // 🔥 HITUNG TOTAL QUANTITY
+                    let totalQuantity: Int = items.reduce(0) { result, item in
+                        let number = item
+                            .split(separator: "x")
+                            .first
+                            .flatMap { Int($0.trimmingCharacters(in: .whitespaces)) } ?? 1
+                        return result + number
+                    }
+                    
+                    // 🔥 AMBIL NAMA MAKANAN TANPA "1x"
+                    let mealName: String = items.first?
+                        .components(separatedBy: "x ")
+                        .dropFirst()
+                        .joined(separator: " ") ?? "-"
+                    
+                    
+                    // ===== BUILD MODEL =====
+                    let model = ActivityOrderModel(
                         id: doc.documentID,
                         orderId: doc.documentID,
                         status: status,
-                        storeId: storeId,
-                        userId: userId,
-                        itemId: itemId,
-                        quantity: quantity,
-                        price: price,
-                        date: dateString,
-                        totalCost: totalCost,
-                        restaurantName: nil,
-                        mealName: nil,
-                        rating: d["rating"] as? Int
+                        storeId: data["tenantId"] as? String ?? "",
+                        userId: data["customerName"] as? String ?? "",
+                        itemId: doc.documentID,
+                        quantity: totalQuantity,
+                        price: data["total"] as? Int ?? 0,
+                        date: createdDate,
+                        totalCost: data["total"] as? Int ?? 0,
+                        restaurantName: data["restaurantName"] as? String,
+                        mealName: (data["items"] as? [String])?.first,
+                        rating: data["rating"] as? Int
                     )
-                } ?? []
-
-                self.historyOrders = orders.filter { $0.status == "completed" }
-                self.progressOrders = orders.filter { $0.status != "completed" }
+                    
+                    // ===== STATUS ROUTING =====
+                    switch status {
+                    case "completed", "done", "picked_up":
+                        history.append(model)
+                        
+                    case "pending", "preparing", "ready":
+                        progress.append(model)
+                        
+                    default:
+                        // fallback → tetap tampil di In Progress
+                        progress.append(model)
+                    }
+                }
+                
+                // ===== UPDATE UI =====
+                DispatchQueue.main.async {
+                    self.historyOrders = history
+                    self.progressOrders = progress
+                }
             }
+    }
+    
+    // MARK: - CLEANUP
+    deinit {
+        listener?.remove()
     }
 }

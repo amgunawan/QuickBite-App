@@ -12,8 +12,9 @@ import FirebaseStorage
 struct OrderConfirmationView: View {
     @EnvironmentObject var cart: CartViewModel
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var navState: AppNavigationState
+    @EnvironmentObject var calendarManager: CalendarManager
     
-    // State untuk sheet waktu
     @State private var showingTimeSheet = false
     
     // State Status Toko (Open/Closed)
@@ -29,8 +30,9 @@ struct OrderConfirmationView: View {
     @State private var navigateToCompleted = false
     @State private var generatedQR: UIImage?
     @State private var generatedOrderId: String = ""
+    @State private var isPlacingOrder: Bool = false
+    @StateObject private var vm = ActivityViewModel()
     
-    @EnvironmentObject var calendarManager: CalendarManager
     
     var body: some View {
         VStack(spacing: 0) {
@@ -279,56 +281,62 @@ struct OrderConfirmationView: View {
             .navigationBarBackButtonHidden(true)
         }
         .onAppear {
-            fetchStoreSchedule()
-            fetchDiscounts()
+            vm.fetchOrders()
+            
+            if navState.activeOrderId != nil {
+                navState.activitySegment = .inProgress
+            }
+        }
+        .onChange(of: navState.activeOrderId) { _ in
+            vm.fetchOrders()
         }
     }
     
     // --- LOGIC FUNCTIONS ---
     func fetchDiscounts() {
-            guard !cart.restaurantId.isEmpty else { return }
-            
-            let db = Firestore.firestore()
-            
-            // Construct path string agar sesuai screenshot: "/stores/AHCqc..."
-            let storePath = "/stores/\(cart.restaurantId)"
-            
-            db.collection("discounts")
-                .whereField("store_id", isEqualTo: storePath)
-                .getDocuments { snapshot, error in
-                    if let error = error {
-                        print("Error fetching discounts: \(error.localizedDescription)")
-                        return
-                    }
+        guard !cart.restaurantId.isEmpty else { return }
+        
+        let db = Firestore.firestore()
+        
+        // Construct path string agar sesuai screenshot: "/stores/AHCqc..."
+        let storePath = "/stores/\(cart.restaurantId)"
+        
+        db.collection("discounts")
+            .whereField("store_id", isEqualTo: storePath)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("Error fetching discounts: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let documents = snapshot?.documents else { return }
+                
+                var calculatedTotal: Int = 0
+                
+                // Decode documents ke DiscountModel
+                let discounts = documents.compactMap { doc -> DiscountModel? in
+                    try? doc.data(as: DiscountModel.self)
+                }
+                
+                let activeDiscounts = discounts.filter { $0.isActive }
+                
+                for cartItem in cart.items {
                     
-                    guard let documents = snapshot?.documents else { return }
-                    
-                    var calculatedTotal: Int = 0
-                    
-                    // Decode documents ke DiscountModel
-                    let discounts = documents.compactMap { doc -> DiscountModel? in
-                        try? doc.data(as: DiscountModel.self)
-                    }
-                    
-                    let activeDiscounts = discounts.filter { $0.isActive }
-                    
-                    for cartItem in cart.items {
-
-                        if let applicableDiscount = activeDiscounts.first(where: { $0.itemId == cartItem.menuItemId }) {
-                            
-                            let itemDiscountTotal = applicableDiscount.amount * cartItem.quantity
-                            calculatedTotal += itemDiscountTotal
-                            
-                            print("✅ Applied discount \(applicableDiscount.amount) for item \(cartItem.name)")
-                        }
-                    }
-                    
-                    // Update UI
-                    DispatchQueue.main.async {
-                        self.totalDiscountAmount = calculatedTotal
+                    if let applicableDiscount = activeDiscounts.first(where: { $0.itemId == cartItem.menuItemId }) {
+                        
+                        let itemDiscountTotal = applicableDiscount.amount * cartItem.quantity
+                        calculatedTotal += itemDiscountTotal
+                        
+                        print("✅ Applied discount \(applicableDiscount.amount) for item \(cartItem.name)")
                     }
                 }
-        }
+                
+                // Update UI
+                DispatchQueue.main.async {
+                    self.totalDiscountAmount = calculatedTotal
+                }
+            }
+    }
     
     func fetchStoreSchedule() {
         guard !cart.restaurantId.isEmpty else {
@@ -386,27 +394,49 @@ struct OrderConfirmationView: View {
     }
     
     func placeOrder() {
+        guard let selectedTime else { return }
+        guard !isStoreClosed else { return }
+        guard !isPlacingOrder else { return }
+        
+        isPlacingOrder = true
+        
         let service = OrderService()
         let items = cart.items.map { "\($0.quantity)x \($0.name)" }
         let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
+        
         service.createOrder(
             customerName: "Jessica",
             items: items,
             total: Int(finalTotal),
-            pickupTime: selectedTime?.timeRange ?? "ASAP",
+            pickupTime: selectedTime.timeRange,
             tenantId: cart.restaurantId
         ) { orderId in
-            if let orderId = orderId {
-                let qr = QRGenerator().generate(from: orderId)
-                self.generatedQR = qr
-                self.generatedOrderId = orderId
-                self.navigateToCompleted = true
+            guard let orderId else {
+                isPlacingOrder = false
+                return
+            }
+            
+            DispatchQueue.main.async {
+                
+                // 🔥 SIMPAN ORDER AKTIF
+                navState.activeOrderId = orderId
+                
+                // 🔥 PINDAH KE ACTIVITY TAB
+                navState.selectedTab = 1
+                
+                // 🔥 AUTO KE IN PROGRESS
+                navState.activitySegment = .inProgress
+                
+                // 🔥 CLEAR CART
+                cart.clearCart()
+                
+                // 🔥 TUTUP ORDER CONFIRMATION
+                dismiss()
             }
         }
     }
 }
 
-// --- SUBVIEW: Cart Item Row (Handles Async Image) ---
 struct OrderConfirmationItemRow: View {
     let item: CartItemModel
     @State private var displayImageURL: URL? = nil

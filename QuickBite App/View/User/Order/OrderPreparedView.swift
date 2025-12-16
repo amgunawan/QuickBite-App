@@ -6,247 +6,323 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
+import FirebaseStorage
+import UIKit
 
-// MARK: - MODEL FOR ORDERED ITEMS
 struct OrderedItem: Identifiable {
     let id = UUID()
     let count: Int
     let name: String
-    let price: Double
 }
 
 struct OrderPreparedView: View {
 
-    // MARK: - Dummy Order Items (You can replace with real data)
-    @State private var items: [OrderedItem] = [
-        OrderedItem(count: 1, name: "Chicken Katsu Shirokara Ramen", price: 35000),
-        OrderedItem(count: 1, name: "Chicken Teriyaki Donburi", price: 42000)
-    ]
+    let orderId: String
 
-    // MARK: - Other States (Dummy Data)
-    @State private var discount: Double = 5_000
-    @State private var serviceFee: Double = 2_500
-    @State private var orderNumber: String = "000000000000001"
-    @State private var orderDate: String = "Fri Oct 24, 2025 10:00 AM"
-    @State private var expireDate: String = "Fri Oct 24, 2025 5:00 PM"
+    private let db = Firestore.firestore()
+    private let storage = Storage.storage()
+
+    @State private var items: [OrderedItem] = []
+    @State private var orderStatus: String = "pending"
+    @State private var orderNumber: String = "-"
+    @State private var orderDate: String = "-"
+    @State private var qrImage: UIImage?
+
+    @State private var orderTotal: Double = 0
+    @State private var discount: Double = 0
+    @State private var serviceFee: Double = 2500
     @State private var paymentMethod: String = "BCA"
 
-    @State private var restaurantName: String = "Raburi"
-    @State private var restaurantCategory: String = "Noodles, Japanese"
-    @State private var rating: Double = 4.7
-    @State private var reviewCount: Int = 65
+    // MARK: - RESTAURANT STATE
+    @State private var restaurantId: String = ""
+    @State private var restaurantName: String = "Restaurant"
+    @State private var restaurantImageURL: URL?
+
+    @State private var rating: Double = 0
+    @State private var reviewCount: Int = 0
     @State private var estTime: String = "10–20 min"
 
-    // MARK: - Computed totals
+    // 🔥 FINAL CUISINE
+    @State private var cuisineText: String = "-"
+
+    // MARK: - COMPUTED
     private var totalMealCount: Int {
         items.reduce(0) { $0 + $1.count }
     }
 
     private var subtotal: Double {
-        items.reduce(0) { $0 + ($1.price * Double($1.count)) }
+        max(0, orderTotal - serviceFee + discount)
     }
 
     private var total: Double {
-        subtotal - discount + serviceFee
+        max(0, orderTotal)
+    }
+
+    private func listenOrder() {
+        db.collection("orders")
+            .document(orderId)
+            .addSnapshotListener { snapshot, _ in
+                guard let snapshot,
+                      let data = snapshot.data() else { return }
+
+                DispatchQueue.main.async {
+
+                    self.orderNumber = self.orderId
+                    self.orderStatus = data["status"] as? String ?? "pending"
+
+                    // ✅ ORDER DATE (PASTI MUNCUL)
+                    if let ts = data["created_at"] as? Timestamp {
+                        self.orderDate = formatOrderDate(ts.dateValue())
+                    } else if let ts = data["createdAt"] as? Timestamp {
+                        self.orderDate = formatOrderDate(ts.dateValue())
+                    } else if snapshot.metadata.hasPendingWrites {
+                        self.orderDate = formatOrderDate(Date())
+                    }
+
+                    // ITEMS
+                    let rawItems = data["items"] as? [String] ?? []
+                    self.items = rawItems.compactMap {
+                        let p = $0.split(separator: "x", maxSplits: 1)
+                        guard p.count == 2,
+                              let q = Int(p[0].trimmingCharacters(in: .whitespaces))
+                        else { return nil }
+                        return OrderedItem(
+                            count: q,
+                            name: p[1].trimmingCharacters(in: .whitespaces)
+                        )
+                    }
+
+                    // PAYMENT
+                    self.orderTotal = Double(data["total"] as? Int ?? 0)
+                    self.discount = Double(data["discount"] as? Int ?? 0)
+                    self.serviceFee = Double(data["serviceFee"] as? Int ?? 2500)
+                    self.paymentMethod = data["paymentMethod"] as? String ?? "BCA"
+
+                    // RESTAURANT
+                    if let tenantId = data["tenantId"] as? String,
+                       self.restaurantId.isEmpty {
+                        self.restaurantId = tenantId
+                        fetchRestaurantInfo(tenantId)
+                    }
+
+                    // QR
+                    if self.orderStatus == "pending" {
+                        self.qrImage = nil
+                    }
+
+                    if (self.orderStatus == "ready" || self.orderStatus == "completed"),
+                       self.qrImage == nil {
+                        self.qrImage = QRGenerator().generate(from: self.orderId)
+                    }
+                }
+            }
+    }
+
+    private func fetchRestaurantInfo(_ id: String) {
+        db.collection("stores")
+            .document(id)
+            .getDocument { snapshot, _ in
+                guard let data = snapshot?.data() else { return }
+
+                DispatchQueue.main.async {
+                    self.restaurantName =
+                        data["name"] as? String
+                        ?? data["store_name"] as? String
+                        ?? "Restaurant"
+
+                    self.rating = data["rating"] as? Double ?? 0
+                    self.reviewCount = data["review_count"] as? Int ?? 0
+
+                    // ✅ CUISINE TYPE (STRING / ARRAY)
+                    if let cuisines = data["cuisine_type"] as? [String] {
+                        self.cuisineText = cuisines.joined(separator: ", ")
+                    } else if let cuisine = data["cuisine_type"] as? String {
+                        self.cuisineText = cuisine
+                    } else {
+                        self.cuisineText = "-"
+                    }
+                }
+
+                // IMAGE (gs:// → downloadURL)
+                if let path = data["search_url"] as? String {
+                    let ref = storage.reference(forURL: path)
+                    ref.downloadURL { url, _ in
+                        DispatchQueue.main.async {
+                            self.restaurantImageURL = url
+                        }
+                    }
+                }
+            }
+    }
+
+    private func formatOrderDate(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "EEE MMM dd, yyyy hh:mm a"
+        f.locale = Locale(identifier: "en_US")
+        f.timeZone = TimeZone.current
+        return f.string(from: date)
     }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-
             VStack(alignment: .leading) {
 
-                // MARK: - Title
-                VStack(alignment: .leading, spacing: 0) {
+                // HEADER
+                VStack(alignment: .leading, spacing: 4) {
                     Text("\(totalMealCount) meal to pick up")
                         .font(.title)
                         .fontWeight(.semibold)
-                    Text("Expires on \(expireDate)")
+
+                    Text("Expires on -")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
                 .padding(.horizontal)
 
-                Divider().padding(.vertical, 4)
+                sectionDivider()
 
-                // MARK: - Reminder Banner
-                HStack(spacing: 8) {
-                    Image(systemName: "megaphone.fill")
-                        .foregroundColor(Color(hex: "#FF9500"))
-                    Text("Visit the restaurant to pick up your order")
+                // ORDER DETAILS
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Order Details")
                         .font(.subheadline)
-                        .foregroundColor(Color(hex: "#FF9500"))
-                }
-                .padding(.horizontal)
 
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
-
-
-                // MARK: - ORDER DETAILS (UPDATED)
-                VStack(spacing: 6) {
-
-                    HStack {
-                        Text("Order Details")
-                            .font(.subheadline)
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-
-                    VStack(spacing: 6) {
-                        ForEach(items) { item in
-                            HStack {
-                                Text("\(item.count)x")
-                                    .font(.headline)
-
-                                Text(item.name)
-                                    .font(.headline)
-                                    .fontWeight(.regular)
-
-                                Spacer()
-
-                                Text("Rp\(formatPrice(item.price))")
-                                    .font(.headline).fontWeight(.regular)
-                            }
+                    ForEach(items) { item in
+                        HStack {
+                            Text("\(item.count)x")
+                            Text(item.name)
+                            Spacer()
                         }
                     }
-                    .padding(.horizontal)
-
                 }
+                .padding(.horizontal)
 
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
+                sectionDivider()
 
-
-                // MARK: - Order in Preparation
-                VStack(spacing: 6) {
+                // STATUS & QR
+                VStack(spacing: 16) {
                     Text("Order in Preparation")
                         .font(.headline)
-
-                    Image("Prepared")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 180)
-                        .padding(.top, 6)
-
-                    Text("The restaurant is preparing your order.\nThe QR code will appear when it’s ready.")
                         .multilineTextAlignment(.center)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .padding(.horizontal)
-                        .padding(.top, 6)
+
+                    ZStack {
+                        if orderStatus == "pending" {
+                            Image("Pending")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 180)
+                        }
+
+                        if (orderStatus == "ready" || orderStatus == "completed"),
+                           let qrImage {
+                            Image(uiImage: qrImage)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 200, height: 200)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)   
+
+                    Text(
+                        orderStatus == "pending"
+                        ? "The restaurant is preparing your order.\nThe QR code will appear when it’s ready."
+                        : "Show this QR code to the tenant."
+                    )
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
-
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
+                .padding(.horizontal)
 
 
-                // MARK: - Restaurant Info
-                VStack(alignment: .leading, spacing: 6) {
+                sectionDivider()
 
+                // RESTAURANT INFO
+                VStack(alignment: .leading) {
                     Text("Restaurant Info")
-                        .font(.subheadline)
 
                     HStack(spacing: 12) {
-
-                        Image("Raburi")
-                            .resizable()
-                            .cornerRadius(8)
+                        if let url = restaurantImageURL {
+                            AsyncImage(url: url) { img in
+                                img.resizable().scaledToFill()
+                            } placeholder: {
+                                Color.gray.opacity(0.3)
+                            }
                             .frame(width: 62, height: 62)
+                            .cornerRadius(8)
+                        } else {
+                            Color.gray.opacity(0.3)
+                                .frame(width: 62, height: 62)
+                                .cornerRadius(8)
+                        }
 
                         VStack(alignment: .leading, spacing: 4) {
                             Text(restaurantName)
                                 .font(.headline)
-                            Text(restaurantCategory)
+
+                            Text(cuisineText)
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
 
-                            HStack(spacing: 4) {
-                                Image(systemName: "star.fill")
-                                    .foregroundColor(.yellow)
-                                Text("\(String(format: "%.1f", rating)) (\(reviewCount)) • \(estTime)")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
+                            Text("⭐ \(String(format: "%.1f", rating)) (\(reviewCount)) • \(estTime)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
                         }
-
                         Spacer()
                     }
                 }
                 .padding(.horizontal)
 
-                Rectangle()
-                    .fill(Color.orange.opacity(0.3))
-                    .frame(height: 8)
-                    .padding(.vertical, 4)
+                sectionDivider()
 
-
-                // MARK: - Order Summary
+                // SUMMARY
                 VStack(alignment: .leading, spacing: 6) {
-
                     Text("Order Summary")
-                        .font(.subheadline)
 
-                    VStack(spacing: 6) {
-
-                        SummaryRow(title: "Quantity", value: "\(totalMealCount)")
-                        SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(subtotal))")
-
-                        SummaryRow(
-                            title: "Seller discount",
-                            value: "-Rp\(formatPrice(discount))",
-                            valueColor: .green
-                        )
-
-                        SummaryRow(
-                            title: "Service Fee",
-                            value: "+Rp\(formatPrice(serviceFee))"
-                        )
-
-                        SummaryRow(
-                            title: "Total",
-                            value: "Rp\(formatPrice(total))",
-                            weight: .semibold
-                        )
-                    }
+                    SummaryRow(title: "Quantity", value: "\(totalMealCount)")
+                    SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(subtotal))")
+                    SummaryRow(title: "Seller discount", value: "-Rp\(formatPrice(discount))", valueColor: .green)
+                    SummaryRow(title: "Service Fee", value: "+Rp\(formatPrice(serviceFee))")
+                    SummaryRow(title: "Total", value: "Rp\(formatPrice(total))", weight: .semibold)
 
                     Divider().padding(.vertical, 4)
 
-                    VStack(spacing: 6) {
-                        SummaryRow(title: "Order number", value: orderNumber)
-                        SummaryRow(title: "Order date", value: orderDate)
-                        SummaryRow(title: "Payment method", value: paymentMethod)
-                    }
-                    .foregroundColor(.secondary)
-                }
-                .padding(.horizontal)
-                .padding(.vertical, 4)
-
-
-                // MARK: - BUY AGAIN BUTTON
-                Button(action: {}) {
-                    Text("Buy Again")
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(Color(hex: "#FF9500"))
-                        .cornerRadius(24)
+                    SummaryRow(title: "Order number", value: orderNumber)
+                    SummaryRow(title: "Order date", value: orderDate)
+                    SummaryRow(title: "Payment method", value: paymentMethod)
                 }
                 .padding(.horizontal)
 
+                Button("Buy Again") {}
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(Color.orange)
+                    .foregroundColor(.white)
+                    .cornerRadius(24)
+                    .padding()
             }
         }
-        .navigationBarBackButtonHidden(false)
+        .navigationTitle("Order Prepared")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear {
+            listenOrder()
+        }
+    }
+
+    // MARK: - UI HELPER
+    private func sectionDivider() -> some View {
+        Rectangle()
+            .fill(Color.orange.opacity(0.25))
+            .frame(height: 8)
+            .padding(.vertical, 6)
     }
 }
 
 #Preview {
-    OrderPreparedView()
+    NavigationStack {
+        OrderPreparedView(orderId: "I8oUxS8tW1F9wk9CIKga")
+    }
 }
+
+
+

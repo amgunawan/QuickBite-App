@@ -90,7 +90,7 @@ struct KTPVerificationView: View {
                                         .foregroundColor(.secondary)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .aspectRatio(16/9, content reopening: .fit)
+                                .aspectRatio(16/9, contentMode: .fill)
                                 .padding(.vertical, 24)
                                 .background(Color(.systemGray6))
                                 .cornerRadius(10)

@@ -5,6 +5,11 @@
 //  Created by jessica tedja on 02/11/25.
 //
 
+//
+//  ActivityView.swift
+//  QuickBite App
+//
+
 import SwiftUI
 
 struct ActivityView: View {
@@ -24,8 +29,6 @@ struct ActivityView: View {
     @State private var showReviewView = false
     @State private var selectedOrderIndex: Int?
     @State private var tempRating: Int = 0
-
-    @State private var goToCart = false
 
     var body: some View {
         NavigationStack {
@@ -59,23 +62,23 @@ struct ActivityView: View {
                             ForEach(vm.historyOrders.indices, id: \.self) { index in
                                 let order = vm.historyOrders[index]
 
-                                VStack(spacing: 16) {
+                                VStack(spacing: 14) {
 
                                     HStack {
                                         Text(order.date)
                                             .foregroundColor(.gray)
                                         Spacer()
-                                        Text("Order Finished")
+                                        Text("Completed")
                                             .foregroundColor(.green)
+                                            .fontWeight(.semibold)
                                     }
 
                                     orderCard(order: order)
 
-                                    // Rating
                                     if order.rating == nil {
                                         Divider()
                                         HStack {
-                                            Text("Give us rating!")
+                                            Text("Give us rating")
                                             Spacer()
                                             HStack(spacing: 6) {
                                                 ForEach(1...5, id: \.self) { star in
@@ -92,10 +95,11 @@ struct ActivityView: View {
                                     }
                                 }
                                 .padding()
-                                .background(RoundedRectangle(cornerRadius: 16).fill(.white))
+                                .background(.white)
+                                .cornerRadius(16)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(.gray.opacity(0.2))
+                                        .stroke(.gray.opacity(0.15))
                                 )
                             }
                         }
@@ -108,14 +112,13 @@ struct ActivityView: View {
                             }
 
                             ForEach(vm.progressOrders) { order in
-                                VStack(spacing: 16) {
+                                VStack(spacing: 14) {
 
                                     HStack {
                                         Text(order.date)
                                             .foregroundColor(.gray)
                                         Spacer()
-                                        Text("Preparing")
-                                            .foregroundColor(.orange)
+                                        statusBadge(order.status)
                                     }
 
                                     HStack(spacing: 12) {
@@ -123,7 +126,7 @@ struct ActivityView: View {
                                         Image(systemName: "bag.fill")
                                             .resizable()
                                             .scaledToFit()
-                                            .frame(width: 48, height: 48)
+                                            .frame(width: 44, height: 44)
                                             .foregroundColor(.orange)
 
                                         VStack(alignment: .leading, spacing: 4) {
@@ -145,7 +148,7 @@ struct ActivityView: View {
                                             generatedQR = QRGenerator().generate(from: order.orderId)
                                             goToPickUpView = true
                                         } label: {
-                                            Text("Track Order")
+                                            Text("Track")
                                                 .foregroundColor(.white)
                                                 .padding(.horizontal, 16)
                                                 .padding(.vertical, 8)
@@ -155,10 +158,11 @@ struct ActivityView: View {
                                     }
                                 }
                                 .padding()
-                                .background(RoundedRectangle(cornerRadius: 16).fill(.white))
+                                .background(.white)
+                                .cornerRadius(16)
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 16)
-                                        .stroke(.gray.opacity(0.2))
+                                        .stroke(.gray.opacity(0.15))
                                 )
                             }
                         }
@@ -193,56 +197,44 @@ struct ActivityView: View {
                 }
             }
 
-            .fullScreenCover(isPresented: $goToCart) {
-                NavigationStack {
-                    CartListView()
-                        .environmentObject(cart)
-                }
-            }
-
             .onAppear {
                 vm.fetchOrders()
             }
         }
     }
 
-    // ================= HELPER =================
+    // ================= UI HELPERS =================
     private func emptyState(_ text: String) -> some View {
-        VStack {
-            Text(text)
-                .foregroundColor(.gray)
-                .padding(.top, 40)
-        }
+        Text(text)
+            .foregroundColor(.gray)
+            .padding(.top, 40)
     }
 
-    // ================= BUY AGAIN =================
-//    private func handleBuyAgain(_ order: ActivityOrderModel) {
-//
-//        let newItem = CartItemModel(
-//            name: order.mealName ?? order.itemId,
-//            imageName: "",
-//            basePrice: Double(order.price),
-//            baseOriginalPrice: nil,
-//            quantity: order.quantity,
-//            note: "",
-//            noodleType: "",
-//            level: "",
-//            topping: "",
-//            optionsPrice: 0
-//        )
-//
-//        cart.add(item: newItem)
-//        goToCart = true
-//    }
+    private func statusBadge(_ status: String) -> some View {
+        let color: Color = {
+            switch status {
+            case "ready": return .green
+            case "preparing": return .orange
+            default: return .gray
+            }
+        }()
 
-    // ================= ORDER CARD =================
+        return Text(status.capitalized)
+            .font(.caption)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .background(color.opacity(0.15))
+            .foregroundColor(color)
+            .clipShape(Capsule())
+    }
+
     private func orderCard(order: ActivityOrderModel) -> some View {
         HStack(spacing: 12) {
 
             Image(systemName: "bag.fill")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 48, height: 48)
+                .frame(width: 44, height: 44)
                 .foregroundColor(.orange)
 
             VStack(alignment: .leading, spacing: 4) {
@@ -258,22 +250,6 @@ struct ActivityView: View {
             }
 
             Spacer()
-
-            Button {} label: {
-                Text("Buy Again")
-                    .foregroundColor(.white)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 8)
-                    .background(Color.orange)
-                    .clipShape(Capsule())
-            }
-            .disabled(true)
-
         }
     }
-}
-
-#Preview {
-    ActivityView()
-        .environmentObject(CartViewModel())
 }

@@ -10,86 +10,154 @@ import AVFoundation
 import FirebaseFirestore
 
 struct ScanQRCodeView: View {
+
+    @EnvironmentObject var tenantSession: TenantSession
     @Environment(\.dismiss) private var dismiss
-    
+
+    // MARK: - UI State
     @State private var isFlashOn = false
+    @State private var isScanningEnabled = true
     @State private var goToActivity = false
-    
-    // ORDER DATA RECEIVED
+
+    // MARK: - Order Data
     @State private var scannedOrder: OrderCardViewData? = nil
+    @State private var scannedOrderId: String? = nil
     @State private var showOrderSheet = false
-    
-    // MARK: - FETCH FROM FIRESTORE
+
+    // MARK: - FIRESTORE FETCH
     func handleScannedCode(_ code: String) {
-        print("QR Detected:", code)
-        
+
+        guard tenantSession.isLoaded else {
+            print("⏳ Tenant session not ready")
+            return
+        }
+
         let db = Firestore.firestore()
         let orderId = code.trimmingCharacters(in: .whitespacesAndNewlines)
-        
-        db.collection("orders").document(orderId).getDocument { snapshot, error in
-            
+        scannedOrderId = orderId
+
+        let orderRef = db.collection("orders").document(orderId)
+
+        orderRef.getDocument { snapshot, error in
             if let error = error {
-                print("🔥 Error fetch:", error)
+                print("🔥 Error fetch:", error.localizedDescription)
                 return
             }
-            
-            guard let data = snapshot?.data() else {
+
+            guard
+                let snapshot = snapshot,
+                snapshot.exists,
+                let data = snapshot.data()
+            else {
                 print("⚠️ Order not found")
                 return
             }
-            
-            // Convert all Firestore fields safely into Strings
+
+            // 🔐 VALIDASI TENANT
+            let orderTenantId = data["tenantId"] as? String ?? ""
+            if orderTenantId != tenantSession.tenantId {
+                print("⛔ QR NOT FOR THIS TENANT")
+                return
+            }
+
+            // 🔐 VALIDASI STATUS
+            let status = data["status"] as? String ?? "pending"
+            if status == "completed" {
+                DispatchQueue.main.async {
+                    scannedOrder = OrderCardViewData(
+                        name: "Order Invalid",
+                        pickupTime: "-",
+                        items: ["This order has already been picked up"],
+                        total: "-"
+                    )
+                    showOrderSheet = true
+                }
+                return
+            }
+
+            // ✅ ORDER VALID
             let customerName = data["customerName"] as? String ?? "Unknown"
             let pickupTime  = data["pickupTime"] as? String ?? "-"
             let items       = data["items"] as? [String] ?? []
-            let totalInt = data["total"] as? Int ?? 0
-            let totalString = "Rp \(formatPrice(Double(totalInt)))"
+            let totalInt    = data["total"] as? Int ?? 0
 
-            
-            // Convert into UI model
-            scannedOrder = OrderCardViewData(
-                name: customerName,
-                pickupTime: pickupTime,
-                items: items,
-                total: totalString
-            )
-            
-            // Show sheet
-            showOrderSheet = true
+            DispatchQueue.main.async {
+                scannedOrder = OrderCardViewData(
+                    name: customerName,
+                    pickupTime: pickupTime,
+                    items: items,
+                    total: "Rp \(formatPrice(Double(totalInt)))"
+                )
+                showOrderSheet = true
+                isScanningEnabled = false
+            }
         }
     }
 
+    // MARK: - LOCK ORDER (FINAL & AMAN)
+    func lockOrder() {
+        guard let orderId = scannedOrderId else { return }
+
+        let db = Firestore.firestore()
+        let orderRef = db.collection("orders").document(orderId)
+
+        orderRef.updateData([
+            "status": "completed",
+            "completedAt": Timestamp()
+        ]) { error in
+            if let error = error {
+                print("🔥 Failed to complete order:", error.localizedDescription)
+                return
+            }
+
+            DispatchQueue.main.async {
+                showOrderSheet = false
+                goToActivity = true
+            }
+        }
+    }
+
+    private func resetScanner() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            isScanningEnabled = true
+        }
+    }
+
+    // MARK: - VIEW
     var body: some View {
         NavigationStack {
             ZStack {
-                
-                // === CAMERA PREVIEW ===
-                CameraPreviewView(isFlashOn: isFlashOn) { scannedValue in
-                    handleScannedCode(scannedValue)
-                }
+                CameraPreviewView(
+                    isFlashOn: isFlashOn,
+                    onQRCodeScanned: { scannedValue in
+                        if isScanningEnabled {
+                            handleScannedCode(scannedValue)
+                        }
+                    }
+                )
                 .ignoresSafeArea()
 
                 VStack {
-                    
-                    // === TOP BAR ===
+
+                    // TOP BAR
                     HStack {
-                        Button(action: { dismiss() }) {
+                        Button { dismiss() } label: {
                             Image(systemName: "chevron.left")
                                 .font(.title2)
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(Color.black.opacity(0.4))
+                                .background(Color.black.opacity(0.45))
                                 .clipShape(Circle())
                         }
 
                         Spacer()
 
-                        Button(action: { isFlashOn.toggle() }) {
+                        Button { isFlashOn.toggle() } label: {
                             Image(systemName: isFlashOn ? "bolt.fill" : "bolt")
                                 .font(.title2)
                                 .foregroundColor(.white)
                                 .padding(12)
-                                .background(Color.black.opacity(0.4))
+                                .background(Color.black.opacity(0.45))
                                 .clipShape(Circle())
                         }
                     }
@@ -111,25 +179,20 @@ struct ScanQRCodeView: View {
                     Spacer()
                 }
             }
-            .ignoresSafeArea()
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
-            
-            // === BOTTOM SHEET ===
+
+            // ORDER FOUND SHEET
             .sheet(isPresented: $showOrderSheet) {
                 if let order = scannedOrder {
                     OrderFoundSheet(
                         order: order,
                         onCancel: {
                             showOrderSheet = false
+                            resetScanner()
                         },
                         onConfirm: {
-                            // Example confirm logic
-                            let customerName = order.name
-                            print("Order confirmed for:", customerName)
-
-                            showOrderSheet = false
-                            goToActivity = true
+                            lockOrder()
                         }
                     )
                     .presentationDetents([.height(420)])
@@ -137,7 +200,6 @@ struct ScanQRCodeView: View {
                 }
             }
 
-            // Navigate to Tenant Activity page
             .navigationDestination(isPresented: $goToActivity) {
                 TenantActivityView()
             }
@@ -147,4 +209,5 @@ struct ScanQRCodeView: View {
 
 #Preview {
     ScanQRCodeView()
+        .environmentObject(TenantSession())
 }

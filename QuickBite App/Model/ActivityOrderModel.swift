@@ -5,32 +5,62 @@
 //  Created by student on 26/11/25.
 //
 
+//
+//  ActivityOrderModel.swift
+//  QuickBite
+//
+
 import Foundation
 
 struct ActivityOrderModel: Identifiable {
 
-    // 🔑 ID HARUS documentID Firestore
     let id: String
     let orderId: String
 
-    // Status & ownership
     let status: String
     let storeId: String
     let userId: String
 
-    // Item (ringkas untuk Activity)
     let itemId: String
     let quantity: Int
     let price: Int
 
-    // UI
     let date: String
     let totalCost: Int
 
-    // Optional (hasil join / future use)
     let restaurantName: String?
     let mealName: String?
 
-    // Rating
     var rating: Int?
+
+    // ✅ CUSTOM INIT (FIX ERROR)
+    init(
+        id: String,
+        orderId: String,
+        status: String,
+        storeId: String,
+        userId: String,
+        itemId: String,
+        quantity: Int,
+        price: Int,
+        date: String,
+        totalCost: Int,
+        restaurantName: String?,
+        mealName: String?,
+        rating: Int?
+    ) {
+        self.id = id
+        self.orderId = orderId
+        self.status = status
+        self.storeId = storeId
+        self.userId = userId
+        self.itemId = itemId
+        self.quantity = quantity
+        self.price = price
+        self.date = date
+        self.totalCost = totalCost
+        self.restaurantName = restaurantName
+        self.mealName = mealName
+        self.rating = rating
+    }
 }

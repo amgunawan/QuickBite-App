@@ -5,79 +5,82 @@
 //  Created by jessica tedja on 12/12/25.
 //
 
-import Foundation
+//
+//  ActivityViewModel.swift
+//  QuickBite App
+//
+
+import SwiftUI
 import FirebaseFirestore
 import Combine
 
-@MainActor
-final class ActivityViewModel: ObservableObject {
+class ActivityViewModel: ObservableObject {
 
     @Published var historyOrders: [ActivityOrderModel] = []
     @Published var progressOrders: [ActivityOrderModel] = []
 
     private let db = Firestore.firestore()
+    private var listener: ListenerRegistration?
 
-    // nanti ganti dari FirebaseAuth.currentUser
-    private let userPath = "/users/xKU2P7crq1OOckA3tK83uHNOTwR2"
-
+    // ================= FETCH ORDERS =================
     func fetchOrders() {
-        db.collection("orders")
-            .whereField("user_id", isEqualTo: userPath)
-            .order(by: "created_at", descending: true)
-            .getDocuments { [weak self] snapshot, error in
-                guard let self else { return }
+
+        listener?.remove()
+
+        listener = db.collection("orders")
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { snapshot, error in
 
                 if let error = error {
-                    print("❌ fetchOrders error:", error.localizedDescription)
+                    print("🔥 Activity fetch error:", error.localizedDescription)
                     return
                 }
 
-                let formatter = DateFormatter()
-                formatter.dateFormat = "dd MMM, HH:mm"
+                guard let documents = snapshot?.documents else { return }
 
-                let orders = snapshot?.documents.compactMap { doc -> ActivityOrderModel? in
-                    let d = doc.data()
+                var history: [ActivityOrderModel] = []
+                var progress: [ActivityOrderModel] = []
 
-                    guard
-                        let status = d["status"] as? String,
-                        let storeId = d["store_id"] as? String,
-                        let userId = d["user_id"] as? String,
-                        let totalCost = d["total_cost"] as? Int
-                    else { return nil }
+                for doc in documents {
+                    let data = doc.data()
 
-                    // ambil item pertama (ringkas untuk Activity)
-                    guard
-                        let items = d["items"] as? [[String: Any]],
-                        let firstItem = items.first,
-                        let itemId = firstItem["item_id"] as? String,
-                        let price = firstItem["price"] as? Int,
-                        let quantity = firstItem["quantity"] as? Int
-                    else { return nil }
+                    let status = data["status"] as? String ?? "pending"
 
-                    let createdAt = (d["created_at"] as? Timestamp)?.dateValue()
-                    let dateString = createdAt != nil
-                        ? formatter.string(from: createdAt!)
-                        : "-"
-
-                    return ActivityOrderModel(
+                    let model = ActivityOrderModel(
                         id: doc.documentID,
                         orderId: doc.documentID,
                         status: status,
-                        storeId: storeId,
-                        userId: userId,
-                        itemId: itemId,
-                        quantity: quantity,
-                        price: price,
-                        date: dateString,
-                        totalCost: totalCost,
-                        restaurantName: nil,
-                        mealName: nil,
-                        rating: d["rating"] as? Int
+                        storeId: data["tenantId"] as? String ?? "",
+                        userId: data["userId"] as? String ?? "",
+                        itemId: doc.documentID,
+                        quantity: 1,
+                        price: data["total"] as? Int ?? 0,
+                        date: (data["createdAt"] as? Timestamp)?
+                            .dateValue()
+                            .formatted(date: .abbreviated, time: .shortened) ?? "-",
+                        totalCost: data["total"] as? Int ?? 0,
+                        restaurantName: data["restaurantName"] as? String,
+                        mealName: (data["items"] as? [String])?.first,
+                        rating: data["rating"] as? Int
                     )
-                } ?? []
 
-                self.historyOrders = orders.filter { $0.status == "completed" }
-                self.progressOrders = orders.filter { $0.status != "completed" }
+                    // 🔥 STATUS ROUTING
+                    if status == "completed" || status == "done" || status == "picked_up" {
+                        history.append(model)
+                    } else {
+                        // pending | preparing | ready
+                        progress.append(model)
+                    }
+                }
+
+                DispatchQueue.main.async {
+                    self.historyOrders = history
+                    self.progressOrders = progress
+                }
             }
+    }
+
+    deinit {
+        listener?.remove()
     }
 }

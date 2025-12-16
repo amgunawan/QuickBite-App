@@ -29,6 +29,7 @@ class OrderService {
             "pickupTime": pickupTime,
             "tenantId": tenantId,
             "status": "pending",
+            "created_at": FieldValue.serverTimestamp(),
             "timestamp": Int(Date().timeIntervalSince1970)
         ]
 

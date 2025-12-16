@@ -66,7 +66,6 @@ struct OrderConfirmationView: View {
                                 Text("Estimated Ready in:")
                                     .font(.system(size: 13))
                                 
-                                // 👇 PERBAIKAN: Gunakan Rata-rata dari CartViewModel
                                 Text("\(cart.averagePrepTime) minutes")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.orange)
@@ -224,19 +223,19 @@ struct OrderConfirmationView: View {
                 HStack {
                     Spacer()
                     VStack(alignment: .trailing) {
-                        Text("Rp\(formatPrice(cart.totalPrice))")
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .strikethrough()
+                        if totalDiscountAmount > 0 {
+                            Text("Rp\(formatPrice(cart.totalPrice))")
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .strikethrough()
+                        }
                         
                         let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
-                        
                         Text("Rp\(formatPrice(finalTotal))")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
                     }
-                    
                     VStack(alignment: .trailing, spacing: 4) {
                         Button(action: {
                             placeOrder()
@@ -260,6 +259,7 @@ struct OrderConfirmationView: View {
                             Text("Select time to continue")
                                 .font(.system(size: 10))
                                 .foregroundColor(.red)
+                                .padding(.horizontal, 10)
                         }
                     }
                 }
@@ -269,6 +269,20 @@ struct OrderConfirmationView: View {
         }
         .navigationTitle("Order Confirmation")
         .navigationBarTitleDisplayMode(.inline)
+        .navigationBarBackButtonHidden(true)
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                    }
+                    .foregroundColor(.black) // Standard iOS black back button
+                }
+            }
+        }
         .sheet(isPresented: $showingTimeSheet) {
             PickUpTimeView(selectedTime: $selectedTime, storeClosingTime: closingTime)
                 .environmentObject(calendarManager)
@@ -430,6 +444,8 @@ struct OrderConfirmationView: View {
                 // 🔥 CLEAR CART
                 cart.clearCart()
                 
+                navState.isCartPresented = false
+                
                 // 🔥 TUTUP ORDER CONFIRMATION
                 dismiss()
             }
@@ -493,6 +509,7 @@ struct OrderConfirmationView_Previews: PreviewProvider {
             OrderConfirmationView()
                 .environmentObject(CartViewModel())
                 .environmentObject(CalendarManager())
+                .environmentObject(AppNavigationState())
         }
     }
 }

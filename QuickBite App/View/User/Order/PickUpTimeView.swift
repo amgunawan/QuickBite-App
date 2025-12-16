@@ -184,7 +184,7 @@ struct PickUpTimeView: View {
             if initialCheck.status == .busy {
                 // It is busy! Let's look ahead to see how long it stays busy.
                 isWarn = true
-                displayStatusText = "Still in Class" // Grouped message
+                displayStatusText = "Occupied ⛔️" // Grouped message
                 
                 // Keep extending `slotEndTime` by 15 mins as long as the next block is ALSO busy
                 while slotEndTime < lastPickupTime {
@@ -201,7 +201,7 @@ struct PickUpTimeView: View {
                 // --- NORMAL LOGIC (Not Busy) ---
                 switch initialCheck.status {
                 case .justFree:
-                    displayStatusText = "15 mins after class"
+                    displayStatusText = "Perfect Timing! ⏰"
                     isRec = false
                 case .recommended:
                     displayStatusText = "Recommended"

@@ -89,12 +89,15 @@ struct CartListView: View {
             // GO TO ORDER CONFIRMATION
             // ======================
             .fullScreenCover(isPresented: $showOrderConfirmation) {
-                OrderConfirmationView()
-                    .environmentObject(cart)
+                NavigationStack{
+                    OrderConfirmationView()
+                        .environmentObject(cart)
+                }
             }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .background(Color.white)
     }
 }
 
@@ -252,5 +255,6 @@ struct CartListView_Previews: PreviewProvider {
     static var previews: some View {
         CartListView()
             .environmentObject(CartViewModel())
+            .environmentObject(AppNavigationState())
     }
 }

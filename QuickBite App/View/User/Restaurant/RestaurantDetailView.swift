@@ -6,28 +6,24 @@
 //
 
 import SwiftUI
+import FirebaseAuth
+import FirebaseCore
+
 struct RestaurantDetailView: View {
     
     let restaurant: Restaurant
+    
+    @EnvironmentObject var navState: AppNavigationState
     
     @StateObject private var viewModel = RestaurantDetailViewModel()
     @EnvironmentObject var cart: CartViewModel
     
     @State private var selectedItemForOptions: MenuItem?
-    @State private var showingCart = false
     @State private var showingGroupCart = false
     @State private var isGroupOrderActive = false
     
-    @State private var groupName = "Angela's Group"
-    @State private var groupMembers: [UserMember] = [
-        UserMember(
-            name: "Angela",
-            username: "@angela",
-            initial: "A",
-            color: .orange,
-            isCurrentUser: true
-        )
-    ]
+    @State private var groupName = "My Group"
+    @State private var groupMembers: [UserMember] = []
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -87,13 +83,16 @@ struct RestaurantDetailView: View {
             if isGroupOrderActive {
                 GroupOrderBottomBar(cart: cart, showGroupCart: $showingGroupCart)
             } else if !cart.items.isEmpty {
-                CheckoutBarView(showCart: $showingCart)
+                CheckoutBarView(showCart: $navState.isCartPresented)
             }
         }
         .environmentObject(cart)
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
+            
+            fetchCurrentUser()
+            
             if let menuLink = restaurant.menuDataURL, !menuLink.isEmpty {
                 viewModel.fetchMenu(from: menuLink)
             }
@@ -117,7 +116,7 @@ struct RestaurantDetailView: View {
             .environmentObject(cart)
         }
         
-        .sheet(isPresented: $showingCart) {
+        .sheet(isPresented: $navState.isCartPresented) {
             CartListView().environmentObject(cart)
         }
         
@@ -126,6 +125,27 @@ struct RestaurantDetailView: View {
         }
         .scrollIndicators(.hidden)
     }
+    
+    func fetchCurrentUser() {
+            if let user = Auth.auth().currentUser {
+                let name = user.displayName ?? (user.email?.components(separatedBy: "@").first ?? "User")
+                let initial = String(name.prefix(1)).uppercased()
+                
+                // Set Group Name
+                self.groupName = "\(name)'s Group"
+                
+                // Set Group Members
+                self.groupMembers = [
+                    UserMember(
+                        name: name,
+                        username: user.email ?? "",
+                        initial: initial,
+                        color: .orange,
+                        isCurrentUser: true
+                    )
+                ]
+            }
+        }
 }
 
 struct MenuRowLink: View {
@@ -137,27 +157,29 @@ struct MenuRowLink: View {
     @EnvironmentObject var cart: CartViewModel
     
     var body: some View {
-        NavigationLink {
-            MenuDetailView(
-                item: item,
-                customFinalPrice: finalPrice,
-                customOriginalPrice: originalPrice
-            )
-            .environmentObject(cart)
-        } label: {
-            MenuItemRow(
-                imageURL: item.imageURL,
-                name: item.name,
-                description: item.description ?? "",
-                price: finalPrice,
-                originalPrice: originalPrice,
-                onAdd: onAdd
-            )
-            .padding(.horizontal)
-            .padding(.vertical, 12)
-            .contentShape(Rectangle())
+        ZStack{
+            NavigationLink {
+                MenuDetailView(
+                    item: item,
+                    customFinalPrice: finalPrice,
+                    customOriginalPrice: originalPrice
+                )
+                .environmentObject(cart)
+            } label: {
+                MenuItemRow(
+                    imageURL: item.imageURL,
+                    name: item.name,
+                    description: item.description ?? "",
+                    price: finalPrice,
+                    originalPrice: originalPrice,
+                    onAdd: onAdd
+                )
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -239,6 +261,7 @@ struct MenuItemRow: View {
                                 .frame(width: 24, height: 24)
                                 .overlay(RoundedRectangle(cornerRadius: 4).stroke(Color.orange, lineWidth: 1))
                         }
+                        .buttonStyle(PlainButtonStyle())
                         
                         Text("\(quantity)")
                             .font(.system(size: 14, weight: .bold))
@@ -252,6 +275,7 @@ struct MenuItemRow: View {
                                 .background(Color.orange)
                                 .cornerRadius(4)
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 } else {
                     Button(action: onAdd) {
@@ -262,6 +286,7 @@ struct MenuItemRow: View {
                             .background(Color.orange)
                             .cornerRadius(4)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
         }
@@ -513,20 +538,32 @@ struct GroupOrderBottomBar: View {
 
 struct RestaurantDetailView_Previews: PreviewProvider {
     static var previews: some View {
+        // 1. Create dummy data
         let dummy = Restaurant(
             id: "123",
             name: "Raburi Test",
             location: "UC Walk",
             rating: 4.8,
             reviewCount: 100,
-            bannerURL: nil,
+            bannerURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/main/banner.jpg",
             searchURL: nil,
             cuisineType: ["Japanese", "Noodles"],
-            menuDataURL: nil
+            menuDataURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/menu.json"
         )
         
+        // 2. Create a dummy cart
+        let mockCart = CartViewModel()
+
         NavigationStack {
             RestaurantDetailView(restaurant: dummy)
+        }
+        // 3. INJECT the cart environment object
+        .environmentObject(mockCart)
+        .onAppear {
+            // 4. Prevent Firebase crash in Previews
+            if FirebaseApp.app() == nil {
+                FirebaseApp.configure()
+            }
         }
     }
 }

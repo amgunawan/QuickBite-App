@@ -17,6 +17,8 @@ struct EditMenuTenantView: View {
     @State var item: MenuItem
     var onSave: (MenuItem) -> Void
     
+    @State private var prepMinutes: Int = 10
+
     private let minuteChoices = Array(stride(from: 5, through: 120, by: 5))
     
     @State private var optionGroups: [MenuOptionGroup]
@@ -29,6 +31,7 @@ struct EditMenuTenantView: View {
     init(item: MenuItem, viewModel: TenantMenuViewModel, onSave: @escaping (MenuItem) -> Void) {
         self._item = State(initialValue: item)
         self._optionGroups = State(initialValue: item.options ?? [])
+        self._prepMinutes = State(initialValue: item.prepTimeMinutes ?? 10)
         self.viewModel = viewModel
         self.onSave = onSave
     }
@@ -171,14 +174,37 @@ extension EditMenuTenantView {
                 .font(.system(size: 17, weight: .semibold))
             
             field(title: "Name", text: $item.name)
-            field(
-                title: "Short Description",
-                text: Binding(
-                    get: { item.description ?? "" },
-                    set: { item.description = $0 }
-                ),
-                multiline: true
-            )
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Short Description")
+                    .font(.caption)
+
+                ZStack(alignment: .bottomTrailing) {
+                    TextEditor(
+                        text: Binding(
+                            get: { item.description ?? "" },
+                            set: { newValue in
+                                let words = newValue.wordCount
+                                if words <= 100 {
+                                    item.description = newValue
+                                }
+                            }
+                        )
+                    )
+                    .frame(minHeight: 80)
+                    .padding(10)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.3))
+                    )
+
+                    Text("\((item.description ?? "").wordCount) / 100 words")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+                        .padding(.trailing, 12)
+                        .padding(.bottom, 8)
+                }
+            }
+
 
             HStack(spacing: 12) {
                 fieldNumber(title: "Base Price (Rp)", value: $item.price)
@@ -194,15 +220,37 @@ extension EditMenuTenantView {
                                 .stroke(Color.gray.opacity(0.3))
                         )
                 }
+                // PREP TIME (Picker)
                 VStack(alignment: .leading, spacing: 6) {
-                    fieldNumber(
-                        title: "Prep Time (Max)",
-                        value: Binding(
-                            get: { item.prepTimeMinutes ?? 0 },
-                            set: { item.prepTimeMinutes = $0 }
-                        )
+                    Text("Prep Time (Max)")
+                        .font(.caption)
+
+                    HStack(spacing: 1) {
+                        Picker("", selection: $prepMinutes) {
+                            ForEach(minuteChoices, id: \.self) { m in
+                                Text("\(m)").tag(m)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.orange)
+//                        .frame(width: 60)
+//                        .clipped()
+
+                        Text("mins")
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 10)
+                    .frame(width: 153, height: 44)
+                    .background(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(Color.gray.opacity(0.3))
                     )
                 }
+                .onChange(of: prepMinutes) { _, newValue in
+                    item.prepTimeMinutes = newValue
+                }
+
                 
             }
         }
@@ -272,10 +320,48 @@ extension EditMenuTenantView {
                     
                     // MIN + MAX selection
                     HStack {
-                        Stepper("Min: \(group.minSelect)", value: $group.minSelect)
-                        Stepper("Max: \(group.maxSelect)", value: $group.maxSelect)
+                        // MIN (boleh 0)
+                        Stepper(
+                            "Min: \(group.minSelect)",
+                            value: Binding(
+                                get: { group.minSelect },
+                                set: { newValue in
+                                    let maxAllowed = group.choices.count
+                                    let value = min(max(0, newValue), maxAllowed)
+                                    group.minSelect = value
+
+                                    // pastikan max >= min
+                                    if group.maxSelect < value {
+                                        group.maxSelect = value == 0 ? 1 : value
+                                    }
+                                }
+                            ),
+                            in: 0...max(0, group.choices.count)
+                        )
+
+                        // MAX (>= min)
+                        Stepper(
+                            "Max: \(group.maxSelect)",
+                            value: Binding(
+                                get: { group.maxSelect },
+                                set: { newValue in
+                                    let maxAllowed = max(1, group.choices.count)
+                                    let value = min(max(1, newValue), maxAllowed)
+                                    group.maxSelect = value
+                                    
+                                    // Ensure max >= min
+                                    if value < group.minSelect {
+                                        group.maxSelect = group.minSelect == 0 ? 1 : group.minSelect
+                                    }
+                                }
+                            ),
+                            in: 1...max(1, group.choices.count)
+                        )
                     }
                     .font(.caption)
+
+
+
                     
                     // OPTION LIST
                     VStack(spacing: 12) {
@@ -296,6 +382,24 @@ extension EditMenuTenantView {
                                 .background(Capsule().fill(Color.orange.opacity(0.12)))
                         }
                         .frame(maxWidth: .infinity, alignment: .trailing)
+                    }
+                }
+                .onChange(of: group.choices.count) { _, newCount in
+                    let maxAllowed = max(1, newCount)
+
+                    // Clamp max
+                    if group.maxSelect > maxAllowed {
+                        group.maxSelect = maxAllowed
+                    }
+
+                    // Clamp min (can be 0)
+                    if group.minSelect > newCount {
+                        group.minSelect = newCount
+                    }
+
+                    // Ensure max >= min
+                    if group.maxSelect < max(group.minSelect, 1) {
+                        group.maxSelect = max(group.minSelect, 1)
                     }
                 }
             }
@@ -375,3 +479,12 @@ extension NumberFormatter {
         return nf
     }
 }
+
+extension String {
+    var wordCount: Int {
+        self
+            .split { $0.isWhitespace || $0.isNewline }
+            .count
+    }
+}
+

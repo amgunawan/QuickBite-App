@@ -19,7 +19,6 @@ struct UserContentView: View {
 
             // ================= HOME =================
             HomeView()
-                .environmentObject(navState)
                 .environmentObject(cart)
                 .tag(0)
                 .tabItem {
@@ -37,7 +36,6 @@ struct UserContentView: View {
 
             // ================= QUEST =================
             QuestView()
-                .environmentObject(navState)
                 .tag(2)
                 .tabItem {
                     Label("Quest", systemImage: "trophy.fill")
@@ -45,7 +43,6 @@ struct UserContentView: View {
 
             // ================= PROFILE =================
             ProfileView()
-                .environmentObject(navState)
                 .tag(3)
                 .tabItem {
                     Label("Profile", systemImage: "person.circle")

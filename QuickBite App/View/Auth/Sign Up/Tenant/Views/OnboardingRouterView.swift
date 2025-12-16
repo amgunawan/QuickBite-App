@@ -10,16 +10,17 @@ import SwiftUI
 struct OnboardingRouterView: View {
     @EnvironmentObject var authVM: AuthenticationViewModel
     @EnvironmentObject var storeVM: StoreRegistrationViewModel
+    @EnvironmentObject var navState: AppNavigationState
 
     var body: some View {
         NavigationStack {
             Group {
                 if let session = authVM.currentUserSession {
-                    // Customers are finished (999), send them to UserContentView
                     switch session.role {
                     case .customer:
                         UserContentView()
                             .environmentObject(storeVM)
+                            .environmentObject(navState)
                             .navigationBarBackButtonHidden(true)
                         
                     case .merchant:

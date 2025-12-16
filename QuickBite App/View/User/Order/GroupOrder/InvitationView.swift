@@ -1,5 +1,5 @@
 //
-//  InvitationVview.swift
+//  InvitationView.swift
 //  QuickBite
 //
 //  Created by student on 15/12/25.
@@ -11,11 +11,9 @@ import FirebaseAuth
 
 struct InvitationView: View {
     let orderId: String
-    var mockData: [String: Any]? = nil // For Preview
+    var mockData: [String: Any]? = nil
     
     @Environment(\.dismiss) var dismiss
-    
-    // 1. Add this Binding to signal "Success"
     @Binding var isJoined: Bool
     
     @State private var orderData: [String: Any]?
@@ -23,74 +21,136 @@ struct InvitationView: View {
     @State private var errorMessage = ""
     
     var body: some View {
-        VStack(spacing: 20) {
+        ZStack {
+            // 1. Native Grouped Background
+            Color(uiColor: .systemGroupedBackground)
+                .ignoresSafeArea()
+            
             if isLoading {
-                ProgressView("Loading invitation...")
-                    .scaleEffect(1.5)
-                    .padding()
+                ProgressView()
+                    .controlSize(.large)
             } else if let data = orderData {
-                
-                Image(systemName: "envelope.open.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.orange)
-                    .padding(.top, 40)
-                
-                Text("You're Invited!")
-                    .font(.largeTitle)
-                    .bold()
-                
-                Text("\(data["leaderName"] as? String ?? "A friend") invites you to join a group order at:")
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.gray)
-                    .padding(.horizontal)
-                
-                Text(data["restaurantName"] as? String ?? "Restaurant")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundColor(.black)
-                    .padding(.top, 5)
-
-                Spacer()
-                
-                HStack(spacing: 20) {
-                    Button(action: {
-                        dismiss()
-                    }) {
-                        Text("Decline")
-                            .fontWeight(.semibold)
-                            .foregroundColor(.red)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.red.opacity(0.1))
-                            .cornerRadius(12)
-                    }
+                VStack(spacing: 24) {
+                    Spacer()
                     
-                    // 2. Join Action
-                    Button(action: {
-                        joinGroupOrder()
-                    }) {
-                        Text("Join Order")
-                            .fontWeight(.bold)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Color.orange)
-                            .cornerRadius(12)
+                    // 2. The "Invitation Card"
+                    VStack(spacing: 20) {
+                        // Avatar Icon
+                        ZStack {
+                            Circle()
+                                .fill(Color.orange.opacity(0.15))
+                                .frame(width: 80, height: 80)
+                            
+                            Image(systemName: "person.wave.2.fill")
+                                .font(.system(size: 36))
+                                .foregroundColor(.orange)
+                        }
+                        .padding(.top, 10)
+                        
+                        VStack(spacing: 8) {
+                            Text("Group Order Invite")
+                                .font(.subheadline)
+                                .textCase(.uppercase)
+                                .foregroundColor(.secondary)
+                                .fontWeight(.semibold)
+                            
+                            HStack{
+                                Text("\(data["leaderName"] as? String ?? "A friend")")
+                                    .font(.title2)
+                                    .fontWeight(.bold)
+                                    .foregroundColor(.primary)
+                                Text("wants to eat with you!")
+                                    .font(.title2)
+                                    .foregroundColor(.primary)
+                            }
+                        }
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                        
+                        Divider()
+                        
+                        // Restaurant Details
+                        HStack(spacing: 15) {
+                            Image(systemName: "fork.knife.circle.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.gray)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Ordering from:")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                
+                                Text(data["restaurantName"] as? String ?? "Unknown Restaurant")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                            }
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(uiColor: .secondarySystemGroupedBackground))
+                        .cornerRadius(12)
+                        .padding(.horizontal)
                     }
+                    .padding(.vertical, 30)
+                    .background(Color(uiColor: .systemBackground))
+                    .cornerRadius(20)
+                    .shadow(color: Color.black.opacity(0.05), radius: 10, x: 0, y: 5)
+                    .padding(.horizontal)
+                    
+                    Spacer()
+                    
+                    // 3. Action Buttons (Vertical Stack is more native for "Primary vs Secondary")
+                    VStack(spacing: 16) {
+                        Button(action: {
+                            joinGroupOrder()
+                        }) {
+                            HStack {
+                                Text("Join Group Order")
+                                    .fontWeight(.medium)
+                                Image(systemName: "arrow.right")
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.orange)
+                        .controlSize(.large)
+                        .cornerRadius(24)
+                        
+                        Button(action: {
+                            dismiss()
+                        }) {
+                            Text("No, thanks")
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 30)
-                
             } else {
-                Text(errorMessage).foregroundColor(.gray)
+                // Error State
+                VStack(spacing: 16) {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.largeTitle)
+                        .foregroundColor(.gray)
+                    Text(errorMessage)
+                        .font(.headline)
+                        .foregroundColor(.gray)
+                    Button("Close") { dismiss() }
+                        .buttonStyle(.bordered)
+                }
             }
         }
-        .padding()
+        // 4. Standard Sheet Presentation
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
         .onAppear {
             fetchOrderDetails()
         }
     }
     
+    // Logic Functions (Unchanged)
     func fetchOrderDetails() {
         if let mock = mockData {
             self.orderData = mock
@@ -110,7 +170,6 @@ struct InvitationView: View {
     }
     
     func joinGroupOrder() {
-        // Mock success for preview
         if mockData != nil {
             isJoined = true
             dismiss()
@@ -124,7 +183,6 @@ struct InvitationView: View {
             "memberIds": FieldValue.arrayUnion([uid])
         ]) { error in
             if error == nil {
-                // 3. Signal success and dismiss
                 isJoined = true
                 dismiss()
             }
@@ -132,12 +190,16 @@ struct InvitationView: View {
     }
 }
 
+// Updated Preview to test the look
 struct InvitationView_Previews: PreviewProvider {
     static var previews: some View {
         InvitationView(
             orderId: "dummy",
-            mockData: ["leaderName": "Angela", "restaurantName": "Raburi"],
-            isJoined: .constant(false) // Add dummy binding
+            mockData: [
+                "leaderName": "Angela",
+                "restaurantName": "Madam Liy"
+            ],
+            isJoined: .constant(false)
         )
     }
 }

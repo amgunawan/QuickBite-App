@@ -34,6 +34,8 @@ struct MenuItem: Identifiable, Codable, Hashable {
     var currentStock: Int = 0
     var totalSold: Int = 0
     
+    var localImage: UIImage? = nil
+    
     // MARK: - Identifiable
     var id: String { itemId }
     
@@ -47,6 +49,15 @@ struct MenuItem: Identifiable, Codable, Hashable {
         case defaultStock = "default_stock"
         case prepTimeMinutes = "prep_time_minutes"
         case options
+    }
+    
+    // MARK: - Hashable / Equatable adjustments
+    static func == (lhs: MenuItem, rhs: MenuItem) -> Bool {
+        return lhs.itemId == rhs.itemId && lhs.name == rhs.name // simplified for perf
+    }
+    
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(itemId)
     }
     
     // MARK: - Safe Option Access

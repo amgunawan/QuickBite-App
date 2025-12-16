@@ -16,4 +16,5 @@ struct MenuItemUploadModel: Codable {
     let prep_time_minutes: Int
     let category: String
     let image_url: String
+    let options: [MenuOptionGroup]
 }

@@ -203,33 +203,42 @@ class StoreRegistrationViewModel: ObservableObject {
         var menuUploads: [MenuItemUploadModel] = []
         var trackingItems: [[String: Any]] = []
 
-        // 🅰️ Store prefix (first letter, uppercase, spaces removed)
-        let cleanStoreName = storeName
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: " ", with: "")
-
-        let storePrefix = cleanStoreName.first.map {
-            String($0).uppercased()
-        } ?? "X"
+        // 🅰️ Store prefix
+        let cleanStoreName = sanitizeStoreName(storeName)
+        let storePrefix = cleanStoreName.first.map { String($0).uppercased() } ?? "X"
 
         for section in sections {
-
-            // 🅱️ Section prefix (first letter, uppercase, spaces removed)
+            
+            // 🅱️ Section prefix
             let cleanSectionName = section.title
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .replacingOccurrences(of: " ", with: "")
+            let sectionPrefix = cleanSectionName.first.map { String($0).uppercased() } ?? "X"
 
-            let sectionPrefix = cleanSectionName.first.map {
-                String($0).uppercased()
-            } ?? "X"
-
-            var itemIndex = 1   // 🔢 reset numbering per section
+            var itemIndex = 1
 
             for item in section.items {
-
                 let formattedItemID = "\(storePrefix)\(sectionPrefix)\(itemIndex)"
                 itemIndex += 1
+                
+                // ⚠️ 1. IMAGE UPLOAD LOGIC
+                var finalImageURL = item.imageURL ?? ""
+                
+                // If the user picked a new image (localImage is not nil), upload it now
+                if let localImg = item.localImage {
+                    // Path: StoreName/SectionName/ItemName.jpg
+                    let safeItemName = item.name.replacingOccurrences(of: " ", with: "")
+                    let imagePath = "\(cleanStoreName)/\(cleanSectionName)/\(safeItemName).jpg"
+                    
+                    // Reuse your existing uploadImage function
+                    do {
+                        finalImageURL = try await uploadImage(localImg, path: imagePath)
+                    } catch {
+                        print("⚠️ Failed to upload image for \(item.name): \(error)")
+                    }
+                }
 
+                // ⚠️ 2. MAP TO UPLOAD MODEL (INC. OPTIONS)
                 let upload = MenuItemUploadModel(
                     item_id: formattedItemID,
                     name: item.name,
@@ -238,29 +247,28 @@ class StoreRegistrationViewModel: ObservableObject {
                     default_stock: item.defaultStock ?? 0,
                     prep_time_minutes: item.prepTimeMinutes ?? 0,
                     category: section.title,
-                    image_url: item.imageURL ?? ""
+                    image_url: finalImageURL,
+                    options: item.options ?? [] // ✅ Correctly mapping options now
                 )
 
                 menuUploads.append(upload)
 
+                // ⚠️ 3. TRACKING
                 let tracking: [String: Any] = [
                     "item_id": formattedItemID,
                     "current_stock": item.defaultStock ?? 0,
                     "total_sold": 0
                 ]
-
                 trackingItems.append(tracking)
             }
         }
 
+        // 4. ENCODE & UPLOAD JSON
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted]
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys] // Sorted keys helps readability
 
         let data = try encoder.encode(menuUploads)
-
-        // 📁 Store folder name = store name without spaces
-        let ref = storage.reference()
-            .child("\(cleanStoreName)/menu.json")
+        let ref = storage.reference().child("\(cleanStoreName)/menu.json")
 
         _ = try await ref.putDataAsync(data)
         let url = try await ref.downloadURL()

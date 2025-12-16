@@ -24,7 +24,7 @@ struct AddMenuItemOverlay: View {
     @State private var stockText: String = "0"
 
     // MARK: Customization Groups
-    @State private var customizationGroups: [CustomizationGroup] = []
+    @State private var optionGroups: [MenuOptionGroup] = []
 
     var onSave: (MenuItem) -> Void
 
@@ -293,41 +293,51 @@ extension AddMenuItemOverlay {
             Text("Customization Options")
                 .font(.system(size: 17, weight: .semibold))
 
-            ForEach($customizationGroups) { $group in
+            ForEach($optionGroups) { $group in
 
                 VStack(alignment: .leading, spacing: 10) {
 
-                    // Group Header
+                    // HEADER
                     HStack {
-                        TextField("Section Name", text: $group.title)
+                        TextField("Section Name", text: $group.category)
                             .font(.system(size: 14, weight: .semibold))
 
                         Spacer()
 
-                        Button("Delete Group") {
-                            if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-                                customizationGroups.remove(at: idx)
+                        Button {
+                            if let idx = optionGroups.firstIndex(where: { $0.id == group.id }) {
+                                optionGroups.remove(at: idx)
                             }
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
                         }
-                        .foregroundColor(.red)
-                        .font(.system(size: 13))
                     }
                     .padding(10)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
 
-                    // Options List
+                    // MIN + MAX
+                    HStack {
+                        Stepper("Min: \(group.minSelect)", value: $group.minSelect)
+                        Stepper("Max: \(group.maxSelect)", value: $group.maxSelect)
+                    }
+                    .font(.caption)
+
+                    // OPTIONS
                     VStack(spacing: 12) {
-                        ForEach($group.options) { $option in
-                            optionRow(option: $option)
+                        ForEach($group.choices) { $choice in
+                            optionRow(option: $choice)
                         }
 
                         Button {
-                            addOption(to: group)
+                            group.choices.append(
+                                MenuOptionChoice(name: "", additionalPrice: 0)
+                            )
                         } label: {
                             Text("+ Add option")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color.orange)
+                                .foregroundColor(.orange)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
                                 .background(Capsule().fill(Color.orange.opacity(0.12)))
@@ -338,13 +348,15 @@ extension AddMenuItemOverlay {
             }
 
             Button {
-                addNewSection()
+                optionGroups.append(
+                    MenuOptionGroup(category: "", minSelect: 1, maxSelect: 1, choices: [])
+                )
             } label: {
                 Text("Add New Section")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(Capsule().fill(Color.orange))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -352,34 +364,31 @@ extension AddMenuItemOverlay {
     }
 
     // MARK: OPTION ROW
-    private func optionRow(option: Binding<CustomizationOption>) -> some View {
+    private func optionRow(option: Binding<MenuOptionChoice>) -> some View {
         HStack(spacing: 10) {
 
             TextField("Name", text: option.name)
-                .font(.system(size: 15))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(height: 40)
+                .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.3))
                 )
 
             Text("Rp +")
-                .font(.system(size: 14))
                 .foregroundColor(.gray)
 
-            TextField("0",
-                      value: option.additionalPrice,
-                      formatter: NumberFormatter.decimalNoGrouping)
-                .keyboardType(.numberPad)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(width: 90, height: 40)
-                .background(
-                    RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                )
+            TextField(
+                "0",
+                value: option.additionalPrice,
+                formatter: NumberFormatter.decimalNoGrouping
+            )
+            .keyboardType(.numberPad)
+            .padding(10)
+            .frame(width: 80)
+            .background(
+                RoundedRectangle(cornerRadius: 10)
+                    .stroke(Color.gray.opacity(0.3))
+            )
         }
     }
 
@@ -399,16 +408,7 @@ extension AddMenuItemOverlay {
                     imageURL: "",                // nanti setelah upload gambar
                     defaultStock: finalStock,
                     prepTimeMinutes: prepMinutes,
-                    options: customizationGroups.map { group in
-                        MenuOptionGroup(
-                            category: group.title,
-                            minSelect: group.selectionType == "Choose 1" ? 1 : 0,
-                            maxSelect: group.selectionType == "Choose 1" ? 1 : group.options.count,
-                            choices: group.options.map {
-                                MenuOptionChoice(name: $0.name, additionalPrice: $0.additionalPrice)
-                            }
-                        )
-                    }
+                    options: optionGroups
                 )
 
                 onSave(newItem)
@@ -457,22 +457,22 @@ extension AddMenuItemOverlay {
 
 
     // MARK: LOGIC FUNCTIONS
-    private func addNewSection() {
-        let newGroup = CustomizationGroup(
-            title: "",
-            selectionType: "Choose 1",
-            options: []
-        )
-        customizationGroups.append(newGroup)
-    }
-
-    private func addOption(to group: CustomizationGroup) {
-        if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-            customizationGroups[idx].options.append(
-                CustomizationOption(name: "", additionalPrice: 0)
-            )
-        }
-    }
+//    private func addNewSection() {
+//        let newGroup = CustomizationGroup(
+//            title: "",
+//            selectionType: "Choose 1",
+//            options: []
+//        )
+//        customizationGroups.append(newGroup)
+//    }
+//
+//    private func addOption(to group: CustomizationGroup) {
+//        if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
+//            customizationGroups[idx].options.append(
+//                CustomizationOption(name: "", additionalPrice: 0)
+//            )
+//        }
+//    }
 
     private func loadSelectedImage(_ item: PhotosPickerItem?) {
         guard let item else { return }

@@ -116,7 +116,7 @@ struct MenuSetupView: View {
                 .padding(.vertical, 14)
                 .background(
                     canFinish ? Color.orange : Color.gray.opacity(0.4),
-                    in: RoundedRectangle(cornerRadius: 14)
+                    in: RoundedRectangle(cornerRadius: 100)
                 )
         }
         .disabled(!canFinish || isSubmitting)
@@ -188,7 +188,7 @@ struct MenuSetupView: View {
             Divider()
 
             ForEach(section.items.indices, id: \.self) { rowIdx in
-                MenuRow(item: section.items[rowIdx]) {
+                MenuRow(item: section.items[rowIdx], showStockBadge: false) {
                     editingIndex = EditingItem(sec: secIdx, row: rowIdx)
                 }
             }

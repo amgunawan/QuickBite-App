@@ -10,20 +10,36 @@ import SwiftUI
 struct MenuRow: View {
 
     let item: MenuItem
+    let showStockBadge: Bool
     let onEdit: () -> Void
+
+    // MARK: - Computed UI Values
+
+    private var displayName: String {
+        let trimmed = item.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? "New Item" : trimmed
+    }
 
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
 
+            // IMAGE
             MenuRowImage(imageURL: item.imageURL)
 
+            // INFO
             VStack(alignment: .leading, spacing: 6) {
-                Text(item.name)
+
+                // ITEM NAME (with placeholder)
+                Text(displayName)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(2)
 
-                StatusBadge(status: item.stockStatus)
+                // STOCK BADGE (conditionally shown)
+                if showStockBadge {
+                    StatusBadge(status: item.stockStatus)
+                }
 
+                // PRICE
                 Text("Rp\(formatPrice(Double(item.price)))")
                     .font(.subheadline.weight(.semibold))
                     .foregroundColor(.orange)
@@ -31,6 +47,7 @@ struct MenuRow: View {
 
             Spacer()
 
+            // EDIT BUTTON
             Button(action: onEdit) {
                 Text("Edit")
                     .font(.caption.weight(.semibold))

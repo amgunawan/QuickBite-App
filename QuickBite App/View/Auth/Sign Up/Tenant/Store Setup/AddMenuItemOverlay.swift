@@ -16,7 +16,7 @@ struct AddMenuItemOverlay: View {
     @State private var itemPicture: UIImage? = nil
     @State private var pickedImage: PhotosPickerItem? = nil
     @State private var fileName: String = "No file chosen"
-
+    @State private var uploadedImageURL: String = ""
     @State private var itemName = ""
     @State private var shortDescription = ""
     @State private var priceText: String = "0"
@@ -24,7 +24,7 @@ struct AddMenuItemOverlay: View {
     @State private var stockText: String = "0"
 
     // MARK: Customization Groups
-    @State private var customizationGroups: [CustomizationGroup] = []
+    @State private var optionGroups: [MenuOptionGroup] = []
 
     var onSave: (MenuItem) -> Void
 
@@ -289,45 +289,91 @@ extension AddMenuItemOverlay {
     // MARK: CUSTOMIZATION SECTION
     private var customizationSection: some View {
         VStack(alignment: .leading, spacing: 22) {
-
+            
             Text("Customization Options")
                 .font(.system(size: 17, weight: .semibold))
-
-            ForEach($customizationGroups) { $group in
-
+            
+            ForEach($optionGroups) { $group in
+                
                 VStack(alignment: .leading, spacing: 10) {
-
-                    // Group Header
+                    
+                    // HEADER
                     HStack {
-                        TextField("Section Name", text: $group.title)
+                        TextField("Section Name", text: $group.category)
                             .font(.system(size: 14, weight: .semibold))
-
+                        
                         Spacer()
-
-                        Button("Delete Group") {
-                            if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-                                customizationGroups.remove(at: idx)
+                        
+                        Button {
+                            if let idx = optionGroups.firstIndex(where: { $0.id == group.id }) {
+                                optionGroups.remove(at: idx)
                             }
+                        } label: {
+                            Image(systemName: "trash")
+                                .foregroundColor(.red)
                         }
-                        .foregroundColor(.red)
-                        .font(.system(size: 13))
                     }
                     .padding(10)
                     .background(Color(.systemGray6))
                     .cornerRadius(8)
+                    
+                    // MIN / MAX
+                    HStack {
 
-                    // Options List
+                        // MIN (0 ... option count)
+                        Stepper(
+                            "Min: \(group.minSelect)",
+                            value: Binding(
+                                get: { group.minSelect },
+                                set: { newValue in
+                                    let maxAllowed = group.choices.count
+                                    let value = min(max(0, newValue), maxAllowed)
+                                    group.minSelect = value
+
+                                    // Ensure max >= min
+                                    if group.maxSelect < value {
+                                        group.maxSelect = value == 0 ? 1 : value
+                                    }
+                                }
+                            ),
+                            in: 0...max(0, group.choices.count)
+                        )
+
+                        // MAX (1 ... option count)
+                        Stepper(
+                            "Max: \(group.maxSelect)",
+                            value: Binding(
+                                get: { group.maxSelect },
+                                set: { newValue in
+                                    let maxAllowed = max(1, group.choices.count)
+                                    let value = min(max(1, newValue), maxAllowed)
+                                    group.maxSelect = value
+
+                                    // Ensure max >= min
+                                    if value < group.minSelect {
+                                        group.maxSelect = group.minSelect == 0 ? 1 : group.minSelect
+                                    }
+                                }
+                            ),
+                            in: 1...max(1, group.choices.count)
+                        )
+                    }
+                    .font(.caption)
+                    
+                    // OPTIONS
                     VStack(spacing: 12) {
-                        ForEach($group.options) { $option in
-                            optionRow(option: $option)
+                        ForEach($group.choices) { $choice in
+                            optionRow(option: $choice)
                         }
-
+                        
                         Button {
-                            addOption(to: group)
+                            group.choices.append(
+                                MenuOptionChoice(name: "", additionalPrice: 0)
+                            )
                         } label: {
                             Text("+ Add option")
                                 .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(Color.orange)
+                                .foregroundColor(.orange)
                                 .padding(.horizontal, 14)
                                 .padding(.vertical, 6)
                                 .background(Capsule().fill(Color.orange.opacity(0.12)))
@@ -335,16 +381,36 @@ extension AddMenuItemOverlay {
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                 }
-            }
+                .onChange(of: group.choices.count) { _, newCount in
+                    let maxAllowed = max(1, newCount)
 
+                    // Clamp max
+                    if group.maxSelect > maxAllowed {
+                        group.maxSelect = maxAllowed
+                    }
+
+                    // Clamp min (can be 0)
+                    if group.minSelect > newCount {
+                        group.minSelect = newCount
+                    }
+
+                    // Ensure max >= min
+                    if group.maxSelect < max(group.minSelect, 1) {
+                        group.maxSelect = max(group.minSelect, 1)
+                    }
+                }
+            }
+            
             Button {
-                addNewSection()
+                optionGroups.append(
+                    MenuOptionGroup(category: "", minSelect: 1, maxSelect: 1, choices: [])
+                )
             } label: {
                 Text("Add New Section")
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(.white)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 8)
                     .background(Capsule().fill(Color.orange))
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -352,33 +418,28 @@ extension AddMenuItemOverlay {
     }
 
     // MARK: OPTION ROW
-    private func optionRow(option: Binding<CustomizationOption>) -> some View {
+    private func optionRow(option: Binding<MenuOptionChoice>) -> some View {
         HStack(spacing: 10) {
 
             TextField("Name", text: option.name)
-                .font(.system(size: 15))
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(height: 40)
+                .padding(10)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.3))
                 )
 
             Text("Rp +")
-                .font(.system(size: 14))
                 .foregroundColor(.gray)
 
             TextField("0",
                       value: option.additionalPrice,
                       formatter: NumberFormatter.decimalNoGrouping)
                 .keyboardType(.numberPad)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 8)
-                .frame(width: 90, height: 40)
+                .padding(10)
+                .frame(width: 80)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                        .stroke(Color.gray.opacity(0.3))
                 )
         }
     }
@@ -395,20 +456,11 @@ extension AddMenuItemOverlay {
                     name: itemName,
                     description: shortDescription,
                     price: finalPrice,
-                    category: "",                // section title akan mengisi ini di MenuSetupView
-                    imageURL: "",                // nanti setelah upload gambar
+                    category: "",
+                    imageURL: uploadedImageURL,
                     defaultStock: finalStock,
                     prepTimeMinutes: prepMinutes,
-                    options: customizationGroups.map { group in
-                        MenuOptionGroup(
-                            category: group.title,
-                            minSelect: group.selectionType == "Choose 1" ? 1 : 0,
-                            maxSelect: group.selectionType == "Choose 1" ? 1 : group.options.count,
-                            choices: group.options.map {
-                                MenuOptionChoice(name: $0.name, additionalPrice: $0.additionalPrice)
-                            }
-                        )
-                    }
+                    options: optionGroups
                 )
 
                 onSave(newItem)
@@ -422,7 +474,7 @@ extension AddMenuItemOverlay {
                     .padding(.vertical, 14)
                     .background(
                         canSave ? Color.orange : Color.gray.opacity(0.4),
-                        in: RoundedRectangle(cornerRadius: 14)
+                        in: RoundedRectangle(cornerRadius: 100)
                     )
             }
             .disabled(!canSave)
@@ -457,32 +509,34 @@ extension AddMenuItemOverlay {
 
 
     // MARK: LOGIC FUNCTIONS
-    private func addNewSection() {
-        let newGroup = CustomizationGroup(
-            title: "",
-            selectionType: "Choose 1",
-            options: []
-        )
-        customizationGroups.append(newGroup)
-    }
-
-    private func addOption(to group: CustomizationGroup) {
-        if let idx = customizationGroups.firstIndex(where: { $0.id == group.id }) {
-            customizationGroups[idx].options.append(
-                CustomizationOption(name: "", additionalPrice: 0)
-            )
-        }
-    }
-
     private func loadSelectedImage(_ item: PhotosPickerItem?) {
         guard let item else { return }
+
         Task {
             if let data = try? await item.loadTransferable(type: Data.self),
                let img = UIImage(data: data) {
+
                 self.itemPicture = img
                 self.fileName = await item.itemIdentifier ?? "selected.jpg"
+
+                // ✅ IMPORTANT: persist image + store URL
+                self.uploadedImageURL = saveImageToLocal(img)
             }
         }
+    }
+    
+    private func saveImageToLocal(_ image: UIImage) -> String {
+        let filename = UUID().uuidString + ".jpg"
+        let url = FileManager.default
+            .urls(for: .documentDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(filename)
+
+        if let data = image.jpegData(compressionQuality: 0.85) {
+            try? data.write(to: url)
+            return url.absoluteString
+        }
+
+        return ""
     }
 }
 

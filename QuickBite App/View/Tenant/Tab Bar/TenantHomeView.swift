@@ -39,10 +39,6 @@ struct TenantHomeView: View {
         value: 1,
         to: Calendar.current.startOfMonth(for: Date())
     ) ?? Date()
-        
-    // Ratings
-//    @State private var ratingScore: Double = 4.8
-//    @State private var totalReviews: Int = 27
     
     // Formatter
     private var formattedBalance: String {
@@ -182,7 +178,7 @@ struct TenantHomeView: View {
                 switch destination {
 
                 case .allReviews:
-                    AllReviewsTenantView()
+                    AllReviewsTenantView(storeId: storeId)
 
                 case .manageStock:
                     ManageMenuStockTenantView(storeId: storeId)

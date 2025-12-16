@@ -6,9 +6,10 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct TenantReview: Identifiable {
-    let id = UUID()
+    let id: String
     let name: String
     let date: Date
     let rating: Int
@@ -22,23 +23,11 @@ struct AllReviewsTenantView: View {
     @State private var sortOption: SortOption = .newest
     @State private var selectedRatingFilter: Int? = nil
 
-    @State private var reviews: [TenantReview] = [
-        TenantReview(name: "Amanda Liu", date: Date(timeIntervalSince1970: 1730246400),
-                     rating: 5, text: "Tasty and affordable. Pickup was smooth and easy.",
-                     menu: "Katsutama Donburi"),
-        TenantReview(name: "James Park", date: Date(timeIntervalSince1970: 1730246400),
-                     rating: 4, text: "Really good! The katsu is crispy and the broth is flavorful.",
-                     menu: "Chicken Katsu Shiokara Ramen"),
-        TenantReview(name: "Sarah Luvita", date: Date(timeIntervalSince1970: 1730159999),
-                     rating: 5, text: "Good food, quick service.",
-                     menu: "Chicken Katsu Curry Rice"),
-        TenantReview(name: "Michael Tan", date: Date(timeIntervalSince1970: 1730073600),
-                     rating: 5, text: "The portion is generous and the sauce is perfect.",
-                     menu: "Chicken Katsu Curry Rice"),
-        TenantReview(name: "Jessica Lau", date: Date(timeIntervalSince1970: 1729987200),
-                     rating: 5, text: "Best food at UC Walk! Always fresh and delicious.",
-                     menu: "Katsutama Donburi")
-    ]
+    @State private var reviews: [TenantReview] = []
+
+    let storeId: String
+
+    private let db = Firestore.firestore()
 
     enum SortOption: String, CaseIterable {
         case newest = "Newest"
@@ -64,10 +53,10 @@ struct AllReviewsTenantView: View {
         }
 
         switch sortOption {
-        case .newest: filtered.sort { $0.date > $1.date }
-        case .oldest: filtered.sort { $0.date < $1.date }
+        case .newest:  filtered.sort { $0.date > $1.date }
+        case .oldest:  filtered.sort { $0.date < $1.date }
         case .highest: filtered.sort { $0.rating > $1.rating }
-        case .lowest: filtered.sort { $0.rating < $1.rating }
+        case .lowest:  filtered.sort { $0.rating < $1.rating }
         }
 
         return filtered
@@ -89,195 +78,241 @@ struct AllReviewsTenantView: View {
         return df
     }
 
+    // MARK: - Firestore Fetch
+    private func fetchReviews() {
+        db.collection("reviews")
+            .whereField("store_id", isEqualTo: storeId)
+            .getDocuments { snapshot, error in
+                if let error = error {
+                    print("❌ Failed to fetch reviews: \(error.localizedDescription)")
+                    return
+                }
+
+                guard let documents = snapshot?.documents else { return }
+
+                let mapped: [TenantReview] = documents.compactMap { doc in
+                    let data = doc.data()
+
+                    // rating bisa Int atau Double di Firestore
+                    let ratingInt: Int = {
+                        if let r = data["rating"] as? Int { return r }
+                        if let r = data["rating"] as? Double { return Int(r) }
+                        if let r = data["rating"] as? NSNumber { return r.intValue }
+                        return 0
+                    }()
+
+                    // created_at bisa Timestamp / Date / nil
+                    let dateValue: Date = {
+                        if let ts = data["created_at"] as? Timestamp { return ts.dateValue() }
+                        if let d = data["created_at"] as? Date { return d }
+                        return Date.distantPast
+                    }()
+
+                    let comment = data["comment"] as? String ?? ""
+
+                    return TenantReview(
+                        id: doc.documentID,
+                        name: "",      // ✅ name tidak ditampilkan (kosong)
+                        date: dateValue,
+                        rating: ratingInt,
+                        text: comment, // ✅ comment dari Firestore
+                        menu: ""       // ✅ menu tidak dipakai
+                    )
+                }
+
+                DispatchQueue.main.async {
+                    self.reviews = mapped
+                }
+            }
+    }
+
     // MARK: - Body
     var body: some View {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 16) {
-                    // Sort Section
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Sort by")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                ForEach(SortOption.allCases, id: \.self) { option in
-                                    Button(action: { sortOption = option }) {
-                                        Text(option.rawValue)
-                                            .font(.subheadline)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(sortOption == option ? Color.orange : Color(.systemGray5))
-                                            .foregroundColor(sortOption == option ? .white : .primary)
-                                            .clipShape(Capsule())
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 16) {
 
-                    // Filter by Rating
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Filter by rating")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal)
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 8) {
-                                Button(action: { selectedRatingFilter = nil }) {
-                                    Text("All (\(reviews.count))")
+                // Sort Section
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Sort by")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(SortOption.allCases, id: \.self) { option in
+                                Button(action: { sortOption = option }) {
+                                    Text(option.rawValue)
+                                        .font(.subheadline)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(selectedRatingFilter == nil ? Color.orange : Color(.systemGray5))
-                                        .foregroundColor(selectedRatingFilter == nil ? .white : .primary)
+                                        .background(sortOption == option ? Color.orange : Color(.systemGray5))
+                                        .foregroundColor(sortOption == option ? .white : .primary)
                                         .clipShape(Capsule())
                                 }
-
-                                ForEach((1...5).reversed(), id: \.self) { star in
-                                    let count = ratingDistribution[star] ?? 0
-                                    Button(action: { selectedRatingFilter = star }) {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "star.fill")
-                                            Text("\(star) (\(count))")
-                                        }
-                                        .padding(.horizontal, 12)
-                                        .padding(.vertical, 6)
-                                        .background(selectedRatingFilter == star ? Color.orange : Color(.systemGray5))
-                                        .foregroundColor(selectedRatingFilter == star ? .white : .primary)
-                                        .clipShape(Capsule())
-                                    }
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
-                    }
-
-                    // Rating Summary (Orange Card)
-                    
-                    let cardBg   = Color(red: 1.00, green: 0.96, blue: 0.89) // creamy soft orange
-                    let barFill  = Color(red: 1.00, green: 0.65, blue: 0.20) // warm orange (match stars)
-                    let starTint = barFill
-
-                    VStack(alignment: .leading, spacing: 14) {
-                        HStack(alignment: .center, spacing: 6) {
-                            // Left: score + stars + total
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text(String(format: "%.1f", averageRating))
-                                    .font(.system(size: 48, weight: .bold))
-                                    .foregroundColor(.black)
-
-                                Text("\(reviews.count) total reviews")
-                                    .font(.subheadline)
-                                    .foregroundColor(.black.opacity(0.75))
-                            }
-
-                            Spacer(minLength: 16)
-
-                            // Right: distribution 5…1 with star icon on label
-                            VStack(alignment: .leading, spacing: 10) {
-                                ForEach((1...5).reversed(), id: \.self) { star in
-                                    HStack(spacing: 8) {
-                                        // "5 ★" label
-                                        HStack(spacing: 4) {
-                                            Text("\(star)")
-                                                .font(.subheadline)
-                                                .foregroundColor(.black)
-                                            Image(systemName: "star.fill")
-                                                .font(.caption)
-                                                .foregroundColor(starTint)
-                                        }
-                                        .frame(width: 28, alignment: .leading)
-
-                                        // progress bar (white track + orange fill)
-                                        GeometryReader { geo in
-                                            let total = max(reviews.count, 1)
-                                            let ratio = CGFloat(ratingDistribution[star] ?? 0) / CGFloat(total)
-                                            ZStack(alignment: .leading) {
-                                                Capsule()
-                                                    .fill(Color.white.opacity(1))
-                                                    .frame(height: 8)
-                                                Capsule()
-                                                    .fill(barFill)
-                                                    .frame(width: geo.size.width * ratio, height: 8)
-                                            }
-                                        }
-                                        .frame(height: 8)
-
-                                        // count at right
-                                        Text("\(ratingDistribution[star] ?? 0)")
-                                            .font(.subheadline)
-                                            .foregroundColor(.black.opacity(0.8))
-                                            .frame(width: 28, alignment: .trailing)
-                                    }
-                                }
-                            }
-                            .frame(maxWidth: .infinity)
-                        }
-                    }
-                    .padding(16)
-                    .background(cardBg)
-                    .cornerRadius(18)
-                    .padding(.horizontal)
-
-
-                    // Review List / Empty State
-                    if filteredReviews.isEmpty {
-                        VStack(spacing: 12) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 50))
-                                .foregroundColor(Color(.systemGray3))
-                            Text("No reviews found")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-                            Text("Try adjusting your filters")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity, minHeight: 300)
-                        .padding(.top, 40)
-                    } else {
-                        VStack(spacing: 12) {
-                            ForEach(filteredReviews) { review in
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack(alignment: .top) {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(review.name)
-                                                .font(.headline)
-                                            Text(dateFormatter.string(from: review.date))
-                                                .font(.caption)
-                                                .foregroundColor(.secondary)
-                                        }
-                                        Spacer()
-                                        RatingStars(rating: Double(review.rating), size: 14)
-                                    }
-                                    Text(review.text)
-                                        .font(.body)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(14)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 14)
-                                        .stroke(Color(.systemGray4), lineWidth: 1)
-                                )
-                                .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
                             }
                         }
                         .padding(.horizontal)
-                        .padding(.bottom, 16)
                     }
                 }
-                .padding(.top, 8)
+
+                // Filter by Rating
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Filter by rating")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal)
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            Button(action: { selectedRatingFilter = nil }) {
+                                Text("All (\(reviews.count))")
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(selectedRatingFilter == nil ? Color.orange : Color(.systemGray5))
+                                    .foregroundColor(selectedRatingFilter == nil ? .white : .primary)
+                                    .clipShape(Capsule())
+                            }
+
+                            ForEach((1...5).reversed(), id: \.self) { star in
+                                let count = ratingDistribution[star] ?? 0
+                                Button(action: { selectedRatingFilter = star }) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "star.fill")
+                                        Text("\(star) (\(count))")
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(selectedRatingFilter == star ? Color.orange : Color(.systemGray5))
+                                    .foregroundColor(selectedRatingFilter == star ? .white : .primary)
+                                    .clipShape(Capsule())
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+
+                // Rating Summary (Orange Card)
+                let cardBg   = Color(red: 1.00, green: 0.96, blue: 0.89)
+                let barFill  = Color(red: 1.00, green: 0.65, blue: 0.20)
+                let starTint = barFill
+
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .center, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(String(format: "%.1f", averageRating))
+                                .font(.system(size: 48, weight: .bold))
+                                .foregroundColor(.orange)
+
+                            Text("\(reviews.count) total reviews")
+                                .font(.subheadline)
+                                .foregroundColor(.black.opacity(0.75))
+                        }
+
+                        Spacer(minLength: 16)
+
+                        VStack(alignment: .leading, spacing: 10) {
+                            ForEach((1...5).reversed(), id: \.self) { star in
+                                HStack(spacing: 8) {
+                                    HStack(spacing: 4) {
+                                        Text("\(star)")
+                                            .font(.subheadline)
+                                            .foregroundColor(.black)
+                                        Image(systemName: "star.fill")
+                                            .font(.caption)
+                                            .foregroundColor(starTint)
+                                    }
+                                    .frame(width: 28, alignment: .leading)
+
+                                    GeometryReader { geo in
+                                        let total = max(reviews.count, 1)
+                                        let ratio = CGFloat(ratingDistribution[star] ?? 0) / CGFloat(total)
+                                        ZStack(alignment: .leading) {
+                                            Capsule()
+                                                .fill(Color.white.opacity(1))
+                                                .frame(height: 8)
+                                            Capsule()
+                                                .fill(barFill)
+                                                .frame(width: geo.size.width * ratio, height: 8)
+                                        }
+                                    }
+                                    .frame(height: 8)
+
+                                    Text("\(ratingDistribution[star] ?? 0)")
+                                        .font(.subheadline)
+                                        .foregroundColor(.black.opacity(0.8))
+                                        .frame(width: 28, alignment: .trailing)
+                                }
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                    }
+                }
+                .padding(16)
+                .background(cardBg)
+                .cornerRadius(18)
+                .padding(.horizontal)
+
+                // Review List / Empty State
+                if filteredReviews.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 50))
+                            .foregroundColor(Color(.systemGray3))
+                        Text("No reviews found")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.secondary)
+                        Text("Try adjusting your filters")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 300)
+                    .padding(.top, 40)
+                } else {
+                    VStack(spacing: 12) {
+                        // ✅ ini kuncinya biar sorting “kerasa” dan urutan benar-benar rebuild
+                        ForEach(filteredReviews) { review in
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(dateFormatter.string(from: review.date))
+                                            .font(.caption)
+                                            .foregroundColor(.secondary)
+                                    }
+                                    Spacer()
+                                    RatingStars(rating: Double(review.rating), size: 14)
+                                }
+                                Text(review.text)
+                                    .font(.body)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding()
+                            .background(Color.white)
+                            .cornerRadius(14)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color(.systemGray4), lineWidth: 1)
+                            )
+                            .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
+                        }
+                    }
+                    .id(sortOption) // ✅ force rebuild order when sort changes
+                    .animation(.default, value: sortOption)
+                    .padding(.horizontal)
+                    .padding(.bottom, 16)
+                }
             }
-            .navigationTitle("All Reviews")
-            .navigationBarTitleDisplayMode(.inline)
-            .background(Color.white)
-        
+            .padding(.top, 8)
+        }
+        .navigationTitle("All Reviews")
+        .navigationBarTitleDisplayMode(.inline)
+        .background(Color.white)
+        .onAppear {
+            fetchReviews()
+        }
     }
 }
+
 struct RatingStars: View {
     let rating: Double
     let size: CGFloat
@@ -291,9 +326,4 @@ struct RatingStars: View {
             }
         }
     }
-}
-
-// MARK: - Preview
-#Preview {
-    AllReviewsTenantView()
 }

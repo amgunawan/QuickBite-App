@@ -58,6 +58,7 @@ struct ConfirmationView: View {
                 OrangeButton(title: "Start Menu Setup", enabled: true)
             }
             .simultaneousGesture(TapGesture().onEnded {
+                storeVM.saveDraft()
                 Task {
                     do {
                         try await authVM.updateOnboardingStep(5)

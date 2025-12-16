@@ -131,6 +131,7 @@ struct PayoutSetupView: View {
                 }
             )
             .simultaneousGesture(TapGesture().onEnded {
+                storeVM.saveDraft()
                 Task {
                     do {
                         try await authVM.updateOnboardingStep(4)

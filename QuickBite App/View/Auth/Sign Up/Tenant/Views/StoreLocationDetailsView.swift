@@ -110,6 +110,7 @@ struct StoreLocationDetailsView: View {
             }
             .disabled(!canContinue)
             .simultaneousGesture(TapGesture().onEnded {
+                storeVM.saveDraft()
                 Task {
                     do {
                         // update step to 2 (KTP)

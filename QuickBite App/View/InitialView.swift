@@ -13,8 +13,8 @@ struct InitialView: View {
     @State private var showSplash = true
     @State private var listenerAttached = false
 
-    @StateObject private var authVM = AuthenticationViewModel()
-    @StateObject private var storeVM = StoreRegistrationViewModel() // keep existing env usage
+    @EnvironmentObject private var authVM: AuthenticationViewModel
+    @EnvironmentObject private var storeVM: StoreRegistrationViewModel // keep existing env usage
 
     var body: some View {
         ZStack {
@@ -51,4 +51,5 @@ struct InitialView: View {
 
 #Preview {
     InitialView()
+        .environmentObject(StoreRegistrationViewModel())
 }

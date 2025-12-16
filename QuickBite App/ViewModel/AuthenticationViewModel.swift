@@ -12,7 +12,6 @@ import FirebaseAuth
 import FirebaseFirestore
 import GoogleSignIn
 
-// Minimal AppUser session model used by views/router
 struct AppUserSession {
     let uid: String
     let email: String
@@ -25,15 +24,12 @@ class AuthenticationViewModel: ObservableObject {
     @Published var isLoginSuccessed = false
     @Published var email = ""
     @Published var password = ""
-    
-    // The live session derived from Firestore user doc (nil when not signed in)
     @Published var currentUserSession: AppUserSession?
 
     private let db = Firestore.firestore()
     private var authStateHandle: AuthStateDidChangeListenerHandle?
 
     init() {
-        // Attach listener so app can react to sign-in / sign-out
         attachAuthStateListener()
     }
 
@@ -43,36 +39,33 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - Auth state listener
+    // MARK: - Auth State Listener
     private func attachAuthStateListener() {
         authStateHandle = Auth.auth().addStateDidChangeListener { [weak self] auth, user in
             Task { @MainActor in
                 guard let self = self else { return }
                 if let user = user {
-                    // load Firestore user doc to populate session
                     do {
-                        try await self.loadCurrentUser(uid: user.uid)
+                        let session = try await self.loadCurrentUser(uid: user.uid)
+                        self.currentUserSession = session
                     } catch {
-                        // If loading fails, clear session and optionally sign out
                         print("Failed to load current user: \(error.localizedDescription)")
                         self.currentUserSession = nil
                     }
                 } else {
-                    // Signed out
                     self.currentUserSession = nil
                 }
             }
         }
     }
 
-    // MARK: - Create Auth User (thin wrapper)
+    // MARK: - Create Auth User
     func createUser(email: String, password: String) async throws -> AuthDataResultModel {
         let authDataResult = try await Auth.auth().createUser(withEmail: email, password: password)
         return AuthDataResultModel(user: authDataResult.user)
     }
 
-    // MARK: - SIGN UP (Email/Password + Firestore + Unique Username)
-    // Keep behavior similar to previous but ensure session is loaded afterwards
+    // MARK: - Sign Up
     func signUp(role: UserRole) async throws {
         guard !email.isEmpty, !password.isEmpty else {
             throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "Email or password missing."])
@@ -86,16 +79,16 @@ class AuthenticationViewModel: ObservableObject {
             role: role
         )
 
-        // load user session immediately (no need to wait for verification if you disabled it)
-        try await loadCurrentUser(uid: returnedUser.uid)
+        let session = try await loadCurrentUser(uid: returnedUser.uid)
+        await MainActor.run {
+            self.currentUserSession = session
+        }
 
         print("🔥 Successfully created user & Firestore document.")
     }
 
-    // MARK: - Create Firestore Document with Unique Username
     private func createUserDocument(uid: String, email: String, role: UserRole) async throws {
         let uniqueUsername = try await generateUniqueUsername(from: email)
-
         let initialOnboardingStep: Int = (role == .merchant) ? 1 : 999
 
         let data: [String: Any] = [
@@ -112,16 +105,15 @@ class AuthenticationViewModel: ObservableObject {
         try await db.collection("users").document(uid).setData(data, merge: true)
     }
 
-    // MARK: - Unique Username Generator (unchanged)
     private func generateUniqueUsername(from email: String) async throws -> String {
         let base = email.components(separatedBy: "@").first?.lowercased() ?? "user"
-
         var candidate = base
         var suffix = 0
 
         while true {
-            let query = db.collection("users").whereField("username", isEqualTo: candidate)
-            let snapshot = try await query.getDocuments()
+            let snapshot = try await db.collection("users")
+                .whereField("username", isEqualTo: candidate)
+                .getDocuments()
 
             if snapshot.documents.isEmpty {
                 return candidate
@@ -132,7 +124,7 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - SIGN IN (Email)
+    // MARK: - Sign In
     func signInWithEmailPassword() async throws {
         guard !email.isEmpty, !password.isEmpty else {
             throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "Please enter both email and password."])
@@ -140,31 +132,29 @@ class AuthenticationViewModel: ObservableObject {
 
         do {
             let result = try await Auth.auth().signIn(withEmail: email, password: password)
-            print("✅ Signed in user: \(result.user.uid)")
-            // Load Firestore user doc to populate session
-            try await loadCurrentUser(uid: result.user.uid)
-            isLoginSuccessed = true
+            let session = try await loadCurrentUser(uid: result.user.uid)
+            await MainActor.run {
+                self.currentUserSession = session
+                self.isLoginSuccessed = true
+            }
         } catch let error as NSError {
             print("Firebase error code: \(error.code)")
-
             switch AuthErrorCode(rawValue: error.code) {
             case .userNotFound:
                 throw NSError(domain: "", code: 404, userInfo: [NSLocalizedDescriptionKey: "This email is not registered."])
-
             case .wrongPassword, .invalidCredential:
                 throw NSError(domain: "", code: 401, userInfo: [NSLocalizedDescriptionKey: "The password you entered is incorrect."])
-
             case .invalidEmail:
                 throw NSError(domain: "", code: 400, userInfo: [NSLocalizedDescriptionKey: "The email address is invalid."])
-
             default:
                 throw NSError(domain: "", code: 500, userInfo: [NSLocalizedDescriptionKey: "Unexpected error: \(error.localizedDescription)"])
             }
         }
     }
 
-    // MARK: - Load current user Firestore doc and populate session
-    func loadCurrentUser(uid: String) async throws {
+    // MARK: - Load Current User
+    @discardableResult
+    func loadCurrentUser(uid: String) async throws -> AppUserSession {
         let docRef = db.collection("users").document(uid)
         let snap = try await docRef.getDocument()
 
@@ -179,12 +169,15 @@ class AuthenticationViewModel: ObservableObject {
         let storeId = data["store_id"] as? String
 
         let session = AppUserSession(uid: uid, email: email, role: role, onboardingStep: onboardingStep, storeId: storeId)
+
         await MainActor.run {
             self.currentUserSession = session
         }
+
+        return session
     }
 
-    // MARK: - Update onboarding step (updates Firestore AND local session)
+    // MARK: - Update Onboarding Step
     func updateOnboardingStep(_ step: Int) async throws {
         guard let uid = Auth.auth().currentUser?.uid else {
             throw NSError(domain: "AUTH", code: 401, userInfo: [NSLocalizedDescriptionKey: "Not authenticated"])
@@ -194,7 +187,6 @@ class AuthenticationViewModel: ObservableObject {
             "onboarding_step": step
         ])
 
-        // reflect locally (if session exists)
         await MainActor.run {
             if var s = self.currentUserSession {
                 s.onboardingStep = step
@@ -203,7 +195,50 @@ class AuthenticationViewModel: ObservableObject {
         }
     }
 
-    // MARK: - GOOGLE SIGN IN (unchanged, but load session if needed)
+    // MARK: - Finalize Merchant Onboarding
+        func finalizeMerchantOnboarding(storeId: String) async throws {
+            guard let uid = Auth.auth().currentUser?.uid else {
+                throw NSError(domain: "AUTH", code: 401)
+            }
+
+            // 1. Update Firestore
+            try await db.collection("users")
+                .document(uid)
+                .updateData([
+                    "store_id": storeId,
+                    "onboarding_step": 8
+                ])
+
+            // 2. Update Local Session INSTANTLY (Don't wait for loadCurrentUser)
+            await MainActor.run {
+                if var current = self.currentUserSession {
+                    current.storeId = storeId
+                    current.onboardingStep = 8 // Force the step to 8
+                    self.currentUserSession = current
+                    print("✅ Local session updated to Step 8. Redirecting...")
+                }
+            }
+        }
+
+    // MARK: - Sign Out
+    func signOut() async throws {
+        GIDSignIn.sharedInstance.signOut()
+        try Auth.auth().signOut()
+        await MainActor.run {
+            self.currentUserSession = nil
+        }
+    }
+
+    // MARK: - Delete Account
+    func delete() async throws {
+        guard let user = Auth.auth().currentUser else { throw URLError(.badURL) }
+        try await user.delete()
+        await MainActor.run {
+            self.currentUserSession = nil
+        }
+    }
+
+    // MARK: - Google Sign In (unchanged)
     func signInWithGoogle(role: UserRole? = nil) {
         guard let clientID = FirebaseApp.app()?.options.clientID else { return }
 
@@ -234,7 +269,6 @@ class AuthenticationViewModel: ObservableObject {
 
                 guard let firebaseUser = res?.user else { return }
                 print("🔥 Google Sign-in: \(firebaseUser.uid)")
-
                 self?.createMissingGoogleUserDocument(firebaseUser: firebaseUser, role: role)
             }
         }
@@ -247,14 +281,12 @@ class AuthenticationViewModel: ObservableObject {
                 let snapshot = try await docRef.getDocument()
 
                 if snapshot.exists {
-                    // ensure session is loaded
                     try await loadCurrentUser(uid: firebaseUser.uid)
                     return
                 }
 
                 let email = firebaseUser.email ?? ""
                 let uniqueUsername = try await generateUniqueUsername(from: email)
-
                 let userRole: UserRole = role ?? .customer
                 let initialOnboardingStep: Int = (userRole == .merchant) ? 1 : 999
 
@@ -275,26 +307,6 @@ class AuthenticationViewModel: ObservableObject {
             } catch {
                 print("❌ Failed to create Google user Firestore doc: \(error.localizedDescription)")
             }
-        }
-    }
-
-    // MARK: - Sign Out
-    func signOut() async throws {
-        GIDSignIn.sharedInstance.signOut()
-        try Auth.auth().signOut()
-        await MainActor.run {
-            self.currentUserSession = nil
-        }
-    }
-
-    // MARK: - Delete Account
-    func delete() async throws {
-        guard let user = Auth.auth().currentUser else {
-            throw URLError(.badURL)
-        }
-        try await user.delete()
-        await MainActor.run {
-            self.currentUserSession = nil
         }
     }
 }

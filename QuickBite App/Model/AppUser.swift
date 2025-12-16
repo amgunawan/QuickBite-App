@@ -22,7 +22,7 @@ struct AppUser: Identifiable, Codable {
 
     let full_name: String?
     let username: String
-    let password: String
+//    let password: String
     let phone_number: String?
     let store_id: String?
 }

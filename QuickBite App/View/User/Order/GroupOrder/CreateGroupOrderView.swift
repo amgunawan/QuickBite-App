@@ -7,14 +7,23 @@
 
 import SwiftUI
 
-// Model Sederhana untuk User
 struct UserMember: Identifiable, Equatable {
-    let id = UUID()
+    let id: String // Changed from UUID to String to match Firestore ID
     let name: String
     let username: String
     let initial: String
     let color: Color
     var isCurrentUser: Bool = false
+    
+    // Custom init to handle UUID generation if needed, or pass specific ID
+    init(firestoreId: String = UUID().uuidString, name: String, username: String, initial: String, color: Color, isCurrentUser: Bool = false) {
+        self.id = firestoreId
+        self.name = name
+        self.username = username
+        self.initial = initial
+        self.color = color
+        self.isCurrentUser = isCurrentUser
+    }
 }
 
 struct CreateGroupOrderView: View {
@@ -24,29 +33,25 @@ struct CreateGroupOrderView: View {
     
     @State private var searchText = ""
     
-    // Data Dummy Suggestion (Diperbanyak agar search terlihat efeknya)
-    let suggestions: [UserMember] = [
-        UserMember(name: "Heidy Mudita", username: "@hsutedjo", initial: "H", color: .blue),
-        UserMember(name: "Jessica L.", username: "@jessilau", initial: "J", color: .green),
-        UserMember(name: "Rayna Shera", username: "@rchang02", initial: "R", color: .pink),
-        UserMember(name: "Natalie Grace", username: "@natgwk", initial: "N", color: .purple),
-        UserMember(name: "Anne Tantan", username: "@annetan", initial: "A", color: .teal),
-        UserMember(name: "Sharon Tan", username: "@sharontan01", initial: "S", color: .yellow),
-        UserMember(name: "Sharon Wijaya D.", username: "@sharonwd", initial: "S", color: .brown)
-    ]
+    @StateObject private var viewModel = CreateGroupOrderViewModel()
     
-    // Logika Filter: Mengembalikan user yang BELUM ada di grup DAN cocok dengan search text
+    
     var filteredSuggestions: [UserMember] {
-        suggestions.filter { user in
-            // 1. Cek apakah user sudah ada di grup? (Jika sudah, jangan tampilkan)
+        viewModel.suggestions.filter { user in
+ 
+            let loggedInUser = members.first(where: { $0.isCurrentUser })
+
+            let isTheCurrentUser = user.isCurrentUser ||
+            (loggedInUser?.id == user.id) ||
+            (loggedInUser?.username == user.username)
+            
             let isAlreadyMember = members.contains(where: { $0.username == user.username })
             
-            // 2. Cek apakah sesuai dengan search text? (Jika kosong, tampilkan semua)
             let matchesSearch = searchText.isEmpty ||
             user.name.localizedCaseInsensitiveContains(searchText) ||
             user.username.localizedCaseInsensitiveContains(searchText)
             
-            return !isAlreadyMember && matchesSearch
+            return !isTheCurrentUser && !isAlreadyMember && matchesSearch
         }
     }
     
@@ -62,6 +67,7 @@ struct CreateGroupOrderView: View {
                     Image(systemName: "magnifyingglass")
                         .foregroundColor(.gray)
                     TextField("Search by @username", text: $searchText)
+                        .textInputAutocapitalization(.never)
                 }
                 .padding(10)
                 .background(Color(.systemGray6))
@@ -139,7 +145,7 @@ struct CreateGroupOrderView: View {
                 // Suggestion / Search Results Section
                 VStack(alignment: .leading, spacing: 16) {
                     // Judul dinamis sesuai status pencarian
-                    Text(searchText.isEmpty ? "Suggestion" : "Search results for \"\(searchText)\"")
+                    Text(searchText.isEmpty ? "Friends" : "Search results for \"\(searchText)\"")
                         .font(.headline)
                         .foregroundColor(.gray)
                         .padding(.horizontal)
@@ -232,6 +238,9 @@ struct CreateGroupOrderView: View {
                         .foregroundColor(.gray)
                 }
             }
+        }
+        .onAppear {
+            viewModel.fetchAllUsers()
         }
     }
 }

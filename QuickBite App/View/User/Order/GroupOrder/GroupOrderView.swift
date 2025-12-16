@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct GroupOrderView: View {
     @Environment(\.dismiss) var dismiss
@@ -24,6 +25,13 @@ struct GroupOrderView: View {
     @Binding var isGroupOrderActive: Bool
     @Binding var groupName: String
     @Binding var groupMembers: [UserMember]
+    
+    var leader: UserMember? {
+        groupMembers.first(where: { $0.isCurrentUser })
+    }
+    
+    @State private var showInviteAlert = false
+    @State private var inviteMessage = ""
     
     
     var body: some View {
@@ -47,12 +55,13 @@ struct GroupOrderView: View {
                     
                     // 1. Info Group Leader
                     HStack(spacing: 16) {
-                        // Avatar Besar
-                        Text("A")
+                        // Avatar Besar (Dynamic based on Leader)
+                        Text(leader?.initial ?? "?") // Show Leader Initial
                             .font(.system(size: 32, weight: .bold))
-                            .foregroundColor(Color(red: 0.9, green: 0.4, blue: 0.1)) // Teks Orange Tua
+                            .foregroundColor(leader?.isCurrentUser == true ? Color(red: 0.9, green: 0.4, blue: 0.1) : .white)
                             .frame(width: 70, height: 70)
-                            .background(Color.orange.opacity(0.2))
+                        // Use Leader's color
+                            .background(leader?.isCurrentUser == true ? Color.orange.opacity(0.2) : (leader?.color.opacity(0.8) ?? .gray))
                             .clipShape(Circle())
                             .overlay(
                                 Circle().stroke(Color.white, lineWidth: 4)
@@ -67,12 +76,13 @@ struct GroupOrderView: View {
                                     TextField("Group Name", text: $groupName)
                                         .font(.title3)
                                         .fontWeight(.bold)
-                                        .textFieldStyle(RoundedBorderTextFieldStyle()) // Style agar terlihat seperti input
+                                        .textFieldStyle(RoundedBorderTextFieldStyle())
                                         .focused($isGroupNameFocused)
                                         .onSubmit {
-                                            isEditingGroupName = false // Selesai edit saat tekan Enter
+                                            isEditingGroupName = false
                                         }
                                 } else {
+                                    // Display Group Name
                                     Text(groupName)
                                         .font(.title3)
                                         .fontWeight(.bold)
@@ -82,15 +92,12 @@ struct GroupOrderView: View {
                                 
                                 Button(action: {
                                     if isEditingGroupName {
-                                        // Jika sedang edit, tombol ini berfungsi sebagai "Save" (selesai edit)
                                         isEditingGroupName = false
                                     } else {
-                                        // Jika tidak sedang edit, tombol ini mengaktifkan mode edit
                                         isEditingGroupName = true
-                                        isGroupNameFocused = true // Fokus ke text field
+                                        isGroupNameFocused = true
                                     }
                                 }) {
-                                    // Ganti ikon berdasarkan status edit
                                     Image(systemName: isEditingGroupName ? "checkmark.circle.fill" : "pencil")
                                         .font(.system(size: 25))
                                         .foregroundColor(isEditingGroupName ? .green : .gray)
@@ -233,6 +240,75 @@ struct GroupOrderView: View {
         }
         .sheet(isPresented: $showDeadlineSheet) {
             OrderDeadlineSheet(initialDate: orderDeadline, onSave: { date in self.orderDeadline = date })
+        }
+        .onAppear {
+            if groupName.isEmpty || groupName == "Group Order" {
+                if let leader = leader {
+                    let firstName = leader.name.split(separator: " ").first ?? "My"
+                    groupName = "\(firstName)'s Group"
+                }
+            }
+        }
+        .alert("Invitations Sent!", isPresented: $showInviteAlert) {
+            Button("OK") {
+                isGroupOrderActive = true
+                dismiss()
+            }
+        } message: {
+            Text(inviteMessage)
+        }
+    }
+    
+    func handleGroupOrderAction() {
+            if isGroupOrderActive {
+                // Logic Delete Order
+                print("Group order deleted")
+                isGroupOrderActive = false
+                // Reset to just the current user
+                if let currentUser = groupMembers.first(where: { $0.isCurrentUser }) {
+                    groupMembers = [currentUser]
+                }
+                dismiss()
+            } else {
+                // Logic Create Order & Send Invites
+                createGroupOrderInFirestore()
+            }
+    }
+    
+    func createGroupOrderInFirestore() {
+        guard let leader = leader else { return }
+        
+        let db = Firestore.firestore()
+        
+        // 1. Prepare Data for the "Lobby"
+        let memberIds = groupMembers.map { $0.id }
+        
+        // We set status to "open" -> This means "Inviting / Deciding", NOT "Ordered"
+        let orderData: [String: Any] = [
+            "restaurantName": restaurantName,
+            "leaderName": leader.name,
+            "leaderId": leader.id,
+            "groupName": groupName,
+            "memberIds": memberIds,
+            "invitedIds": memberIds.filter { $0 != leader.id }, // Explicitly track who needs an invite
+            "createdAt": FieldValue.serverTimestamp(),
+            "status": "open", // Open for joining
+            "deadline": orderDeadline ?? Date().addingTimeInterval(3600)
+        ]
+        
+        // 2. Create the document
+        // This creation triggers the Cloud Function to send Push Notifications
+        db.collection("group_orders").addDocument(data: orderData) { error in
+            if let error = error {
+                print("Error creating group lobby: \(error)")
+                inviteMessage = "Failed to create group. Please try again."
+                showInviteAlert = true
+            } else {
+                // 3. Success
+                let count = groupMembers.count - 1
+                inviteMessage = "Group created! We've sent invites to \(count) friends to join you."
+                showInviteAlert = true
+            }
         }
     }
 }

@@ -5,13 +5,6 @@
 //  Created by student on 12/12/25.
 //
 
-//
-//  SyncCalendarView.swift
-//  QuickBite
-//
-//  Created by student on 12/12/25.
-//
-
 import SwiftUI
 
 // --- 1. COLORS ---
@@ -22,135 +15,107 @@ struct AppColors {
 
 struct SyncCalendarView: View {
     @EnvironmentObject var calendarManager: CalendarManager
-    
     @Environment(\.presentationMode) var presentationMode
     
-    // State to handle the transition if needed, though simpler is better
-    // The view will automatically update when calendarManager.isSynced changes
-    
     var body: some View {
-        VStack(spacing: 0) {
-            
-            // --- NAV BAR ---
-            HStack {
-                Button(action: {
-                    presentationMode.wrappedValue.dismiss()
-                }) {
-                    Image(systemName: "chevron.left")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.primary)
-                        .padding(12)
-                        .background(Color.gray.opacity(0.1))
-                        .clipShape(Circle())
-                }
-                Spacer()
-                Text("Sync My Calendar")
-                    .font(.headline)
-                    .fontWeight(.bold)
-                Spacer()
-                Color.clear.frame(width: 44, height: 44) // Spacer for balance
-            }
-            .padding()
-            
+        VStack {
             // --- CONTENT SWITCHER ---
             if calendarManager.isSynced {
-                // SHOW SUCCESS SCREEN (Matches your screenshot)
                 SuccessView()
             } else {
-                // SHOW INTRO / SYNC SCREEN (Your original code)
                 IntroSyncView()
             }
         }
-        .navigationBarHidden(true)
+        // 1. Use Native Navigation Title
+        .navigationTitle("Sync My Calendar")
+        .navigationBarTitleDisplayMode(.inline)
     }
     
     // MARK: - Subview: Intro/Sync State
     func IntroSyncView() -> some View {
-        VStack {
-            ScrollView {
-                VStack(alignment: .center, spacing: 24) {
-                    Spacer().frame(height: 20)
-                    
-                    // 1. Big Gradient Icon
-                    ZStack {
-                        Circle()
-                            .fill(
-                                LinearGradient(
-                                    gradient: Gradient(colors: [Color.orange, Color.red.opacity(0.8)]),
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+        // 2. Changed ScrollView to VStack
+        VStack(spacing: 0) {
+            
+            Spacer() // Push content to center
+            
+            // --- ICON & TITLE ---
+            VStack(spacing: 20) {
+                // Big Gradient Icon
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.orange, Color.red.opacity(0.8)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
                             )
-                            .frame(width: 120, height: 120)
-                        
-                        Image(systemName: "calendar")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 50)
-                            .foregroundColor(.white)
-                    }
-                    .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 10)
-                    
-                    // 2. Title & Subtitle
-                    VStack(spacing: 12) {
-                        Text("Order with Ease,\nPick Up Right on Time")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .multilineTextAlignment(.center)
-                            .foregroundColor(AppColors.textBlack)
-                        
-                        Text("Let QuickBite handle your schedule. Turn on the Smart Feature to sync with your classes.")
-                            .font(.subheadline)
-                            .foregroundColor(.gray)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 30)
-                            .lineSpacing(4)
-                    }
-                    
-                    Spacer().frame(height: 10)
-                    
-                    // 3. Features List
-                    VStack(alignment: .leading, spacing: 30) {
-                        FeatureRow(
-                            icon: "bell.fill",
-                            title: "Proactive Notifications",
-                            subtitle: "We'll remind you to order before your class ends."
                         )
-                        
-                        FeatureRow(
-                            icon: "clock.fill",
-                            title: "Smart Timing Suggestions",
-                            subtitle: "We'll automatically suggest the perfect pickup time on the checkout page."
-                        )
-                        
-                        FeatureRow(
-                            icon: "lock.fill",
-                            title: "Secure & Private",
-                            subtitle: "We only access your 'free/busy' times and never save any event details."
-                        )
-                    }
-                    .padding(.horizontal, 24)
+                        .frame(width: 100, height: 100) // Slightly smaller to fit fixed screen
+                    
+                    Image(systemName: "calendar")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 45)
+                        .foregroundColor(.white)
                 }
-                .padding(.bottom, 40)
+                .shadow(color: Color.orange.opacity(0.3), radius: 10, x: 0, y: 10)
+                
+                // Title & Subtitle
+                VStack(spacing: 8) {
+                    Text("Order with Ease,\nPick Up Right on Time")
+                        .font(.title3) // Adjusted size
+                        .fontWeight(.bold)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(AppColors.textBlack)
+                    
+                    Text("Let QuickBite handle your schedule. Turn on the Smart Feature to sync with your classes.")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 30)
+                }
             }
             
-            // SYNC BUTTON
-            VStack {
-                Button(action: {
-                    // Simulate Sync Action
-                    calendarManager.syncCalendar()
-                }) {
-                    Text("Sync Calendar")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 55)
-                        .background(AppColors.primaryOrange)
-                        .cornerRadius(30)
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+            Spacer() // Space between header and list
+            
+            // --- FEATURES LIST ---
+            VStack(alignment: .leading, spacing: 24) {
+                FeatureRow(
+                    icon: "bell.fill",
+                    title: "Proactive Notifications",
+                    subtitle: "We'll remind you to order before your class ends."
+                )
+                
+                FeatureRow(
+                    icon: "clock.fill",
+                    title: "Smart Timing Suggestions",
+                    subtitle: "Auto-suggest perfect pickup times."
+                )
+                
+                FeatureRow(
+                    icon: "lock.fill",
+                    title: "Secure & Private",
+                    subtitle: "We only access 'free/busy' status."
+                )
             }
+            .padding(.horizontal, 24)
+            
+            Spacer() // Push button to bottom
+            
+            // --- SYNC BUTTON ---
+            Button(action: {
+                calendarManager.syncCalendar()
+            }) {
+                Text("Sync Calendar")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 55)
+                    .background(AppColors.primaryOrange)
+                    .cornerRadius(30)
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
         }
     }
     
@@ -162,14 +127,14 @@ struct SyncCalendarView: View {
             // 1. Success Icon
             ZStack {
                 Circle()
-                    .fill(Color.green.opacity(0.2)) // Light green background
+                    .fill(Color.green.opacity(0.2))
                     .frame(width: 140, height: 140)
                 
                 Image(systemName: "checkmark")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 50, height: 50)
-                    .foregroundColor(Color.green) // Darker green check
+                    .foregroundColor(Color.green)
                     .font(.system(size: 50, weight: .bold))
             }
             .padding(.bottom, 24)
@@ -193,7 +158,6 @@ struct SyncCalendarView: View {
             
             // 4. Done Button
             Button(action: {
-                // Dismiss the view
                 presentationMode.wrappedValue.dismiss()
             }) {
                 Text("Done")
@@ -210,9 +174,13 @@ struct SyncCalendarView: View {
     }
 }
 
+
 // --- PREVIEW ---
 struct SyncCalendarView_Previews: PreviewProvider {
     static var previews: some View {
-        SyncCalendarView()
+        NavigationView {
+            SyncCalendarView()
+                .environmentObject(CalendarManager())
+        }
     }
 }

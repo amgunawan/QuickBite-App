@@ -267,26 +267,31 @@ struct MenuItemRow: View {
                             .font(.system(size: 14, weight: .bold))
                             .foregroundColor(.black)
                         
-                        Button(action: onAdd) {
+                        Button {
+                            onAdd()
+                        } label: {
                             Image(systemName: "plus")
                                 .font(.system(size: 10, weight: .bold))
                                 .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
+                                .frame(width: 28, height: 28)
                                 .background(Color.orange)
                                 .cornerRadius(4)
+                                .contentShape(Rectangle())
                         }
                         .buttonStyle(PlainButtonStyle())
                     }
                 } else {
-                    Button(action: onAdd) {
+                    Button {
+                        onAdd()
+                    } label: {
                         Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .bold))
+                            .font(.system(size: 14, weight: .bold)) // Slightly bigger icon
                             .foregroundColor(.white)
-                            .padding(5)
+                            .frame(width: 32, height: 32) // Bigger hit target
                             .background(Color.orange)
-                            .cornerRadius(4)
+                            .cornerRadius(8)
                     }
-                    .buttonStyle(PlainButtonStyle())
+                    .buttonStyle(PlainButtonStyle()) // Important!
                 }
             }
         }
@@ -533,5 +538,42 @@ struct GroupOrderBottomBar: View {
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(Color.white)
+    }
+}
+
+struct RestaurantDetailView_Previews: PreviewProvider {
+    static var previews: some View {
+        // 1. Create Dummy Restaurant Data
+        let dummyRestaurant = Restaurant(
+            id: "123",
+            name: "Raburi Test",
+            location: "UC Walk",
+            rating: 4.8,
+            reviewCount: 100,
+            bannerURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/main/banner.jpg",
+            searchURL: nil,
+            cuisineType: ["Japanese", "Noodles"],
+            menuDataURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/menu.json",
+            deliveryTime: "15-20 min"
+        )
+        
+        // 2. Initialize Mock ViewModels
+        let mockCart = CartViewModel()
+        let mockNavState = AppNavigationState()
+
+        // 3. Render View
+        NavigationStack {
+            RestaurantDetailView(restaurant: dummyRestaurant)
+        }
+        // 4. Inject Missing Environment Objects
+        .environmentObject(mockCart)
+        .environmentObject(mockNavState)
+        
+        // 5. Prevent Firebase Crash in Preview
+        .onAppear {
+            if FirebaseApp.app() == nil {
+                FirebaseApp.configure()
+            }
+        }
     }
 }

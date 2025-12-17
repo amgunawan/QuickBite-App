@@ -18,6 +18,7 @@ struct HomeView: View {
     @StateObject private var cuisineTypeVM = CuisineTypeViewModel()
     @StateObject private var restaurantVM = RestaurantsViewModel()
     @StateObject private var topRatedVM = TopRatedRestaurantsViewModel()
+    @StateObject private var discountVM = HomeDiscountViewModel()
     
     @EnvironmentObject var calendarManager: CalendarManager
     
@@ -74,57 +75,66 @@ struct HomeView: View {
                             }
                         }
                         
-                        // Today's Limited Deals
-                        VStack(alignment: .leading) {
-                            Text("Today's Limited Deals")
-                                .font(.headline)
-                                .padding(.horizontal)
-                            
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                let rows = [
-                                    GridItem(.fixed(90)),
-                                    GridItem(.fixed(90))
-                                ]
-                                
-                                LazyHGrid(rows: rows, spacing: 16) {
-                                    DealCardView(
-                                        imageName: "ChickenKatsuShirokaraRamen",
-                                        title: "Chicken Katsu Shirokara Ramen",
-                                        restaurant: "Raburi",
-                                        priceNow: "Rp30.000",
-                                        priceOld: "Rp35.000"
-                                    )
+                        // Discount Deals
+                        if !discountVM.discountDeals.isEmpty || discountVM.isLoading {
+                            VStack(alignment: .leading) {
+                                HStack {
+                                    Text("Discount Deals")
+                                        .font(.headline)
                                     
-                                    DealCardView(
-                                        imageName: "SteamedChicken",
-                                        title: "Steamed Chicken",
-                                        restaurant: "Paus Puas",
-                                        priceNow: "Rp28.000",
-                                        priceOld: "Rp35.000"
-                                    )
+                                    Spacer()
                                     
-                                    DealCardView(
-                                        imageName: "NasiAyamGeprek",
-                                        title: "Nasi Ayam Geprek",
-                                        restaurant: "Madame Liy",
-                                        priceNow: "Rp25.000",
-                                        priceOld: "Rp28.000"
-                                    )
-                                    
-                                    DealCardView(
-                                        imageName: "DonatJadoel",
-                                        title: "Donal Jadoel",
-                                        restaurant: "Gisoe Coffee",
-                                        priceNow: "Rp4.000",
-                                        priceOld: "Rp7.000"
-                                    )
+                                    // "See All" Link - Only appears when data is ready
+                                    if !discountVM.discountDeals.isEmpty {
+                                        NavigationLink(destination: AllDealsView(viewModel: discountVM)) {
+                                            Text("See all")
+                                                .font(.subheadline)
+                                                .foregroundColor(.orange)
+                                        }
+                                    }
                                 }
                                 .padding(.horizontal)
+                                
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    LazyHStack(spacing: 16) {
+                                        
+                                        // A. LOADING STATE: Show Skeletons
+                                        // This runs while the app is downloading the JSON menu files
+                                        if discountVM.isLoading && discountVM.discountDeals.isEmpty {
+                                            ForEach(0..<3, id: \.self) { _ in
+                                                VStack(alignment: .leading) {
+                                                    RoundedRectangle(cornerRadius: 12)
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .frame(width: 140, height: 100)
+                                                    
+                                                    RoundedRectangle(cornerRadius: 4)
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .frame(width: 100, height: 16)
+                                                    
+                                                    RoundedRectangle(cornerRadius: 4)
+                                                        .fill(Color.gray.opacity(0.2))
+                                                        .frame(width: 60, height: 16)
+                                                }
+                                                .frame(width: 140, height: 160)
+                                            }
+                                        }
+                                        
+                                        // B. LOADED STATE: Show Real Cards
+                                        else {
+                                            ForEach(discountVM.discountDeals) { deal in
+                                                // Link to RestaurantDetail if clicked (optional)
+                                                // NavigationLink(destination: RestaurantDetailView(...)) {
+                                                DealCardView(deal: deal)
+                                                // }
+                                            }
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                }
                             }
                         }
                         
-                        // 3. NEW SECTION: Sync Calendar Assistant
-                        // This matches the orange banner in your screenshot
+                        // Sync Calendar Assistant
                         if !calendarManager.isSynced {
                             ZStack {
                                 // Background Gradient
@@ -246,9 +256,17 @@ struct HomeView: View {
                     hideKeyboard()
                 }
             }
+            .onAppear {
+                print("🏁 HomeView Appeared - Triggering Fetches")
+                discountVM.fetchDiscounts() // <--- Fetch Discounts
+                cuisineTypeVM.fetchCuisineTypes()
+                topRatedVM.fetchTopRated()
+                restaurantVM.fetchRestaurants()
+            }
         }
     }
 }
+
 
 #Preview {
     HomeView()

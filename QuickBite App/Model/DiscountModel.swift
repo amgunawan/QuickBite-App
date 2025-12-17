@@ -12,7 +12,6 @@ struct DiscountModel: Identifiable, Codable {
     @DocumentID var id: String?
     
     var amount: Int
-    var type: String
     var itemId: String
     var startDateTime: Date
     var endDateTime: Date
@@ -21,7 +20,6 @@ struct DiscountModel: Identifiable, Codable {
     enum CodingKeys: String, CodingKey {
         case id
         case amount = "discount_amount"
-        case type = "discount_type"
         case itemId = "item_id"
         case startDateTime = "start_date_time"
         case endDateTime = "end_date_time"

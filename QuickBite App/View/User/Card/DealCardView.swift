@@ -1,81 +1,94 @@
 //
 //  DealCardView.swift
-//  QuickBite App
+//  QuickBite
 //
-//  Created by Angela on 03/11/25.
+//  Created by student on 17/12/25.
 //
 
 import SwiftUI
 
-struct RoundedCorners: Shape {
-    var radius: CGFloat = 10
-    var corners: UIRectCorner = .allCorners
+struct DealCardView: View {
+    let deal: DiscountDisplayItem
     
-    func path(in rect: CGRect) -> Path {
-        let path = UIBezierPath(
-            roundedRect: rect,
-            byRoundingCorners: corners,
-            cornerRadii: CGSize(width: radius, height: radius)
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Image Section
+            ZStack(alignment: .topTrailing) {
+                AsyncImage(url: URL(string: deal.imageURL)) { phase in
+                    if let image = phase.image {
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Color.gray.opacity(0.1) // Placeholder color
+                    }
+                }
+                .frame(width: 150, height: 100)
+                .clipped()
+                
+                // Promo Tag
+                Text("Promo")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 4)
+                    .background(Color.red)
+                    .cornerRadius(4)
+                    .padding(8)
+            }
+            
+            // Text Content
+            VStack(alignment: .leading, spacing: 4) {
+                Text(deal.itemName)
+                    .font(.system(size: 14, weight: .semibold))
+                    .lineLimit(1)
+                    .foregroundColor(.primary)
+                
+                Text(deal.storeName)
+                    .font(.caption)
+                    .foregroundColor(.gray)
+                    .lineLimit(1)
+                
+                HStack() {
+                    Text("Rp\(Int(deal.finalPrice))")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundColor(.orange)
+                    
+                    Spacer()
+                    
+                    Text("Rp\(Int(deal.originalPrice))")
+                        .font(.system(size: 11))
+                        .strikethrough()
+                        .foregroundColor(.gray)
+                }
+            }
+            .padding(10)
+        }
+        .frame(width: 150)
+        .background(Color.white)
+        .cornerRadius(12)
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.gray.opacity(0.2), lineWidth: 1)
         )
-        return Path(path.cgPath)
     }
 }
 
-struct DealCardView: View {
-    var imageName: String
-    var title: String
-    var restaurant: String
-    var priceNow: String
-    var priceOld: String
-    
-    var cardWidth: CGFloat = 300
-    
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 12)
-                .fill(Color.white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                )
-            
-            HStack(spacing: 0) {
-                Image(imageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 90, height: 90)
-                    .clipShape(
-                        RoundedCorners(radius: 12, corners: [.topLeft, .bottomLeft])
-                    )
-                    .clipped()
-                
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(restaurant)
-                        .font(.caption)
-                        .foregroundColor(.gray)
-                    
-                    Text(title)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
-                        .lineLimit(1)
-                    
-                    HStack(spacing: 4) {
-                        Text(priceNow)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundColor(.orange)
-                        
-                        Text(priceOld)
-                            .font(.caption)
-                            .foregroundColor(.gray)
-                            .strikethrough()
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 4)
-            }
-            .frame(width: cardWidth, height: 90, alignment: .leading)
-        }
-        .fixedSize()
+#Preview {
+    ZStack {
+        // Gray background to help visualize the card's border and white background
+        Color(.systemGray6)
+            .ignoresSafeArea()
+        
+        DealCardView(deal: DiscountDisplayItem(
+            id: "preview_1",
+            discountAmount: 5000,
+            originalPrice: 35000,
+            finalPrice: 30000,
+            itemName: "Chicken Katsu Shirokara Ramen",
+            storeName: "Raburi",
+            imageURL: "https://via.placeholder.com/150", // Dummy image link
+            storeId: "store_123"
+        ))
     }
 }

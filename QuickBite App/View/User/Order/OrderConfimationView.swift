@@ -38,6 +38,7 @@ struct OrderConfirmationView: View {
     var billingOption: BillingOption = .individual
     var groupMembers: [UserMember] = []
     var isGroupOrder: Bool = false
+    var groupName: String = ""
     
     // MARK: - Computed Properties for Display
     
@@ -357,12 +358,44 @@ struct OrderConfirmationView: View {
     func placeOrder() {
         guard let selectedTime, !isStoreClosed, !isPlacingOrder, let userId = authVM.currentUserSession?.uid else { return }
         isPlacingOrder = true
+        
+        // 1. Get email prefix (everything before @) for personal orders
+        let userEmail = authVM.currentUserSession?.email ?? ""
+        let emailPrefix = userEmail.components(separatedBy: "@").first ?? "Guest"
+        
+        // 2. Decide: Use Group Name if it's a group order, otherwise use the Email Prefix
+        let finalCustomerName = isGroupOrder ? groupName : emailPrefix
+        
         let items = cart.items.map { "\($0.quantity)x \($0.name)" }
-        OrderService().createOrder(customerName: "Jessica", items: items, total: Int(amountToPay), pickupTime: selectedTime.timeRange, tenantId: cart.restaurantId, userId: userId) { orderId in
-            guard let orderId else { isPlacingOrder = false; return }
+        
+        print("DEBUG: Placing order for \(finalCustomerName) total Rp\(Int(amountToPay))")
+        
+        OrderService().createOrder(
+            customerName: finalCustomerName, // ✅ Uses the logic above
+            items: items,
+            total: Int(amountToPay),
+            pickupTime: selectedTime.timeRange,
+            tenantId: cart.restaurantId,
+            userId: userId
+        ) { orderId in
+            guard let orderId else {
+                isPlacingOrder = false
+                return
+            }
+            
             DispatchQueue.main.async {
-                navState.activeOrderId = orderId; navState.selectedTab = 1; navState.activitySegment = .inProgress
-                cart.clearCart(); navState.isCartPresented = false; dismiss()
+                // Update Tab and App State
+                navState.activeOrderId = orderId
+                navState.selectedTab = 1
+                navState.activitySegment = .inProgress
+                
+                // Clear Cart and trigger Navigation to Pickup View
+                cart.clearCart()
+                navState.isCartPresented = false
+                self.generatedOrderId = orderId
+                self.navigateToCompleted = true // ✅ This triggers the QR screen
+                
+                print("✅ Order successfully placed: \(orderId)")
             }
         }
     }

@@ -271,7 +271,8 @@ struct GroupCartView: View {
                 NavigationLink(destination: OrderConfirmationView(
                     billingOption: selectedBillingOption, // Dynamic binding value
                     groupMembers: groupMembers,
-                    isGroupOrder: true
+                    isGroupOrder: true,
+                    groupName: groupName
                 ).environmentObject(cart)) {
                     Text("Checkout")
                         .font(.headline)

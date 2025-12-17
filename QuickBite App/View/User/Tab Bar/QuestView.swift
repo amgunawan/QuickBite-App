@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct RankUser: Identifiable {
     let id = UUID()
     let username: String
@@ -26,10 +27,12 @@ struct BadgeItem: Identifiable {
 }
 
 struct QuestView: View {
-    let userName = "Angela"
-    @State private var dailyProgress: Double = 30
-    private let weeklyTarget: Double = 100
+    
     @State private var showLockedAlert = false
+    @StateObject private var vm = QuestViewModel()
+    private let weeklyTarget: Double = 100
+    let username = "natgwk02"
+
     
     private let podiumUsers: [RankUser] = [
         .init(username: "@hsutedjo", points: 700, tier: "Diamond"),
@@ -99,7 +102,7 @@ struct QuestView: View {
                             .fontWeight(.semibold)
                             .padding(.top, 12)
                         
-                        PodiumView(users: podiumUsers)
+                        PodiumView(users: vm.podiumUsers)
                         rankingTable
                         
                         Text("How far can you go?")
@@ -108,10 +111,10 @@ struct QuestView: View {
                             .padding(.top, 8)
                         
                         VStack(spacing: 16) {
-                            ForEach(badges) { badge in
+                            ForEach(vm.badges) { badge in
                                 BadgeRow(badge: badge)
                                     .onTapGesture {
-                                        if badge.current == 0 { showLockedAlert = true }
+                                        vm.tapBadge(badge)
                                     }
                             }
                         }
@@ -123,7 +126,7 @@ struct QuestView: View {
                 .zIndex(-1)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .alert("Badge Locked", isPresented: $showLockedAlert) {
+            .alert("Badge Locked", isPresented: $vm.showLockedAlert) {
                 Button("Got it") {}
             } message: {
                 Text("You’re almost there! Finish all required challenges before this badge can be unlocked.")
@@ -142,16 +145,19 @@ struct QuestView: View {
             .frame(width: 48, height: 48)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Welcome, \(userName)!")
+                Text("Welcome, \(username)!")
                     .font(.headline)
                 Text("Ready to earn more badges this week?")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 VStack(spacing: 6) {
-                    BarProgress(value: dailyProgress, total: weeklyTarget)
+                    BarProgress(
+                        value: Double(vm.weeklyPoints),
+                        total: Double(vm.weeklyTarget)
+                    )
                     HStack {
-                        Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
+                        Text("\(vm.weeklyPoints)/\(vm.weeklyTarget)")
                             .font(.caption).bold()
                         Spacer()
                         Text(nextTierLabel)
@@ -198,7 +204,7 @@ struct QuestView: View {
     private var rankingTable: some View {
         VStack(spacing: 8) {
             RankRow(rank: "Rank", username: "Username", points: "Points", isHeader: true)
-            ForEach(Array(topUsers.enumerated()), id: \.offset) { index, u in
+            ForEach(Array(vm.topUsers.enumerated()), id: \.offset) { index, u in
                 RankRow(rank: "\(index + 1)", username: u.username, points: "\(u.points)")
             }
         }

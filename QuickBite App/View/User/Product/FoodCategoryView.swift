@@ -29,13 +29,16 @@ struct FoodCategoryView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         
                         ForEach(vm.stores) { store in
-                            AllRestaurantsCardView(
-                                imageURL: store.bannerURL,
-                                deliveryTime: "<10 min",
-                                name: store.name,
-                                rating: String(format: "%.1f", store.rating),
-                                reviewCount: store.reviewCount == 0 ? "No rating" : "\(store.reviewCount) ratings"
-                            )
+                            NavigationLink(destination: RestaurantDetailView(restaurant: store)) {
+                                AllRestaurantsCardView(
+                                    imageURL: store.bannerURL,
+                                    deliveryTime: "<10 min",
+                                    name: store.name,
+                                    rating: String(format: "%.1f", store.rating),
+                                    reviewCount: store.reviewCount == 0 ? "No rating" : "\(store.reviewCount) ratings"
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
                         }
                     }
                 }

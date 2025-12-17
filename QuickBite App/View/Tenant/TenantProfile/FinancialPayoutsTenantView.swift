@@ -24,6 +24,7 @@ struct FinancialPayoutsTenantView: View {
 
     private let bankOptions = [
         "Bank Central Asia (BCA)",
+        "Blu BCA Digital",
         "Bank Mandiri",
         "Bank Negara Indonesia (BNI)",
         "Bank Rakyat Indonesia (BRI)",

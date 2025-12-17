@@ -16,6 +16,7 @@ struct PayoutSetupView: View {
     
     private let bankOptions = [
         "Bank Central Asia (BCA)",
+        "Blu BCA Digital",
         "Bank Mandiri",
         "Bank Negara Indonesia (BNI)",
         "Bank Rakyat Indonesia (BRI)",
@@ -24,7 +25,8 @@ struct PayoutSetupView: View {
         "Bank Permata",
         "Bank Panin",
         "Bank Maybank Indonesia",
-        "Bank OCBC NISP"
+        "Bank OCBC NISP",
+        "Bank Jago"
     ]
     
     var body: some View {

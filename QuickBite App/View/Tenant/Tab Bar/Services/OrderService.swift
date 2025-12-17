@@ -39,7 +39,7 @@ class OrderService {
                 print("❌ Error creating order: \(error.localizedDescription)")
                 completion(nil)
             } else {
-                print("✅ Order created with ID: \(orderId)")
+                print("Order created with ID: \(orderId)")
                 completion(orderId)
             }
         }

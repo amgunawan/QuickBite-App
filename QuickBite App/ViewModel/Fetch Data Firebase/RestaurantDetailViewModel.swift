@@ -22,112 +22,214 @@ class RestaurantDetailViewModel: ObservableObject {
     // MARK: - Firebase
     private let storage = Storage.storage()
     private let db = Firestore.firestore()
+    
+    // Cache to prevent re-downloading if called multiple times
+    private var menuCache: [String: [MenuItem]] = [:]
 
     // -----------------------------------------------------
-    // MARK: - FETCH MENU
+    // MARK: - 1. FETCH MENU (Using Robust JSON Logic)
     // -----------------------------------------------------
 
-    func fetchMenu(from gsURL: String?) {
-        guard let gsURL, !gsURL.isEmpty else {
+    func fetchMenu(from urlString: String?) {
+        guard let urlString = urlString, !urlString.isEmpty else {
             errorMessage = "Link menu kosong."
             return
         }
 
         isLoading = true
         errorMessage = nil
-
-        let storageRef = storage.reference(forURL: gsURL)
-
-        storageRef.getData(maxSize: 1 * 1024 * 1024) { [weak self] data, error in
-            guard let self else { return }
-
-            if let error {
+        
+        // Use the robust JSON fetcher (same as Home View)
+        fetchMenuJSON(url: urlString) { [weak self] items in
+            guard let self = self else { return }
+            
+            DispatchQueue.main.async {
+                if items.isEmpty {
+                    self.errorMessage = "Gagal memuat data menu."
+                } else {
+                    self.menuItems = items
+                    self.convertMenuImages() // Fix image URLs
+                    self.objectWillChange.send() // Refresh UI
+                }
                 self.isLoading = false
-                self.errorMessage = "Gagal download: \(error.localizedDescription)"
-                return
             }
-
-            guard let data else {
-                self.isLoading = false
-                self.errorMessage = "Data menu kosong."
-                return
+        }
+    }
+    
+    // ✅ ROBUST JSON FETCHER (Supports GS:// and HTTPS://)
+    private func fetchMenuJSON(url: String, completion: @escaping ([MenuItem]) -> Void) {
+        // Check Cache first
+        if let cached = menuCache[url] {
+            completion(cached)
+            return
+        }
+        
+        // 1. Handle Firebase Storage (gs://)
+        if url.hasPrefix("gs://") {
+            let ref = storage.reference(forURL: url)
+            ref.getData(maxSize: 1 * 1024 * 1024) { data, error in
+                self.handleDataResponse(url: url, data: data, error: error, completion: completion)
             }
+        }
+        // 2. Handle Public URL (https://)
+        else if let httpURL = URL(string: url), (url.hasPrefix("http") || url.hasPrefix("https")) {
+            URLSession.shared.dataTask(with: httpURL) { data, response, error in
+                self.handleDataResponse(url: url, data: data, error: error, completion: completion)
+            }.resume()
+        }
+        else {
+            print("⚠️ Invalid Menu URL Format: \(url)")
+            completion([])
+        }
+    }
+    
+    // ✅ DECODER HELPER
+    private func handleDataResponse(url: String, data: Data?, error: Error?, completion: @escaping ([MenuItem]) -> Void) {
+        if let error = error {
+            print("❌ Download Error for \(url): \(error.localizedDescription)")
+            completion([])
+            return
+        }
+        
+        guard let data = data else {
+            completion([])
+            return
+        }
 
-            do {
-                let decodedItems = try JSONDecoder().decode([MenuItem].self, from: data)
-
-                // 🔐 No ID rewriting — itemId is the source of truth
-                self.menuItems = decodedItems
-
-                self.convertMenuImages()
-
-            } catch {
-                print("❌ Error Decoding Menu JSON:", error)
-                self.isLoading = false
-                self.errorMessage = "Format data menu salah."
-            }
+        do {
+            // Decode directly to [MenuItem] using your model
+            let items = try JSONDecoder().decode([MenuItem].self, from: data)
+            
+            // Save to cache
+            DispatchQueue.main.async { self.menuCache[url] = items }
+            
+            completion(items)
+        } catch {
+            print("❌ JSON Decode Error for \(url): \(error)")
+            completion([])
         }
     }
 
     // -----------------------------------------------------
-    // MARK: - IMAGE URL CONVERSION (gs:// → https://)
+    // MARK: - 2. IMAGE URL CONVERSION
     // -----------------------------------------------------
 
     private func convertMenuImages() {
         let group = DispatchGroup()
 
         for index in menuItems.indices {
-            guard
-                let gsLink = menuItems[index].imageURL,
-                gsLink.starts(with: "gs://")
-            else { continue }
-
-            group.enter()
-
-            let imageRef = storage.reference(forURL: gsLink)
-            imageRef.downloadURL { [weak self] url, _ in
-                defer { group.leave() }
-                guard let self, let httpsURL = url else { return }
-
-                self.menuItems[index].imageURL = httpsURL.absoluteString
+            let url = menuItems[index].imageURL ?? ""
+            
+            // Only convert if it's a gs:// link
+            if url.hasPrefix("gs://") {
+                group.enter()
+                storage.reference(forURL: url).downloadURL { [weak self] url, _ in
+                    defer { group.leave() }
+                    if let httpsURL = url, let self = self {
+                        DispatchQueue.main.async {
+                            // Ensure index is still valid
+                            if index < self.menuItems.count {
+                                self.menuItems[index].imageURL = httpsURL.absoluteString
+                            }
+                        }
+                    }
+                }
             }
         }
 
         group.notify(queue: .main) {
-            self.isLoading = false
+            self.objectWillChange.send() // Ensure UI updates when images are ready
         }
     }
 
     // -----------------------------------------------------
-    // MARK: - FETCH DISCOUNTS
+        // MARK: - FETCH DISCOUNTS (MANUAL MAPPING - FOOLPROOF)
+        // -----------------------------------------------------
+
+        func fetchDiscounts(storeID: String) {
+            let now = Date()
+            let cleanID = storeID.replacingOccurrences(of: "stores/", with: "")
+            
+            print("🔍 Scanning active discounts for target ID: \(cleanID)")
+
+            // 1. Query only by time (Safest)
+            // This grabs ALL active discounts, avoiding strict query errors
+            db.collection("discounts")
+                .whereField("end_date_time", isGreaterThan: now)
+                .getDocuments { [weak self] snapshot, error in
+                    guard let self else { return }
+                    
+                    if let error = error {
+                        print("❌ Error reading discounts: \(error.localizedDescription)")
+                        return
+                    }
+
+                    guard let docs = snapshot?.documents else { return }
+                    
+                    var matches: [DiscountModel] = []
+
+                    for doc in docs {
+                        let data = doc.data()
+                        
+                        // --- STEP 1: MANUALLY EXTRACT STORE ID ---
+                        // This handles BOTH Reference (Orange Icon) and String
+                        var docStoreId = ""
+                        
+                        if let storeRef = data["store_id"] as? DocumentReference {
+                            docStoreId = storeRef.documentID
+                        } else if let storeString = data["store_id"] as? String {
+                            docStoreId = storeString.replacingOccurrences(of: "stores/", with: "")
+                        }
+                        
+                        // --- STEP 2: CHECK MATCH ---
+                        if docStoreId == cleanID {
+                            
+                            // --- STEP 3: MANUAL MAPPING (Bypasses Codable Crashing) ---
+                            // We extract fields manually. If a field is missing/wrong, we default safely.
+                            
+                            let amount = data["discount_amount"] as? Int ?? 0
+                            let itemId = data["item_id"] as? String ?? ""
+                            
+                            // Handle Timestamps
+                            let startTimestamp = data["start_date_time"] as? Timestamp
+                            let endTimestamp = data["end_date_time"] as? Timestamp
+                            let startDate = startTimestamp?.dateValue() ?? Date()
+                            let endDate = endTimestamp?.dateValue() ?? Date()
+                            
+                            // Create Model Manually
+                            // (Ensure your DiscountModel init is public or memberwise)
+                            let newDiscount = DiscountModel(
+                                id: doc.documentID,
+                                amount: amount,
+                                itemId: itemId,
+                                startDateTime: startDate,
+                                endDateTime: endDate,
+                                storeId: docStoreId // We already cleaned this above
+                            )
+                            
+                            matches.append(newDiscount)
+                        }
+                    }
+
+                    self.discounts = matches
+                    print("✅ Final: Found \(self.discounts.count) discounts for this restaurant.")
+                    
+                    // Force UI Refresh
+                    self.objectWillChange.send()
+                }
+        }
+
     // -----------------------------------------------------
-
-    func fetchDiscounts(storeID: String) {
-        let storePath = "/stores/\(storeID)"
-
-        db.collection("discounts")
-            .whereField("store_id", isEqualTo: storePath)
-            .getDocuments { [weak self] snapshot, _ in
-                guard let self else { return }
-
-                self.discounts = snapshot?.documents
-                    .compactMap { try? $0.data(as: DiscountModel.self) } ?? []
-
-                print("✅ Berhasil ambil \(self.discounts.count) diskon")
-            }
-    }
-
-    // -----------------------------------------------------
-    // MARK: - PRICE CALCULATION
+    // MARK: - 4. PRICE CALCULATION
     // -----------------------------------------------------
 
     func getPriceInfo(for item: MenuItem) -> (finalPrice: Double, originalPrice: Double?) {
-
         let basePrice = Double(item.price)
 
-        if let activeDiscount = discounts.first(
-            where: { $0.itemId == item.itemId && $0.isActive }
-        ) {
+        // Find match based on item_id in the JSON vs item_id in the Discount Document
+        if let activeDiscount = discounts.first(where: {
+            return $0.itemId == item.itemId
+        }) {
             let discountAmount = Double(activeDiscount.amount)
             let finalPrice = max(0, basePrice - discountAmount)
             return (finalPrice, basePrice)
@@ -138,7 +240,7 @@ class RestaurantDetailViewModel: ObservableObject {
 }
 
 // -----------------------------------------------------
-// MARK: - MENU SECTION (UI GROUPING)
+// MARK: - GROUPING EXTENSION
 // -----------------------------------------------------
 
 struct MenuSection: Identifiable {
@@ -147,12 +249,7 @@ struct MenuSection: Identifiable {
     let items: [MenuItem]
 }
 
-// -----------------------------------------------------
-// MARK: - GROUPED MENU
-// -----------------------------------------------------
-
 extension RestaurantDetailViewModel {
-
     var groupedMenu: [MenuSection] {
         let grouped = Dictionary(
             grouping: menuItems,

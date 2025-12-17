@@ -15,7 +15,7 @@ struct DiscountModel: Identifiable, Codable {
     var itemId: String
     var startDateTime: Date
     var endDateTime: Date
-    var storeId: String // Bisa String atau Reference, kita pakai String path dulu
+    var storeId: String
     
     enum CodingKeys: String, CodingKey {
         case id
@@ -30,6 +30,15 @@ struct DiscountModel: Identifiable, Codable {
     var isActive: Bool {
         let now = Date()
         return now >= startDateTime && now <= endDateTime
+    }
+    
+    init(id: String?, amount: Int, itemId: String, startDateTime: Date, endDateTime: Date, storeId: String) {
+        self.id = id
+        self.amount = amount
+        self.itemId = itemId
+        self.startDateTime = startDateTime
+        self.endDateTime = endDateTime
+        self.storeId = storeId
     }
 }
 

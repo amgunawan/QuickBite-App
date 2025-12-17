@@ -231,9 +231,7 @@ struct StoreBrandingView: View {
         VStack(spacing: 0) {
 
             GroupBoxRow {
-                Toggle(isOn: $open24Hours) {
-                    Text("Open 24 Hours")
-                }
+                Toggle("Open 24 Hours", isOn: $open24Hours)
             }
 
             if !open24Hours {
@@ -244,7 +242,6 @@ struct StoreBrandingView: View {
                         Button(formatTime(openingTime)) {
                             showOpeningPicker = true
                         }
-                        .font(.callout.weight(.semibold))
                         .foregroundColor(.orange)
                     }
                 }
@@ -256,7 +253,6 @@ struct StoreBrandingView: View {
                         Button(formatTime(closingTime)) {
                             showClosingPicker = true
                         }
-                        .font(.callout.weight(.semibold))
                         .foregroundColor(.orange)
                     }
                 }
@@ -267,33 +263,24 @@ struct StoreBrandingView: View {
             } label: {
                 HStack {
                     Text("Weekly Schedule")
-                        .foregroundColor(open24Hours ? .orange : .primary)
-
                     Spacer()
-
                     Image(systemName: "chevron.right")
-                        .foregroundColor(open24Hours ? .orange : .secondary)
+                        .foregroundColor(.secondary)
                 }
                 .padding(.horizontal, 16)
                 .frame(height: 48)
             }
-            .background(Color(.systemBackground))
         }
         .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
+            RoundedRectangle(cornerRadius: 12)
                 .fill(Color(.systemBackground))
-                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                .shadow(color: .black.opacity(0.05), radius: 8)
         )
     }
     
     private var storeBannerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Store Banner")
-                .font(.headline)
-
-            Text("This will appear on the top of your store profile")
-                .font(.footnote)
-                .foregroundColor(.secondary)
+            Text("Store Banner").font(.headline)
 
             ZStack {
                 if let img = bannerImage {
@@ -302,13 +289,9 @@ struct StoreBrandingView: View {
                         .scaledToFill()
                         .aspectRatio(16/9, contentMode: .fill)
                 } else {
-                    VStack(spacing: 6) {
+                    VStack {
                         Image(systemName: "photo.fill.on.rectangle.fill")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 40, height: 30)
                             .foregroundColor(.secondary)
-
                         Text("Upload Banner (16:9)")
                             .font(.caption)
                             .foregroundColor(.secondary)
@@ -316,32 +299,60 @@ struct StoreBrandingView: View {
                 }
             }
             .frame(height: 120)
-            .frame(maxWidth: .infinity)
             .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .clipped()
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            HStack(spacing: 10) {
+            HStack {
                 PhotosPicker(selection: $bannerPickedItem, matching: .images) {
                     pillButton("Choose File")
                 }
-
                 Text(bannerFileName.isEmpty ? "No file chosen" : bannerFileName)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                    .truncationMode(.middle)
+            }
+        }
+    }
+    
+    private var searchIconSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Search Menu Icon").font(.headline)
 
+            HStack(spacing: 12) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(Color(.secondarySystemBackground))
+
+                    if let img = iconImage {
+                        Image(uiImage: img)
+                            .resizable()
+                            .scaledToFill()
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                    } else {
+                        Image(systemName: "photo.fill")
+                            .foregroundColor(.secondary)
+                    }
+                }
+                .frame(width: 64, height: 64)
+
+                VStack(alignment: .leading, spacing: 6) {
+                    PhotosPicker(selection: $iconPickedItem, matching: .images) {
+                        pillButton("Choose File")
+                    }
+
+                    Text(iconFileName.isEmpty ? "No file chosen" : iconFileName)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .lineLimit(1)
+                }
                 Spacer()
             }
-            .padding(.bottom, 8)
         }
     }
 }
 
 #Preview {
     NavigationView {
-        StoreBrandingView()
-            .environmentObject(StoreRegistrationViewModel())
+        EditStoreDetailsTenantView(storeId: "l8jFbmSGa7H4li3XR6nm")
     }
 }

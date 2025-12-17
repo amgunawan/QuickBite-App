@@ -152,6 +152,16 @@ struct TenantProfileView: View {
                                     title: "Edit Store Details"
                                 )
                             }
+                            
+                            NavigationLink {
+                                DiscountListTenantView(storeId: storeId)
+                            } label: {
+                                TenantSettingsRowLabel(
+                                    systemIcon: "tag.fill",
+                                    tint: .gray,
+                                    title: "Discount"
+                                )
+                            }
 
                             NavigationLink {
                                 FinancialPayoutsTenantView()
@@ -259,4 +269,8 @@ struct TenantProfileView: View {
             }
         }
     }
+}
+
+#Preview {
+    TenantProfileView()
 }

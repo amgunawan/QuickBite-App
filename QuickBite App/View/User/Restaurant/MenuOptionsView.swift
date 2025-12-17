@@ -7,6 +7,9 @@
 
 import SwiftUI
 
+// ==================================================================
+// 1. OPTION GROUP VIEW (Sub-Component)
+// ==================================================================
 struct OptionGroupView: View {
     let category: MenuOptionGroup
     @Binding var selections: [String: Set<MenuOptionChoice>]
@@ -72,8 +75,10 @@ struct OptionGroupView: View {
             current.remove(choice)
         } else {
             if category.maxSelect == 1 {
+                // Radio: Select only one
                 current = [choice]
             } else if current.count < category.maxSelect {
+                // Checkbox: Add if under limit
                 current.insert(choice)
             }
         }
@@ -82,17 +87,19 @@ struct OptionGroupView: View {
     }
 }
 
-
+// ==================================================================
+// 2. MAIN VIEW: MENU OPTIONS VIEW
+// ==================================================================
 struct MenuOptionsView: View {
     
     @EnvironmentObject var cart: CartViewModel
     @Environment(\.dismiss) var dismiss
     
-    // Info Restoran (Penting untuk Cart)
+    // Restaurant Info
     let restaurantName: String
     let restaurantId: String
     
-    // Data Menu
+    // Menu Data
     let item: MenuItem
     let finalPrice: Double
     let originalPrice: Double?
@@ -102,8 +109,10 @@ struct MenuOptionsView: View {
     @State private var note: String = ""
     @State private var showingNoteSheet = false
     
-    // Dynamic State: Menyimpan pilihan user
+    // Dynamic State: User Selections
     @State private var selections: [String: Set<MenuOptionChoice>] = [:]
+    @State private var showReplaceCartAlert = false
+    
     
     // Init Custom
     init(restaurantName: String, restaurantId: String, item: MenuItem, finalPrice: Double, originalPrice: Double?, itemToEdit: CartItemModel? = nil) {
@@ -175,15 +184,13 @@ struct MenuOptionsView: View {
                             .padding(.top)
                             .padding(.bottom, 24)
                             
-                            // 2. DYNAMIC OPTIONS LOOP
+                            // 2. DYNAMIC OPTIONS LOOP (Fixed: Removed duplicate nesting)
                             if let options = item.options {
-                                if let options = item.options {
-                                    ForEach(options, id: \.category) { category in
-                                        OptionGroupView(
-                                            category: category,
-                                            selections: $selections
-                                        )
-                                    }
+                                ForEach(options, id: \.category) { category in
+                                    OptionGroupView(
+                                        category: category,
+                                        selections: $selections
+                                    )
                                 }
                             }
                             
@@ -195,7 +202,7 @@ struct MenuOptionsView: View {
                             .padding(.horizontal)
                             .padding(.top, 12)
                         }
-                        .padding(.bottom, 140) // Padding bawah agar tidak tertutup tombol
+                        .padding(.bottom, 140)
                     }
                 }
                 
@@ -216,9 +223,9 @@ struct MenuOptionsView: View {
                     BottomButtonView(
                         price: "Rp\(formatPrice(totalCalculatedPrice))",
                         buttonText: itemToEdit != nil ? "Update Cart" : "Add to Cart",
-                        isDisabled: !isValid, // Tombol mati jika tidak valid
+                        isDisabled: !isValid,
                         action: {
-                            addToCart()
+                            checkAndAddToCart()
                         }
                     )
                 }
@@ -239,49 +246,38 @@ struct MenuOptionsView: View {
             .sheet(isPresented: $showingNoteSheet) {
                 NoteEntrySheetView(note: $note)
             }
+            .alert("Start a new order?", isPresented: $showReplaceCartAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Yes, Clear Cart", role: .destructive) {
+                    cart.clearCart() // 1. Hapus cart lama
+                    executeAdd()     // 2. Tambah item baru
+                }
+            } message: {
+                Text("Your cart contains items from another restaurant. Starting a new order will clear your current cart.")
+            }
+            .presentationDetents([.large, .medium])
+            .presentationDragIndicator(.visible)
+            .background(Color.white)
         }
-        .presentationDetents([.large, .medium])
-        .presentationDragIndicator(.visible)
-        .background(Color.white)
     }
-    
+       
     // --- LOGIC HELPERS ---
     
-    func isRequirementMet(category: MenuOptionGroup) -> Bool {
-        let count = selections[category.category]?.count ?? 0
-        return count >= category.minSelect
-    }
-    
-    func getSubtitle(min: Int, max: Int) -> String {
-        if max == 1 { return "Choose 1" }
-        if min == 0 { return "Optional (Max \(max))" }
-        return "Choose \(min) - \(max)"
-    }
-    
-    func isSelected(category: String, choice: MenuOptionChoice) -> Bool {
-        return selections[category]?.contains(choice) ?? false
-    }
-    
-    func toggleSelection(category: MenuOptionGroup, choice: MenuOptionChoice) {
-        var currentSet = selections[category.category] ?? []
+    func checkAndAddToCart() {
+        // Clean IDs for comparison
+        let currentCartId = cart.restaurantId.trimmingCharacters(in: .whitespacesAndNewlines)
+        let newId = restaurantId.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        if currentSet.contains(choice) {
-            currentSet.remove(choice)
+        // Logic: If cart has items AND IDs differ -> Show Alert
+        if !cart.items.isEmpty && currentCartId != newId && !currentCartId.isEmpty {
+            showReplaceCartAlert = true
         } else {
-            if category.maxSelect == 1 {
-                // Radio: Reset yang lain, pilih ini
-                currentSet = [choice]
-            } else {
-                // Checkbox: Cek limit max
-                if currentSet.count < category.maxSelect {
-                    currentSet.insert(choice)
-                }
-            }
+            // Safe to add immediately
+            executeAdd()
         }
-        selections[category.category] = currentSet
     }
-    
-    func addToCart() {
+       
+    func executeAdd() {
         var finalSelections: [CartOptionSelection] = []
 
         for (catName, choices) in selections {
@@ -332,12 +328,11 @@ struct MenuOptionsView: View {
 // --- SUB-VIEWS ---
 // ==================================================================
 
-// 1. OPTION ROW VIEW (Updated with isMultiSelect)
 struct OptionRowView: View {
     let name: String
     let price: Double
     let isSelected: Bool
-    let isMultiSelect: Bool // Parameter Baru
+    let isMultiSelect: Bool
     let action: () -> Void
     
     var body: some View {
@@ -354,7 +349,6 @@ struct OptionRowView: View {
                 }
                 Spacer()
                 
-                // Icon Logic: Square (Checkbox) vs Circle (Radio)
                 Image(systemName: isMultiSelect ? (isSelected ? "checkmark.square.fill" : "square") : (isSelected ? "record.circle" : "circle"))
                     .font(.system(size: 19))
                     .foregroundColor(isSelected ? .orange : .gray)
@@ -366,20 +360,11 @@ struct OptionRowView: View {
     }
 }
 
-// 2. BOTTOM BUTTON VIEW (Updated with isDisabled)
 struct BottomButtonView: View {
     let price: String
     let buttonText: String
-    let isDisabled: Bool // Parameter Baru
+    let isDisabled: Bool
     let action: () -> Void
-    
-    // Init default agar fleksibel
-    init(price: String, buttonText: String = "Add to Cart", isDisabled: Bool = false, action: @escaping () -> Void) {
-        self.price = price
-        self.buttonText = buttonText
-        self.isDisabled = isDisabled
-        self.action = action
-    }
     
     var body: some View {
         Button(action: action) {
@@ -388,18 +373,14 @@ struct BottomButtonView: View {
                 .foregroundColor(.white)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
-                // Warna berubah jadi abu-abu jika disabled
                 .background(isDisabled ? Color.gray : Color.orange)
                 .cornerRadius(24)
         }
-        .disabled(isDisabled) // Matikan interaksi
+        .disabled(isDisabled)
         .padding()
-        // Background putih dihapus di sini agar tidak menumpuk,
-        // ditangani oleh VStack di parent
     }
 }
 
-// 3. MENU ITEM INFO (Tidak berubah, hanya pelengkap)
 struct MenuItemInfo: View {
     let imageName: String
     let name: String
@@ -451,7 +432,6 @@ struct MenuItemInfo: View {
     }
 }
 
-// 4. ADD NOTE VIEW (Tidak berubah)
 struct AddNoteView: View {
     let note: String
     let action: () -> Void
@@ -470,7 +450,6 @@ struct AddNoteView: View {
     }
 }
 
-// 5. NOTE ENTRY SHEET (Tidak berubah)
 struct NoteEntrySheetView: View {
     @Binding var note: String
     @State private var tempNote: String

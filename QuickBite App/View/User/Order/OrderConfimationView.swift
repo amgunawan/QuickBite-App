@@ -14,6 +14,7 @@ struct OrderConfirmationView: View {
     @Environment(\.dismiss) var dismiss
     @EnvironmentObject var navState: AppNavigationState
     @EnvironmentObject var calendarManager: CalendarManager
+    @EnvironmentObject var authVM: AuthenticationViewModel
     
     @State private var showingTimeSheet = false
     
@@ -33,8 +34,6 @@ struct OrderConfirmationView: View {
     @State private var isPlacingOrder: Bool = false
     @StateObject private var vm = ActivityViewModel()
     
-    private let userId = "rOQ7BMWNK9fr7eGypV6lGqFH9Ru1"
-    
     // MARK: - Computed Properties for Display
     
     // 1. The Actual Price user pays for items (already inside cart.totalPrice)
@@ -53,6 +52,10 @@ struct OrderConfirmationView: View {
     // 5. Original Grand Total (for Strikethrough)
     var originalGrandTotal: Double {
         return originalSubtotal + 2500
+    }
+    
+    private func getUserId() -> String? {
+        authVM.currentUserSession?.uid
     }
     
     var body: some View {
@@ -325,7 +328,7 @@ struct OrderConfirmationView: View {
         }
         // ✅ CALL FUNCTIONS ON APPEAR
         .onAppear {
-            vm.fetchOrders(for: userId)
+            //            vm.fetchOrders(for: userId)
             fetchStoreSchedule() // Get store hours
             fetchDiscounts()     // Get discounts
             
@@ -335,7 +338,7 @@ struct OrderConfirmationView: View {
         }
         
         .onChange(of: navState.activeOrderId) { _ in
-            vm.fetchOrders(for: userId)
+            //            vm.fetchOrders(for: userId)
         }
     }
     
@@ -455,7 +458,10 @@ struct OrderConfirmationView: View {
         guard let selectedTime else { return }
         guard !isStoreClosed else { return }
         guard !isPlacingOrder else { return }
-        
+        guard let userId = authVM.currentUserSession?.uid else {
+            print("❌ User not logged in")
+            return
+        }
         isPlacingOrder = true
         
         let service = OrderService()
@@ -467,7 +473,8 @@ struct OrderConfirmationView: View {
             items: items,
             total: Int(finalGrandTotal),
             pickupTime: selectedTime.timeRange,
-            tenantId: cart.restaurantId
+            tenantId: cart.restaurantId,
+            userId: userId
         ) { orderId in
             guard let orderId else {
                 isPlacingOrder = false

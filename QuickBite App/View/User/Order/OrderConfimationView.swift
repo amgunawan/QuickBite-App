@@ -33,6 +33,7 @@ struct OrderConfirmationView: View {
     @State private var isPlacingOrder: Bool = false
     @StateObject private var vm = ActivityViewModel()
     
+    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
     
     var body: some View {
         VStack(spacing: 0) {
@@ -299,14 +300,15 @@ struct OrderConfirmationView: View {
             .navigationBarBackButtonHidden(true)
         }
         .onAppear {
-            vm.fetchOrders()
+            vm.fetchOrders(for: userId)
             
             if navState.activeOrderId != nil {
                 navState.activitySegment = .inProgress
             }
         }
+        
         .onChange(of: navState.activeOrderId) { _ in
-            vm.fetchOrders()
+            vm.fetchOrders(for: userId)
         }
     }
     

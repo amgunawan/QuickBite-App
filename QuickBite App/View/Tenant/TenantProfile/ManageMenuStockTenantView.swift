@@ -37,6 +37,7 @@ struct ManageMenuStockTenantView: View {
         .listStyle(.plain)
         .navigationTitle("Manage Menu & Stock")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
 
         // EDIT SHEET
         .sheet(item: $selectedItem) { item in

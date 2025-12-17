@@ -66,12 +66,10 @@ struct HelpSupportTenantView: View {
                             .padding(.vertical, 12)
                             .background(canSend ? Color.orange : Color(.systemGray4))
                             .cornerRadius(24)
-                        
                     }
                     .disabled(!canSend)
                 }
                 .padding(.horizontal, 16)
-                .padding(.bottom, 24)
                     
                 if showThanks {
                     ThanksAlertView(
@@ -86,6 +84,7 @@ struct HelpSupportTenantView: View {
                     .zIndex(10)
                 }
             }
+            .toolbar(.hidden, for: .tabBar)
         }
         .navigationTitle("Help & Support")
     }

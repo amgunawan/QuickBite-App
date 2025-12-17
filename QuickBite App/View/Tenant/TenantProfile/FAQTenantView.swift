@@ -110,6 +110,7 @@ struct FAQTenantView: View {
 
                 Spacer(minLength: 0)
             }
+            .toolbar(.hidden, for: .tabBar)
             .padding(.bottom, 24)
             .navigationTitle("FAQ")
             .navigationBarTitleDisplayMode(.inline)

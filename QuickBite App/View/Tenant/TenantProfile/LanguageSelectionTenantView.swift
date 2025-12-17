@@ -59,6 +59,7 @@ struct LanguageSelectionTenantView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .toolbar(.hidden, for: .tabBar)
             .listStyle(.plain)
             .scrollDisabled(true)
         }

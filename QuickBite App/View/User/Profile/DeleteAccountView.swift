@@ -111,8 +111,7 @@ struct DeleteAccountView: View {
                 Spacer()
             }
             .padding(.horizontal)
-            
-            
+            .toolbar(.hidden, for: .tabBar)
         }
         .navigationTitle("Delete Account")
     }

@@ -18,7 +18,7 @@ struct OrderedItem: Identifiable {
 
 struct OrderPreparedView: View {
 
-    let orderId: String
+    var orderId: String
 
     private let db = Firestore.firestore()
     private let storage = Storage.storage()
@@ -118,15 +118,13 @@ struct OrderPreparedView: View {
                     }
 
                     // ITEMS
-                    let rawItems = data["items"] as? [String] ?? []
+                    let rawItems = data["items"] as? [[String: Any]] ?? []
                     self.items = rawItems.compactMap {
-                        let p = $0.split(separator: "x", maxSplits: 1)
-                        guard p.count == 2,
-                              let q = Int(p[0].trimmingCharacters(in: .whitespaces))
-                        else { return nil }
+                        guard let qty = $0["quantity"] as? Int else { return nil }
+
                         return OrderedItem(
-                            count: q,
-                            name: p[1].trimmingCharacters(in: .whitespaces)
+                            count: qty,
+                            name: ""
                         )
                     }
 
@@ -336,6 +334,7 @@ struct OrderPreparedView: View {
                     .padding()
             }
         }
+        .toolbar(.hidden, for: .tabBar)
         .navigationTitle("Order Prepared")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

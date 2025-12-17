@@ -125,6 +125,7 @@ struct ChangePasswordTenantView: View {
                 
                 Spacer()
             }
+            .toolbar(.hidden, for: .tabBar)
             .padding(.horizontal)
             .padding(.top, 16)
             .navigationTitle("Change Password")

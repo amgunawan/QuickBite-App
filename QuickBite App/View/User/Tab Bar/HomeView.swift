@@ -192,7 +192,7 @@ struct HomeView: View {
                                         NavigationLink(destination: RestaurantDetailView(restaurant: restaurant)) {
                                             TopRatedRestaurantsCardView(
                                                 imageURL: restaurant.bannerURL,
-                                                deliveryTime: "10–20 min",
+                                                deliveryTime: restaurant.deliveryTime,
                                                 name: restaurant.name,
                                                 rating: String(format: "%.1f", restaurant.rating),
                                                 reviewCount: restaurant.reviewCount == 0
@@ -223,15 +223,16 @@ struct HomeView: View {
                                 
                                 LazyVGrid(columns: columns, spacing: 16) {
                                     ForEach(restaurantVM.restaurants) { r in
-                                        AllRestaurantsCardView(
-                                            imageURL: r.bannerURL,
-                                            deliveryTime: "<10 min",
-                                            name: r.name,
-                                            rating: String(format: "%.1f", r.rating),
-                                            reviewCount: r.reviewCount == 0
-                                                ? "No rating"
-                                                : "\(r.reviewCount) ratings"
-                                        )
+                                        NavigationLink(destination: RestaurantDetailView(restaurant: r)) {
+                                            AllRestaurantsCardView(
+                                                imageURL: r.bannerURL,
+                                                deliveryTime: r.deliveryTime, 
+                                                name: r.name,
+                                                rating: String(format: "%.1f", r.rating),
+                                                reviewCount: r.reviewCount == 0 ? "No rating" : "\(r.reviewCount) ratings"
+                                            )
+                                        }
+                                        .buttonStyle(PlainButtonStyle())
                                     }
                                 }
                             }

@@ -1,10 +1,3 @@
-//
-//  EditProfileView.swift
-//  QuickBite
-//
-//  Created by Angela on 04/11/25.
-//
-
 import SwiftUI
 import PhotosUI
 import UIKit
@@ -13,10 +6,10 @@ struct EditProfileView: View {
     
     let username: String
     @Binding var fullName: String
-    @Binding var phoneCode: String
-    @Binding var phone: String
-    @Binding var email: String
+    let email: String
     let points: Int
+    var userId: String
+    var vm: ProfileViewModel
     var onSave: () -> Void
     
     @Environment(\.dismiss) private var dismiss
@@ -27,16 +20,18 @@ struct EditProfileView: View {
     @State private var showGallery = false
     @State private var pickedItem: PhotosPickerItem?
     @State private var profileImage: UIImage? = nil
+    @State private var showDeleteAlert = false
     
-    enum Field { case fullName, phone, email }
+    enum Field { case fullName, email }
     
     var body: some View {
         ScrollView {
             VStack(spacing: 20) {
                 
+                // MARK: Profile Avatar & Points
                 VStack(spacing: 8) {
                     ZStack {
-                        if let image = profileImage {
+                        if let image = profileImage ?? vm.profileImage {
                             Image(uiImage: image)
                                 .resizable()
                                 .scaledToFill()
@@ -50,7 +45,6 @@ struct EditProfileView: View {
                                                    endPoint: .bottomTrailing)
                                 )
                                 .frame(width: 96, height: 96)
-                            
                             Image(systemName: "person.fill")
                                 .font(.system(size: 44))
                                 .foregroundColor(.white)
@@ -77,7 +71,6 @@ struct EditProfileView: View {
                     HStack(spacing: 6) {
                         Image(systemName: "sparkles")
                             .foregroundColor(.orange)
-                        
                         Text("\(points) Points")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
@@ -85,9 +78,10 @@ struct EditProfileView: View {
                 }
                 .padding(.top, 6)
                 
+                // MARK: Form Fields
                 VStack(spacing: 14) {
                     
-                    // USERNAME
+                    // Username
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Username")
                         TextField("", text: .constant(username))
@@ -96,20 +90,16 @@ struct EditProfileView: View {
                             .opacity(0.7)
                     }
                     
-                    // FULL NAME
+                    // Full Name
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Full Name")
-                        
                         HStack {
                             TextField("Your full name", text: $fullName)
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                                 .focused($focusedField, equals: .fullName)
-                            
                             if !fullName.isEmpty {
-                                Button {
-                                    fullName = ""
-                                } label: {
+                                Button { fullName = "" } label: {
                                     Image(systemName: "xmark.circle.fill")
                                         .foregroundColor(.secondary)
                                 }
@@ -123,32 +113,10 @@ struct EditProfileView: View {
                         )
                     }
                     
-                    // PHONE
-                    VStack(alignment: .leading, spacing: 6) {
-                        labelRequired("Phone Number")
-                        HStack {
-                            HStack(spacing: 6) {
-                                Text("🇮🇩")
-                                Text(phoneCode)
-                            }
-                            .padding(.horizontal, 10)
-                            .frame(height: 44)
-                            .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 8))
-                            
-                            TextField("", text: $phone)
-                                .padding(10)
-                                .background(Color(.secondarySystemBackground),
-                                            in: RoundedRectangle(cornerRadius: 8))
-                                .disabled(true)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    
-                    // EMAIL
+                    // Email
                     VStack(alignment: .leading, spacing: 6) {
                         labelRequired("Email")
-                        
-                        TextField("name@example.com", text: $email)
+                        TextField("name@example.com", text: .constant(email))
                             .textInputAutocapitalization(.never)
                             .keyboardType(.emailAddress)
                             .autocorrectionDisabled()
@@ -157,17 +125,19 @@ struct EditProfileView: View {
                             .foregroundColor(.secondary)
                     }
                     
-                    // SAVE BUTTON
+                    // Save Button
                     Button {
-                        
-                        // SAVE PROFILE IMAGE INTO USERDEFAULTS
-                        if let data = profileImage?.jpegData(compressionQuality: 0.9) {
-                            UserDefaults.standard.set(data, forKey: "user.avatar")
+                        if let image = profileImage {
+                            vm.uploadProfileImage(image, userId: userId) { error in
+                                if let error = error {
+                                    print("Failed to upload image:", error.localizedDescription)
+                                } else {
+                                    print("Profile image uploaded successfully")
+                                }
+                            }
                         }
-                        
                         onSave()
                         dismiss()
-                        
                     } label: {
                         Text("Save")
                             .fontWeight(.medium)
@@ -178,6 +148,7 @@ struct EditProfileView: View {
                             .cornerRadius(24)
                     }
                     .padding(.vertical, 8)
+                    
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 40)
@@ -187,14 +158,13 @@ struct EditProfileView: View {
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         
-        // LOAD SAVED AVATAR
-        .onAppear {
-            if let data = UserDefaults.standard.data(forKey: "user.avatar") {
-                profileImage = UIImage(data: data)
-            }
+        // MARK: Load profile image from Firebase
+        .onAppear { vm.loadProfileImage(userId: userId) }
+        .onReceive(vm.$profileImage) { newImage in
+            if profileImage == nil { profileImage = newImage }
         }
         
-        // PHOTO OPTIONS SHEET
+        // MARK: Photo Options Sheet
         .sheet(isPresented: $showPhotoOptions) {
             VStack(spacing: 0) {
                 Text("Edit Profile Photo")
@@ -207,27 +177,44 @@ struct EditProfileView: View {
                 Button {
                     showPhotoOptions = false
                     showGallery = true
-                } label: {
-                    row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery")
-                }
+                } label: { row(icon: "photo.on.rectangle.angled", title: "Choose from Gallery") }
                 
                 Divider()
                 
                 Button {
                     showPhotoOptions = false
                     showCamera = true
-                } label: {
-                    row(icon: "camera.fill", title: "Take Photo")
+                } label: { row(icon: "camera.fill", title: "Take Photo") }
+                
+                // Delete Button jika ada gambar
+                if profileImage != nil || vm.profileImage != nil {
+                    Divider()
+                    Button { showDeleteAlert = true } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle().fill(Color.red.opacity(0.15))
+                                Image(systemName: "trash.fill")
+                                    .foregroundColor(.red)
+                                    .font(.system(size: 18, weight: .semibold))
+                            }
+                            .frame(width: 32, height: 32)
+                            Text("Delete Profile Picture")
+                                .foregroundColor(.red)
+                            Spacer()
+                        }
+                        .padding(.vertical, 12)
+                        .contentShape(Rectangle())
+                    }
                 }
                 
                 Spacer(minLength: 0)
             }
             .padding()
-            .presentationDetents([.height(180)])
+            .presentationDetents([.height(profileImage != nil || vm.profileImage != nil ? 240 : 180)])
             .presentationDragIndicator(.visible)
         }
         
-        // GALLERY PICKER
+        // MARK: Gallery Picker
         .photosPicker(isPresented: $showGallery, selection: $pickedItem)
         .onChange(of: pickedItem) { _, newItem in
             Task {
@@ -238,24 +225,38 @@ struct EditProfileView: View {
             }
         }
         
-        // CAMERA PICKER
+        // MARK: Camera Picker
         .sheet(isPresented: $showCamera) {
             CameraPickerViewModel(image: $profileImage)
         }
+        
+        // MARK: Delete Alert
+        .alert("Delete Profile Picture?", isPresented: $showDeleteAlert, actions: {
+            Button("Delete", role: .destructive) {
+                vm.deleteProfileImage(userId: userId) { error in
+                    if let error = error {
+                        print("Failed to delete image:", error.localizedDescription)
+                    } else {
+                        profileImage = nil
+                        dismiss()
+                    }
+                }
+            }
+            Button("Cancel", role: .cancel) {}
+        })
     }
     
-    // LABEL WITH STAR
+    // MARK: Label with Required Star
     private func labelRequired(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
-            Text("*")
-                .foregroundColor(.orange)
+            Text("*").foregroundColor(.orange)
         }
         .font(.subheadline)
         .foregroundColor(.secondary)
     }
     
-    // ROW COMPONENT
+    // MARK: Row Component
     private func row(icon: String, title: String) -> some View {
         HStack(spacing: 14) {
             ZStack {
@@ -266,9 +267,7 @@ struct EditProfileView: View {
             }
             .frame(width: 32, height: 32)
             
-            Text(title)
-                .foregroundColor(.primary)
-            
+            Text(title).foregroundColor(.primary)
             Spacer()
         }
         .padding(.vertical, 12)

@@ -20,6 +20,7 @@ struct Restaurant: Identifiable, Codable {
     var searchURL: String?
     var cuisineType: [String]
     var menuDataURL: String?
+    var deliveryTime: String
     var storeSchedule: [String: DailySchedule]?
 
     enum CodingKeys: String, CodingKey {
@@ -33,6 +34,7 @@ struct Restaurant: Identifiable, Codable {
         case searchURL = "search_url"
         case cuisineType = "cuisine_type"
         case menuDataURL = "menu_data_url"
+        case deliveryTime = "delivery_time"
         case storeSchedule = "store_schedule"
     }
     

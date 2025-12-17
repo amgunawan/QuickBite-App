@@ -41,7 +41,7 @@ struct RestaurantDetailView: View {
                         categories: restaurant.cuisineType.joined(separator: ", "),
                         rating: restaurant.rating,
                         reviewCount: restaurant.reviewCount,
-                        pickupTime: "15–20 min",
+                        pickupTime: restaurant.deliveryTime,
                         isGroupOrderActive: $isGroupOrderActive,
                         groupName: $groupName,
                         groupMembers: $groupMembers
@@ -508,25 +508,5 @@ struct GroupOrderBottomBar: View {
         .padding(.horizontal)
         .padding(.vertical, 10)
         .background(Color.white)
-    }
-}
-
-struct RestaurantDetailView_Previews: PreviewProvider {
-    static var previews: some View {
-        let dummy = Restaurant(
-            id: "123",
-            name: "Raburi Test",
-            location: "UC Walk",
-            rating: 4.8,
-            reviewCount: 100,
-            bannerURL: nil,
-            searchURL: nil,
-            cuisineType: ["Japanese", "Noodles"],
-            menuDataURL: nil
-        )
-        
-        NavigationStack {
-            RestaurantDetailView(restaurant: dummy)
-        }
     }
 }

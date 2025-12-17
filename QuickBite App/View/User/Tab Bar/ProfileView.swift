@@ -99,17 +99,16 @@ struct ProfileCard: View {
 }
 
 struct ProfileView: View {
-    @State private var username: String = "agunawan18"
-    @State private var email: String = "agunawan18@student.ciputra.ac.id"
+    @StateObject private var vm = ProfileViewModel()
+    
+    @State private var editUsername: String = ""
+    @State private var editEmail: String = ""
+    
+    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
     @State private var language: String = "English"
 
     @State private var showEdit = false
-    @State private var fullName: String =
-        UserDefaults.standard.string(forKey: "user.fullName") ?? "Angela Melia Gunawan"
-
-    @State private var phoneCode: String = "+62"
-    @State private var phone: String =
-        UserDefaults.standard.string(forKey: "user.phone") ?? "81230300020"
+    @State private var fullName: String = ""
 
     @State private var points: Int = 30
 
@@ -136,9 +135,9 @@ struct ProfileView: View {
 
                     // === UPDATED PROFILE CARD ===
                     ProfileCard(
-                        username: username,
-                        email: email,
-                        profileImage: profileImage    // << IMPORTANT
+                        username: vm.user?.username ?? "-",
+                        email: vm.user?.email ?? "-",
+                        profileImage: vm.profileImage
                     ) {
                         showEdit = true
                     }
@@ -213,21 +212,34 @@ struct ProfileView: View {
 
             .navigationDestination(isPresented: $showEdit) {
                 EditProfileView(
-                    username: username,
+                    username: vm.user?.username ?? "-",
                     fullName: $fullName,
-                    phoneCode: $phoneCode,
-                    phone: $phone,
-                    email: $email,
+                    email: vm.user?.email ?? "-",
                     points: points,
+                    userId: userId,
+                    vm: vm,
                     onSave: {
+                        // Save full name to database
+                        vm.updateFullName(to: fullName) { error in
+                            if let error = error {
+                                print("Failed to update full name:", error.localizedDescription)
+                            } else {
+                                print("Full name updated successfully")
+                            }
+                        }
+                        
                         showEdit = false
-                        reloadAvatar()   // ⬅ AUTO UPDATE IMAGE
+                        reloadAvatar()
                     }
                 )
             }
         }
         .onAppear {
-            reloadAvatar()
+            vm.loadUser(userId: userId)
+            vm.loadProfileImage(userId: userId)
+        }
+        .onReceive(vm.$user) { newUser in
+            fullName = newUser?.full_name ?? ""
         }
     }
 

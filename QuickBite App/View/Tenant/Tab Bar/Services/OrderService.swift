@@ -15,6 +15,7 @@ class OrderService {
                      total: Int,
                      pickupTime: String,
                      tenantId: String,
+                     userId: String,
                      completion: @escaping (String?) -> Void) {
 
         // Generate Firestore auto-ID
@@ -28,6 +29,7 @@ class OrderService {
             "total": total,
             "pickupTime": pickupTime,
             "tenantId": tenantId,
+            "user_id": db.collection("users").document(userId),
             "status": "pending",
             "created_at": FieldValue.serverTimestamp(),
             "timestamp": Int(Date().timeIntervalSince1970)

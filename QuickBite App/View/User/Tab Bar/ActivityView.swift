@@ -191,7 +191,7 @@ struct ActivityView: View {
                 Text(order.restaurantName ?? "Loading Store...")
                     .font(.headline)
                 
-                Text(order.mealName ?? "")
+                Text(order.mealSummary)
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 

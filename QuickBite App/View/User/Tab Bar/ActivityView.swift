@@ -13,6 +13,9 @@ struct ActivityView: View {
     @EnvironmentObject var cart: CartViewModel
     @EnvironmentObject var navState: AppNavigationState
 
+    // MARK: - STATIC USER ID
+    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
+    
     // MARK: - VIEW MODEL
     @StateObject private var vm = ActivityViewModel()
 
@@ -36,8 +39,8 @@ struct ActivityView: View {
                         .fontWeight(.bold)
 
                     Picker("", selection: $selectedTab) {
-                        Text("History").tag(0)
-                        Text("In Progress").tag(1)
+                        Text("In Progress").tag(0)
+                        Text("History").tag(1)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -47,52 +50,16 @@ struct ActivityView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
 
-                        // ================= HISTORY =================
                         if selectedTab == 0 {
-
-                            if vm.historyOrders.isEmpty {
-                                emptyState("No completed orders yet")
-                            }
-
-                            ForEach(vm.historyOrders.indices, id: \.self) { index in
-                                let order = vm.historyOrders[index]
-
-                                VStack(spacing: 12) {
-
-                                    headerRow(
-                                        date: order.date,
-                                        status: "Order Finished",
-                                        color: .green
-                                    )
-
-                                    orderCard(
-                                        order: order,
-                                        actionTitle: "Buy Again",
-                                        actionEnabled: false,
-                                        action: {}
-                                    )
-
-                                    if order.rating == nil {
-                                        Divider()
-                                        ratingRow(index: index)
-                                    }
-                                }
-                                .cardStyle()
-                            }
-                        }
-
-                        // ================= IN PROGRESS =================
-                        else {
-
+                            // ================= IN PROGRESS =================
                             if vm.progressOrders.isEmpty {
                                 emptyState("No ongoing orders")
                             }
 
                             ForEach(vm.progressOrders) { order in
                                 VStack(spacing: 12) {
-
                                     headerRow(
-                                        date: order.date,
+                                        date: order.formattedDate,
                                         status: order.status.capitalized,
                                         color: statusColor(for: order.status)
                                     )
@@ -108,13 +75,54 @@ struct ActivityView: View {
                                 }
                                 .cardStyle()
                             }
+                        } else {
+                            // ================= HISTORY =================
+                            if vm.historyOrders.isEmpty {
+                                emptyState("No completed orders yet")
+                            }
+
+                            // PERBAIKAN: Menggunakan enumerated untuk mendapatkan index yang valid
+                            ForEach(Array(vm.historyOrders.enumerated()), id: \.element.id) { index, order in
+                                VStack(spacing: 12) {
+                                    headerRow(
+                                        date: order.formattedDate,
+                                        status: "Completed",
+                                        color: .green
+                                    )
+
+                                    orderCard(
+                                        order: order,
+                                        actionTitle: "Buy Again",
+                                        actionEnabled: false,
+                                        action: {}
+                                    )
+
+                                    if order.rating == nil {
+                                        Divider()
+                                        // Memanggil ratingRow dengan index dari enumerated
+                                        ratingRow(index: index)
+                                    } else {
+                                        // Opsional: Tampilkan rating jika sudah dinilai
+                                        HStack {
+                                            Text("Your Rating")
+                                            Spacer()
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "star.fill")
+                                                Text("\(order.rating ?? 0)")
+                                            }
+                                            .foregroundColor(.orange)
+                                        }
+                                        .font(.caption)
+                                    }
+                                }
+                                .cardStyle()
+                            }
                         }
                     }
                     .padding(.horizontal)
                     .padding(.bottom, 32)
                 }
             }
-
             // ================= NAVIGATION =================
             .navigationDestination(isPresented: $goToPickUpView) {
                 if let id = selectedOrderId {
@@ -122,9 +130,8 @@ struct ActivityView: View {
                         .navigationBarBackButtonHidden(true)
                 }
             }
-
             .navigationDestination(isPresented: $showReviewView) {
-                if let idx = selectedOrderIndex {
+                if let idx = selectedOrderIndex, vm.historyOrders.indices.contains(idx) {
                     ReviewView(
                         rating: Binding(
                             get: { tempRating },
@@ -132,48 +139,61 @@ struct ActivityView: View {
                         ),
                         didSubmit: .constant(false),
                         onSubmit: { rating in
-                            vm.historyOrders[idx].rating = rating
+                            // Simpan ke Firestore via ViewModel
+                            if let orderId = vm.historyOrders[idx].id {
+                                vm.updateRating(orderId: orderId, rating: rating)
+                            }
                         }
                     )
                 }
             }
-
             .onAppear {
-                vm.fetchOrders()
-                selectedTab = navState.selectedTab
+                vm.fetchOrders(for: userId)
             }
         }
     }
 
-    // ================= ORDER CARD =================
-    private func orderCard(
-        order: ActivityOrderModel,
-        actionTitle: String,
-        actionEnabled: Bool,
-        action: @escaping () -> Void
-    ) -> some View {
+    // ================= HELPERS (PERBAIKAN) =================
+    
+    private func ratingRow(index: Int) -> some View {
+        HStack {
+            Text("Give us rating!")
+            Spacer()
+            HStack(spacing: 6) {
+                ForEach(1...5, id: \.self) { star in
+                    Image(systemName: "star.fill")
+                        .foregroundColor(.gray.opacity(0.3))
+                        .onTapGesture {
+                            self.tempRating = star
+                            self.selectedOrderIndex = index
+                            self.showReviewView = true
+                        }
+                }
+            }
+        }
+        .font(.subheadline)
+    }
 
+    // (Fungsi helper lainnya seperti orderCard, restaurantImage, dll tetap sama dengan kode Anda)
+    // ... paste fungsi helper Anda di sini ...
+    
+    private func orderCard(order: ActivityOrderModel, actionTitle: String, actionEnabled: Bool, action: @escaping () -> Void) -> some View {
         HStack(spacing: 12) {
-
-            restaurantImage(
-                url: order.restaurantImageURL,
-                name: order.restaurantName
-            )
-
+            // Menggunakan URL gambar dari koleksi stores (hasil konversi gs://)
+            restaurantImage(url: order.storeSearchImageURL, name: order.restaurantName)
+            
             VStack(alignment: .leading, spacing: 4) {
-                Text(order.restaurantName ?? "Restaurant")
+                Text(order.restaurantName ?? "Loading Store...")
                     .font(.headline)
-
+                
                 Text(order.mealName ?? "")
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-
+                
                 Text("Rp\(order.totalCost)")
                     .foregroundColor(.orange)
             }
-
             Spacer()
-
             Button(action: action) {
                 Text(actionTitle)
                     .font(.subheadline)
@@ -187,27 +207,34 @@ struct ActivityView: View {
         }
     }
 
-    // ================= RESTAURANT IMAGE =================
-    private func restaurantImage(
-        url: String?,
-        name: String?
-    ) -> some View {
-
+    private func restaurantImage(url: String?, name: String?) -> some View {
         ZStack {
-            if let urlString = url,
-               let imageURL = URL(string: urlString) {
-
+            if let urlString = url, let imageURL = URL(string: urlString) {
                 AsyncImage(url: imageURL) { phase in
-                    if let image = phase.image {
+                    switch phase {
+                    case .empty:
+                        // Saat URL ada tapi proses download sedang berjalan
+                        ProgressView()
+                            .tint(.orange)
+                    case .success(let image):
+                        // Saat gambar berhasil di-load
                         image
                             .resizable()
                             .scaledToFill()
-                    } else {
+                    case .failure:
+                        // Saat download gagal
+                        placeholderInitial(name)
+                    @unknown default:
                         placeholderInitial(name)
                     }
                 }
             } else {
-                placeholderInitial(name)
+                // Saat URL masih nil (ViewModel masih memproses gs:// ke HTTPS)
+                VStack(spacing: 4) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.orange)
+                }
             }
         }
         .frame(width: 56, height: 56)
@@ -216,53 +243,26 @@ struct ActivityView: View {
     }
 
     private func placeholderInitial(_ name: String?) -> some View {
-        Text(name?.prefix(1).uppercased() ?? "?")
-            .font(.headline)
-            .foregroundColor(.orange)
+        Text(name?.prefix(1).uppercased() ?? "?").font(.headline).foregroundColor(.orange)
     }
 
-    // ================= HELPERS =================
     private func headerRow(date: String, status: String, color: Color) -> some View {
         HStack {
-            Text(date)
-                .foregroundColor(.gray)
+            Text(date).foregroundColor(.gray)
             Spacer()
-            Text(status)
-                .foregroundColor(color)
+            Text(status).foregroundColor(color)
         }
         .font(.caption)
     }
 
-    private func ratingRow(index: Int) -> some View {
-        HStack {
-            Text("Give us rating!")
-            Spacer()
-            HStack(spacing: 6) {
-                ForEach(1...5, id: \.self) { star in
-                    Image(systemName: "star.fill")
-                        .foregroundColor(.gray)
-                        .onTapGesture {
-                            tempRating = star
-                            selectedOrderIndex = index
-                            showReviewView = true
-                        }
-                }
-            }
-        }
-    }
-
     private func emptyState(_ text: String) -> some View {
-        Text(text)
-            .foregroundColor(.gray)
-            .padding(.top, 40)
+        Text(text).foregroundColor(.gray).padding(.top, 40)
     }
 
     private func statusColor(for status: String) -> Color {
         switch status.lowercased() {
-        case "ready", "completed":
-            return .green
-        default:
-            return .orange
+        case "ready", "completed": return .green
+        default: return .orange
         }
     }
 }
@@ -270,21 +270,7 @@ struct ActivityView: View {
 // ================= CARD STYLE =================
 private extension View {
     func cardStyle() -> some View {
-        self
-            .padding()
-            .background(Color.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .overlay(
-                RoundedRectangle(cornerRadius: 16)
-                    .stroke(Color.gray.opacity(0.2))
-            )
+        self.padding().background(Color.white).clipShape(RoundedRectangle(cornerRadius: 16))
+            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.gray.opacity(0.2)))
     }
-}
-
-
-
-#Preview {
-    ActivityView()
-        .environmentObject(CartViewModel())
-        .environmentObject(AppNavigationState())
 }

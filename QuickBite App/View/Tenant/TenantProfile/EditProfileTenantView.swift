@@ -147,6 +147,7 @@ struct EditProfileTenantView: View {
                 .padding(.bottom, 40)
             }
         }
+        .toolbar(.hidden, for: .tabBar)
         .onTapGesture {
             hideKeyboard()
         }

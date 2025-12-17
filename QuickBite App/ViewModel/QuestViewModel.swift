@@ -42,50 +42,56 @@ final class QuestViewModel: ObservableObject {
     // MARK: - FETCH USER DATA
     func fetchUserData() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
-        
-        db.collection("users").document(userId).getDocument { snapshot, error in
-            guard let data = snapshot?.data(), error == nil else { return }
-            
-            DispatchQueue.main.async {
-                self.userName = data["username"] as? String ?? "User"
-                self.totalPoints = data["total_points"] as? Int ?? 0
-                self.weeklyPoints = data["weekly_points"] as? Int ?? 0
-                self.weeklyTarget = data["weekly_target"] as? Int ?? 100
-                self.currentTier = data["current_tier"] as? String ?? "Bronze"
+
+        db.collection("users").document(userId)
+            .addSnapshotListener { snapshot, error in
+                guard let data = snapshot?.data(), error == nil else { return }
+
+                DispatchQueue.main.async {
+                    self.userName = data["username"] as? String ?? "User"
+                    self.totalPoints = data["total_points"] as? Int ?? 0
+                    self.weeklyPoints = data["weekly_points"] as? Int ?? 0
+                    self.weeklyTarget = data["weekly_target"] as? Int ?? 100
+                    self.currentTier = data["current_tier"] as? String ?? "Bronze"
+                }
             }
-        }
     }
     
-    // MARK: - FETCH LEADERBOARD (REAL DATA)
     func fetchLeaderboard() {
         db.collection("users")
             .whereField("role", isEqualTo: "customer")
             .order(by: "total_points", descending: true)
             .limit(to: 10)
-            .getDocuments { snapshot, error in
-                
+            .addSnapshotListener { snapshot, error in
+
                 if let error = error {
-                    print("❌ ERROR:", error.localizedDescription)
+                    print("❌ LEADERBOARD ERROR:", error.localizedDescription)
                     return
                 }
-                
-                print("✅ DOC COUNT:", snapshot?.documents.count ?? 0)
-                
-                let users = snapshot?.documents.map { doc -> RankUser in
+
+                guard let documents = snapshot?.documents else {
+                    print("⚠️ NO DOCUMENTS")
+                    return
+                }
+
+                print("✅ LEADERBOARD COUNT:", documents.count)
+
+                let users = documents.map { doc -> RankUser in
                     let data = doc.data()
                     return RankUser(
                         username: "@\(data["username"] as? String ?? "user")",
                         points: data["total_points"] as? Int ?? 0,
                         tier: data["current_tier"] as? String ?? "Bronze"
                     )
-                } ?? []
-                
+                }
+
                 DispatchQueue.main.async {
                     self.podiumUsers = Array(users.prefix(3))
                     self.topUsers = users
                 }
             }
     }
+
     
     
     // MARK: - POINT RULE (Rp20.000 = 10 pts)
@@ -105,6 +111,21 @@ final class QuestViewModel: ObservableObject {
         fetchLeaderboard()
     }
     
+    func nextTierLabel() -> String {
+        switch currentTier {
+        case "Bronze":
+            return "Next tier: Gold"
+        case "Gold":
+            return "Next tier: Silver"
+        case "Silver":
+            return "Next tier: Diamond"
+        case "Diamond":
+            return "Max tier reached"
+        default:
+            return ""
+        }
+    }
+
     // MARK: - TIER CALCULATION
     func calculateTier(from points: Int) -> String {
         switch points {

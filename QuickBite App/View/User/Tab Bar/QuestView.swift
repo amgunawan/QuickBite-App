@@ -51,22 +51,19 @@ struct QuestView: View {
     private let badges: [BadgeItem] = [
         .init(title: "Beginner Badges",
               subtitle: "Spend min. Rp50K to earn 30 pts.",
-              current: 1, target: 3, rewardPts: 30, tint: .orange),
+              current: 1, target: 4, rewardPts: 30, tint: .orange),
         .init(title: "Explorer Badges",
               subtitle: "Spend Rp150K total at 3 tenants for 200 pts.",
-              current: 0, target: 5, rewardPts: 200, tint: .blue),
+              current: 0, target: 3, rewardPts: 200, tint: .blue),
         .init(title: "Challenge Badges",
               subtitle: "Grab 5 Last Call items in 3 days for 300 pts.",
               current: 0, target: 5, rewardPts: 300, tint: .pink),
         .init(title: "Loyalty Badges",
               subtitle: "Keep a 7-day streak to earn 650 pts.",
               current: 0, target: 7, rewardPts: 650, tint: .green),
-        .init(title: "Legendary Badges",
-              subtitle: "Reach Rp500K total to unlock all for 1000 pts.",
-              current: 0, target: 2, rewardPts: 1000, tint: .purple)
     ]
     
-    var nextTierLabel: String { "Next tier: Silver" }
+    var nextTierLabel: String {vm.nextTierLabel()}
     
     var body: some View {
         NavigationStack {
@@ -163,6 +160,7 @@ struct QuestView: View {
                         Text(nextTierLabel)
                             .font(.caption)
                             .foregroundColor(.secondary)
+
                     }
                 }
             }

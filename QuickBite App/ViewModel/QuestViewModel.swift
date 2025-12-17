@@ -10,14 +10,22 @@ import FirebaseAuth
 import FirebaseFirestore
 import Combine
 
+struct Order {
+    let totalCost: Int
+    let tenantName: String
+    let discount: Int
+    let createdAt: Date
+}
+
 final class QuestViewModel: ObservableObject {
     
     // MARK: - USER DATA
-    @Published var userName: String = "User"
+    @Published var userName: String = ""
     @Published var totalPoints: Int = 0
     @Published var weeklyPoints: Int = 0
     @Published var weeklyTarget: Int = 100
     @Published var currentTier: String = "Bronze"
+    
     
     // MARK: - UI STATE
     @Published var showLockedAlert: Bool = false
@@ -36,63 +44,108 @@ final class QuestViewModel: ObservableObject {
     init() {
         fetchUserData()
         fetchLeaderboard()
+        fetchOrders()
         loadBadges()
     }
+    
+    private var leaderboardListener: ListenerRegistration?
     
     // MARK: - FETCH USER DATA
     func fetchUserData() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
-
+        
+        print("👤 FETCH USER DATA FOR UID:", userId)
+        
         db.collection("users").document(userId)
             .addSnapshotListener { snapshot, error in
-                guard let data = snapshot?.data(), error == nil else { return }
-
+                guard let data = snapshot?.data(), error == nil else {
+                    print("❌ USER SNAPSHOT ERROR:", error?.localizedDescription ?? "")
+                    return
+                }
+                if data["total_points"] == nil {
+                    self.db.collection("users").document(userId).setData([
+                        "total_points": 0
+                    ], merge: true)
+                    return
+                }
+                
+                print("📥 USER DATA:", data)
+                
                 DispatchQueue.main.async {
-                    self.userName = data["username"] as? String ?? "User"
+                    self.userName =
+                    data["username"] as? String ??
+                    data["full_name"] as? String ??
+                    data["email"] as? String ??
+                    "User"
+                    
                     self.totalPoints = data["total_points"] as? Int ?? 0
                     self.weeklyPoints = data["weekly_points"] as? Int ?? 0
                     self.weeklyTarget = data["weekly_target"] as? Int ?? 100
-                    self.currentTier = data["current_tier"] as? String ?? "Bronze"
+                    let points = data["total_points"] as? Int ?? 0
+                    self.currentTier = self.calculateTier(from: points)
                 }
             }
     }
     
+    
     func fetchLeaderboard() {
-        db.collection("users")
+        leaderboardListener?.remove()
+        
+        leaderboardListener = db.collection("users")
             .whereField("role", isEqualTo: "customer")
+            .whereField("total_points", isGreaterThanOrEqualTo: 0)
             .order(by: "total_points", descending: true)
             .limit(to: 10)
             .addSnapshotListener { snapshot, error in
-
+                
                 if let error = error {
                     print("❌ LEADERBOARD ERROR:", error.localizedDescription)
                     return
                 }
-
-                guard let documents = snapshot?.documents else {
-                    print("⚠️ NO DOCUMENTS")
-                    return
-                }
-
-                print("✅ LEADERBOARD COUNT:", documents.count)
-
+                
+                guard let documents = snapshot?.documents else { return }
+                
                 let users = documents.map { doc -> RankUser in
                     let data = doc.data()
+                    let points = data["total_points"] as? Int ?? 0
+                    
                     return RankUser(
                         username: "@\(data["username"] as? String ?? "user")",
-                        points: data["total_points"] as? Int ?? 0,
-                        tier: data["current_tier"] as? String ?? "Bronze"
+                        points: points,
+                        tier: self.calculateTier(from: points)
                     )
                 }
-
+                
                 DispatchQueue.main.async {
                     self.podiumUsers = Array(users.prefix(3))
                     self.topUsers = users
                 }
             }
     }
-
     
+    func fetchOrders() {
+        guard let userId = Auth.auth().currentUser?.uid else { return }
+        
+        db.collection("orders")
+            .whereField("userId", isEqualTo: userId)
+            .getDocuments { snap, _ in
+                guard let docs = snap?.documents else { return }
+                
+                let orders = docs.compactMap { doc -> Order? in
+                    let d = doc.data()
+                    return Order(
+                        totalCost: d["totalCost"] as? Int ?? 0,
+                        tenantName: d["tenantName"] as? String ?? "",
+                        discount: d["totalDiscountAmount"] as? Int ?? 0,
+                        createdAt: (d["createdAt"] as? Timestamp)?.dateValue() ?? Date()
+                    )
+                }
+                
+                DispatchQueue.main.async {
+                    self.badges = self.buildBadgesFromHistory(orders)
+                }
+            }
+    }
     
     // MARK: - POINT RULE (Rp20.000 = 10 pts)
     func addPoints(from totalPrice: Int) {
@@ -108,7 +161,6 @@ final class QuestViewModel: ObservableObject {
         }
         
         saveUserPoints()
-        fetchLeaderboard()
     }
     
     func nextTierLabel() -> String {
@@ -125,7 +177,7 @@ final class QuestViewModel: ObservableObject {
             return ""
         }
     }
-
+    
     // MARK: - TIER CALCULATION
     func calculateTier(from points: Int) -> String {
         switch points {
@@ -146,11 +198,11 @@ final class QuestViewModel: ObservableObject {
     private func saveUserPoints() {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
-        db.collection("users").document(userId).updateData([
+        db.collection("users").document(userId).setData([
             "total_points": totalPoints,
             "weekly_points": weeklyPoints,
             "current_tier": currentTier
-        ])
+        ], merge: true)
     }
     
     // MARK: - BADGE ACTION
@@ -160,21 +212,103 @@ final class QuestViewModel: ObservableObject {
         }
     }
     
-    // MARK: - BADGES (UI ONLY, LOGIC NEXT STEP)
-    private func loadBadges() {
-        badges = [
-            .init(title: "Beginner Badges",
-                  subtitle: "Spend min. Rp50K to earn 30 pts.",
-                  current: 1, target: 3, rewardPts: 30, tint: .orange),
-            .init(title: "Explorer Badges",
-                  subtitle: "Spend Rp150K total at 3 tenants.",
-                  current: 0, target: 5, rewardPts: 200, tint: .blue),
-            .init(title: "Challenge Badges",
-                  subtitle: "Grab 5 Last Call items in 3 days.",
-                  current: 0, target: 5, rewardPts: 300, tint: .pink),
-            .init(title: "Loyalty Badges",
-                  subtitle: "Keep a 7-day streak.",
-                  current: 0, target: 7, rewardPts: 650, tint: .green)
+    private func buildBadgesFromHistory(_ orders: [Order]) -> [BadgeItem] {
+        
+        // 1. BEGINNER BADGE (4/4)
+        // Spend ≥ 50K per week
+        
+        let weeklyGroups = Dictionary(grouping: orders) {
+            Calendar.current.component(.weekOfYear, from: $0.createdAt)
+        }
+        
+        let qualifiedWeeks = weeklyGroups.values.filter {
+            $0.reduce(0) { $0 + $1.totalCost } >= 50_000
+        }.count
+        
+        let beginnerProgress = min(qualifiedWeeks, 4)
+        
+        // 2. EXPLORER BADGE (3/3)
+        // Rp150K at 3 tenants
+
+        let tenants = Set(orders.map { $0.tenantName })
+        let totalSpend = orders.reduce(0) { $0 + $1.totalCost }
+        
+        let explorerProgress =
+        (tenants.count >= 3 && totalSpend >= 150_000) ? 3 : 0
+        
+        // 3. CHALLENGE BADGE (5/5)
+        // 5 deals in 3 days
+        
+        let dealOrders = orders.filter { $0.discount > 0 }
+        
+        let dailyGroups = Dictionary(grouping: dealOrders) {
+            Calendar.current.startOfDay(for: $0.createdAt)
+        }
+        
+        let challengeProgress = min(
+            dailyGroups.values.filter { $0.count >= 5 }.count,
+            5
+        )
+        
+        // 4. LOYALTY BADGE (7/7)
+        // Mon–Fri purchases for 7 weeks
+
+        let weeklyOrders = Dictionary(grouping: orders) {
+            Calendar.current.component(.weekOfYear, from: $0.createdAt)
+        }
+        
+        var validWeeks = 0
+        for week in weeklyOrders.values {
+            let weekdays = Set(week.map {
+                Calendar.current.component(.weekday, from: $0.createdAt)
+            })
+            let requiredDays = [2,3,4,5,6] // Mon–Fri
+            if requiredDays.allSatisfy(weekdays.contains) {
+                validWeeks += 1
+            }
+        }
+        
+        let loyaltyProgress = min(validWeeks, 7)
+        
+        // RETURN BADGES
+        return [
+            BadgeItem(
+                title: "Beginner Badges",
+                subtitle: "Spend min. Rp50K to earn 30 pts.",
+                current: beginnerProgress,
+                target: 4,
+                rewardPts: 30,
+                tint: .orange
+            ),
+            BadgeItem(
+                title: "Explorer Badges",
+                subtitle: "Spend Rp150K total at 3 tenants.",
+                current: explorerProgress,
+                target: 3,
+                rewardPts: 200,
+                tint: .blue
+            ),
+            BadgeItem(
+                title: "Challenge Badges",
+                subtitle: "Grab 5 Last Call items in 3 days.",
+                current: challengeProgress,
+                target: 5,
+                rewardPts: 300,
+                tint: .pink
+            ),
+            BadgeItem(
+                title: "Loyalty Badges",
+                subtitle: "Keep a 7-day streak.",
+                current: loyaltyProgress,
+                target: 7,
+                rewardPts: 650,
+                tint: .green
+            )
         ]
     }
+    
+    private func loadBadges() {
+        badges = buildBadgesFromHistory([])
+    }
+    
 }

@@ -33,7 +33,7 @@ struct OrderConfirmationView: View {
     @State private var isPlacingOrder: Bool = false
     @StateObject private var vm = ActivityViewModel()
     
-    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
+    private let userId = "rOQ7BMWNK9fr7eGypV6lGqFH9Ru1"
     
     var body: some View {
         VStack(spacing: 0) {

@@ -31,37 +31,6 @@ struct QuestView: View {
     @State private var showLockedAlert = false
     @StateObject private var vm = QuestViewModel()
     private let weeklyTarget: Double = 100
-    let username = "natgwk02"
-
-    
-    private let podiumUsers: [RankUser] = [
-        .init(username: "@hsutedjo", points: 700, tier: "Diamond"),
-        .init(username: "@natgwk", points: 630, tier: "Silver"),
-        .init(username: "@jessilau", points: 550, tier: "Gold")
-    ]
-    
-    private let topUsers: [RankUser] = [
-        .init(username: "@hsutedjo", points: 700, tier: "Diamond"),
-        .init(username: "@natgwk", points: 630, tier: "Silver"),
-        .init(username: "@jessilau", points: 550, tier: "Gold"),
-        .init(username: "@annetan01", points: 450, tier: "—"),
-        .init(username: "@sharonwd", points: 300, tier: "—")
-    ]
-    
-    private let badges: [BadgeItem] = [
-        .init(title: "Beginner Badges",
-              subtitle: "Spend min. Rp50K to earn 30 pts.",
-              current: 1, target: 4, rewardPts: 30, tint: .orange),
-        .init(title: "Explorer Badges",
-              subtitle: "Spend Rp150K total at 3 tenants for 200 pts.",
-              current: 0, target: 3, rewardPts: 200, tint: .blue),
-        .init(title: "Challenge Badges",
-              subtitle: "Grab 5 Last Call items in 3 days for 300 pts.",
-              current: 0, target: 5, rewardPts: 300, tint: .pink),
-        .init(title: "Loyalty Badges",
-              subtitle: "Keep a 7-day streak to earn 650 pts.",
-              current: 0, target: 7, rewardPts: 650, tint: .green),
-    ]
     
     var nextTierLabel: String {vm.nextTierLabel()}
     
@@ -142,7 +111,7 @@ struct QuestView: View {
             .frame(width: 48, height: 48)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Welcome, \(username)!")
+                Text("Welcome, \(vm.userName)!")
                     .font(.headline)
                 Text("Ready to earn more badges this week?")
                     .font(.subheadline)

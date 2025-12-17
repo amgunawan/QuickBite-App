@@ -35,6 +35,26 @@ struct OrderConfirmationView: View {
     
     private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
     
+    // MARK: - Computed Properties for Display
+    
+    // 1. The Actual Price user pays for items (already inside cart.totalPrice)
+    // 2. The Discount Amount (calculated from fetchDiscounts)
+    
+    // 3. The Original Price (Before Discount)
+    var originalSubtotal: Double {
+        return cart.totalPrice + Double(totalDiscountAmount)
+    }
+    
+    // 4. Final Amount to Pay (Cart Price + Fee)
+    var finalGrandTotal: Double {
+        return cart.totalPrice + 2500
+    }
+    
+    // 5. Original Grand Total (for Strikethrough)
+    var originalGrandTotal: Double {
+        return originalSubtotal + 2500
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
@@ -66,7 +86,6 @@ struct OrderConfirmationView: View {
                                 Text("Estimated Ready in:")
                                     .font(.system(size: 13))
                                 
-                                // 👇 PERBAIKAN: Gunakan Rata-rata dari CartViewModel
                                 Text("\(cart.averagePrepTime) minutes")
                                     .font(.system(size: 13, weight: .bold))
                                     .foregroundColor(.orange)
@@ -133,7 +152,6 @@ struct OrderConfirmationView: View {
                             .foregroundColor(.gray)
                         
                         ForEach(cart.items) { item in
-                            // Gunakan Subview agar gambar URL muncul
                             OrderConfirmationItemRow(item: item)
                         }
                     }
@@ -191,23 +209,31 @@ struct OrderConfirmationView: View {
                         
                         SummaryRow(title: "Quantity", value: "\(cart.totalItemCount)")
                         
-                        SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(cart.totalPrice))")
+                        // ✅ DISPLAY ORIGINAL PRICE AS SUBTOTAL
+                        SummaryRow(title: "Subtotal", value: "Rp\(formatPrice(originalSubtotal))")
                         
-                        
+                        // ✅ DISPLAY DISCOUNT ROW (Red/Orange)
                         if totalDiscountAmount > 0 {
-                            SummaryRow(title: "Seller discount", value: "-Rp\(formatPrice(Double(totalDiscountAmount)))")
+                            HStack {
+                                Text("Seller discount")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(.gray)
+                                Spacer()
+                                Text("-Rp\(formatPrice(Double(totalDiscountAmount)))")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.red) // Highlight discount
+                            }
                         }
                         
                         SummaryRow(title: "Service fee", value: "+Rp2.500")
                         
                         Divider().padding(.vertical, 4)
                         
-                        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
                         HStack {
                             Text("Total")
                                 .font(.headline)
                             Spacer()
-                            Text("Rp\(formatPrice(finalTotal))")
+                            Text("Rp\(formatPrice(finalGrandTotal))")
                                 .font(.title3)
                                 .fontWeight(.bold)
                                 .foregroundColor(.orange)
@@ -225,16 +251,15 @@ struct OrderConfirmationView: View {
                     Spacer()
                     VStack(alignment: .trailing) {
                         
+                        // ✅ STRIKETHROUGH ORIGINAL PRICE
                         if totalDiscountAmount > 0 {
-                            Text("Rp\(formatPrice(cart.totalPrice))")
+                            Text("Rp\(formatPrice(originalGrandTotal))")
                                 .font(.caption)
                                 .foregroundColor(.gray)
                                 .strikethrough()
                         }
                         
-                        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
-                        
-                        Text("Rp\(formatPrice(finalTotal))")
+                        Text("Rp\(formatPrice(finalGrandTotal))")
                             .font(.title2)
                             .fontWeight(.bold)
                             .foregroundColor(.orange)
@@ -254,7 +279,6 @@ struct OrderConfirmationView: View {
                         }
                         .disabled(isStoreClosed || selectedTime == nil)
                         
-                        // NEW: Little text indicating why it is disabled
                         if isStoreClosed {
                             Text("Store is currently closed")
                                 .font(.system(size: 10))
@@ -283,7 +307,7 @@ struct OrderConfirmationView: View {
                         Image(systemName: "chevron.left")
                             .font(.system(size: 16, weight: .semibold))
                     }
-                    .foregroundColor(.black) // Standard iOS black back button
+                    .foregroundColor(.black)
                 }
             }
         }
@@ -299,8 +323,11 @@ struct OrderConfirmationView: View {
             )
             .navigationBarBackButtonHidden(true)
         }
+        // ✅ CALL FUNCTIONS ON APPEAR
         .onAppear {
             vm.fetchOrders(for: userId)
+            fetchStoreSchedule() // Get store hours
+            fetchDiscounts()     // Get discounts
             
             if navState.activeOrderId != nil {
                 navState.activitySegment = .inProgress
@@ -313,16 +340,17 @@ struct OrderConfirmationView: View {
     }
     
     // --- LOGIC FUNCTIONS ---
+    
+    // ✅ FIXED FETCH DISCOUNTS (Manual Mapping)
     func fetchDiscounts() {
         guard !cart.restaurantId.isEmpty else { return }
         
         let db = Firestore.firestore()
+        let now = Date()
         
-        // Construct path string agar sesuai screenshot: "/stores/AHCqc..."
-        let storePath = "/stores/\(cart.restaurantId)"
-        
+        // 1. Fetch ALL active discounts by Time (Avoids strict store_id query failure)
         db.collection("discounts")
-            .whereField("store_id", isEqualTo: storePath)
+            .whereField("end_date_time", isGreaterThan: now)
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("Error fetching discounts: \(error.localizedDescription)")
@@ -333,21 +361,31 @@ struct OrderConfirmationView: View {
                 
                 var calculatedTotal: Int = 0
                 
-                // Decode documents ke DiscountModel
-                let discounts = documents.compactMap { doc -> DiscountModel? in
-                    try? doc.data(as: DiscountModel.self)
-                }
-                
-                let activeDiscounts = discounts.filter { $0.isActive }
-                
-                for cartItem in cart.items {
+                // 2. Loop through results and check store_id MANUALLY
+                for doc in documents {
+                    let data = doc.data()
+                    var docStoreId = ""
                     
-                    if let applicableDiscount = activeDiscounts.first(where: { $0.itemId == cartItem.menuItemId }) {
+                    // Handle Reference vs String mismatch
+                    if let storeRef = data["store_id"] as? DocumentReference {
+                        docStoreId = storeRef.documentID
+                    } else if let storeString = data["store_id"] as? String {
+                        docStoreId = storeString.replacingOccurrences(of: "stores/", with: "")
+                    }
+                    
+                    // Check if it matches current restaurant
+                    if docStoreId == cart.restaurantId {
                         
-                        let itemDiscountTotal = applicableDiscount.amount * cartItem.quantity
-                        calculatedTotal += itemDiscountTotal
+                        // Extract needed data manually
+                        let amount = data["discount_amount"] as? Int ?? 0
+                        let itemId = data["item_id"] as? String ?? ""
                         
-                        print("✅ Applied discount \(applicableDiscount.amount) for item \(cartItem.name)")
+                        // Check if this discount applies to any item in our cart
+                        if let cartItem = cart.items.first(where: { $0.menuItemId == itemId }) {
+                            let itemDiscountTotal = amount * cartItem.quantity
+                            calculatedTotal += itemDiscountTotal
+                            print("✅ Applied discount \(amount) for item \(cartItem.name)")
+                        }
                     }
                 }
                 
@@ -422,12 +460,12 @@ struct OrderConfirmationView: View {
         
         let service = OrderService()
         let items = cart.items.map { "\($0.quantity)x \($0.name)" }
-        let finalTotal = cart.totalPrice - Double(totalDiscountAmount) + 2500
         
+        // Use finalGrandTotal here
         service.createOrder(
             customerName: "Jessica",
             items: items,
-            total: Int(finalTotal),
+            total: Int(finalGrandTotal),
             pickupTime: selectedTime.timeRange,
             tenantId: cart.restaurantId
         ) { orderId in
@@ -437,28 +475,18 @@ struct OrderConfirmationView: View {
             }
             
             DispatchQueue.main.async {
-                
-                // 🔥 SIMPAN ORDER AKTIF
                 navState.activeOrderId = orderId
-                
-                // 🔥 PINDAH KE ACTIVITY TAB
                 navState.selectedTab = 1
-                
-                // 🔥 AUTO KE IN PROGRESS
                 navState.activitySegment = .inProgress
-                
-                // 🔥 CLEAR CART
                 cart.clearCart()
-                
                 navState.isCartPresented = false
-                
-                // 🔥 TUTUP ORDER CONFIRMATION
                 dismiss()
             }
         }
     }
 }
 
+// Subview for Image Loading
 struct OrderConfirmationItemRow: View {
     let item: CartItemModel
     @State private var displayImageURL: URL? = nil
@@ -509,6 +537,7 @@ struct OrderConfirmationItemRow: View {
     }
 }
 
+// Required for Preview
 struct OrderConfirmationView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {

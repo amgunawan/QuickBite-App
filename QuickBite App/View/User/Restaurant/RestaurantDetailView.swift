@@ -25,6 +25,13 @@ struct RestaurantDetailView: View {
     @State private var groupName = "My Group"
     @State private var groupMembers: [UserMember] = []
     
+    private let initialItem: MenuItem?
+    
+    init(restaurant: Restaurant, openItem: MenuItem? = nil) {
+            self.restaurant = restaurant
+            self.initialItem = openItem
+        }
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             ScrollView {
@@ -86,6 +93,7 @@ struct RestaurantDetailView: View {
                 CheckoutBarView(showCart: $navState.isCartPresented)
             }
         }
+        .toolbar(.hidden, for: .tabBar)
         .environmentObject(cart)
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
@@ -100,14 +108,23 @@ struct RestaurantDetailView: View {
             if let storeID = restaurant.id {
                 viewModel.fetchDiscounts(storeID: storeID)
             }
+            
+            if let itemToOpen = initialItem {
+                // Small delay to ensure view is loaded before presenting sheet
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.selectedItemForOptions = itemToOpen
+                }
+            }
         }
         
         .sheet(item: $selectedItemForOptions) { item in
             let priceInfo = viewModel.getPriceInfo(for: item)
             
+            let cleanRestaurantId = (restaurant.id ?? "").replacingOccurrences(of: "stores/", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
             MenuOptionsView(
                 restaurantName: restaurant.name,
-                restaurantId: restaurant.id ?? "",
+                restaurantId: cleanRestaurantId,
                 item: item,
                 finalPrice: priceInfo.finalPrice,
                 originalPrice: priceInfo.originalPrice,
@@ -145,8 +162,11 @@ struct RestaurantDetailView: View {
                     )
                 ]
             }
+        
         }
+
 }
+
 
 struct MenuRowLink: View {
     let item: MenuItem

@@ -217,8 +217,28 @@ struct CartFooterView: View {
             Divider()
 
             HStack(spacing: 16) {
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "basket")
+                        .font(.system(size: 24))
+                        .foregroundColor(.orange)
+                        .padding(.top, 2)
+                        .padding(.trailing, 2)
+                    
+                    if cart.totalItemCount > 0 {
+                        Text("\(cart.totalItemCount)")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundColor(.white)
+                            .frame(width: 20, height: 20)
+                            .background(Color.orange)
+                            .clipShape(Circle())
+                            .offset(x: 8, y: -8)
+                    }
+                }
+                .frame(width: 44, height: 44)
+                
+                Spacer()
 
-                VStack(alignment: .leading) {
+                VStack(alignment: .trailing) {
                     if cart.totalOriginalPrice > cart.totalPrice {
                         Text("Rp\(formatPrice(cart.totalOriginalPrice))")
                             .font(.system(size: 14))
@@ -227,11 +247,9 @@ struct CartFooterView: View {
                     }
 
                     Text("Rp\(formatPrice(cart.totalPrice))")
-                        .font(.system(size: 20, weight: .bold))
+                        .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.orange)
                 }
-
-                Spacer()
 
                 Button {
                     onCheckout()
@@ -239,10 +257,10 @@ struct CartFooterView: View {
                     Text("Checkout")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, 28)
                         .padding(.vertical, 12)
                         .background(Color.orange)
-                        .cornerRadius(20)
+                        .cornerRadius(50)
                 }
             }
             .padding()

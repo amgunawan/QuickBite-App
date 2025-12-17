@@ -74,21 +74,36 @@ struct DealCardView: View {
     }
 }
 
-#Preview {
-    ZStack {
-        // Gray background to help visualize the card's border and white background
-        Color(.systemGray6)
-            .ignoresSafeArea()
-        
-        DealCardView(deal: DiscountDisplayItem(
-            id: "preview_1",
-            discountAmount: 5000,
-            originalPrice: 35000,
-            finalPrice: 30000,
-            itemName: "Chicken Katsu Shirokara Ramen",
-            storeName: "Raburi",
-            imageURL: "https://via.placeholder.com/150", // Dummy image link
-            storeId: "store_123"
-        ))
-    }
-}
+//#Preview {
+//    ZStack {
+//        // Gray background to help visualize the card's border and white background
+//        Color(.systemGray6)
+//            .ignoresSafeArea()
+//        
+//        // 1. Create a Dummy MenuItem for the preview
+//        let dummyItem = MenuItem(
+//            itemId: "1",
+//            name: "Chicken Katsu Shirokara Ramen",
+//            description: "Delicious ramen",
+//            price: 35000,
+//            category: "Ramen",
+//            imageURL: nil,
+//            defaultStock: 10,
+//            prepTimeMinutes: 15,
+//            options: nil
+//        )
+//        
+//        // 2. Create the Deal using the dummy item
+//        DealCardView(deal: DiscountDisplayItem(
+//            id: "preview_1",
+//            discountAmount: 5000,
+//            originalPrice: 35000,
+//            finalPrice: 30000,
+//            itemName: "Chicken Katsu Shirokara Ramen",
+//            storeName: "Raburi",
+//            imageURL: "https://via.placeholder.com/150",
+//            storeId: "store_123",
+//            menuItem: dummyItem
+//        ))
+//    }
+//}

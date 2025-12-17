@@ -101,10 +101,15 @@ struct ProfileCard: View {
 struct ProfileView: View {
     @StateObject private var vm = ProfileViewModel()
     
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
     @State private var editUsername: String = ""
     @State private var editEmail: String = ""
     
-    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
+    private var userId: String? {
+        authVM.currentUserSession?.uid
+    }
+
     @State private var language: String = "English"
 
     @State private var showEdit = false
@@ -216,7 +221,7 @@ struct ProfileView: View {
                     fullName: $fullName,
                     email: vm.user?.email ?? "-",
                     points: points,
-                    userId: userId,
+                    userId: userId ?? "",
                     vm: vm,
                     onSave: {
                         // Save full name to database
@@ -235,9 +240,11 @@ struct ProfileView: View {
             }
         }
         .onAppear {
+            guard let userId else { return }
             vm.loadUser(userId: userId)
             vm.loadProfileImage(userId: userId)
         }
+        
         .onReceive(vm.$user) { newUser in
             fullName = newUser?.full_name ?? ""
         }

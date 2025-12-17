@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 struct ScanQRCodeView: View {
 
-    @EnvironmentObject var tenantSession: TenantSession
+    @EnvironmentObject var authVM: AuthenticationViewModel
     @Environment(\.dismiss) private var dismiss
 
     // MARK: - UI State
@@ -27,8 +27,15 @@ struct ScanQRCodeView: View {
     // MARK: - FIRESTORE FETCH
     func handleScannedCode(_ code: String) {
 
-        guard tenantSession.isLoaded else {
-            print("⏳ Tenant session not ready")
+        // ✅ ENSURE USER SESSION EXISTS
+        guard let session = authVM.currentUserSession else {
+            print("⏳ User session not ready")
+            return
+        }
+
+        // ✅ ENSURE THIS USER HAS A STORE (TENANT)
+        guard let tenantId = session.storeId else {
+            print("⛔ User is not a tenant / has no store")
             return
         }
 
@@ -53,14 +60,14 @@ struct ScanQRCodeView: View {
                 return
             }
 
-            // 🔐 VALIDASI TENANT
+            // 🔐 TENANT VALIDATION
             let orderTenantId = data["tenantId"] as? String ?? ""
-            if orderTenantId != tenantSession.tenantId {
+            if orderTenantId != tenantId {
                 print("⛔ QR NOT FOR THIS TENANT")
                 return
             }
 
-            // 🔐 VALIDASI STATUS
+            // 🔐 STATUS VALIDATION
             let status = data["status"] as? String ?? "pending"
             if status == "completed" {
                 DispatchQueue.main.async {
@@ -94,7 +101,7 @@ struct ScanQRCodeView: View {
         }
     }
 
-    // MARK: - LOCK ORDER (FINAL & AMAN)
+    // MARK: - LOCK ORDER
     func lockOrder() {
         guard let orderId = scannedOrderId else { return }
 
@@ -182,7 +189,6 @@ struct ScanQRCodeView: View {
             .navigationBarBackButtonHidden(true)
             .toolbar(.hidden, for: .tabBar)
 
-            // ORDER FOUND SHEET
             .sheet(isPresented: $showOrderSheet) {
                 if let order = scannedOrder {
                     OrderFoundSheet(
@@ -205,9 +211,4 @@ struct ScanQRCodeView: View {
             }
         }
     }
-}
-
-#Preview {
-    ScanQRCodeView()
-        .environmentObject(TenantSession())
 }

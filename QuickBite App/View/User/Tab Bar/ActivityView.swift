@@ -12,9 +12,12 @@ struct ActivityView: View {
     // MARK: - ENVIRONMENT
     @EnvironmentObject var cart: CartViewModel
     @EnvironmentObject var navState: AppNavigationState
+    @EnvironmentObject var authVM: AuthenticationViewModel
 
     // MARK: - STATIC USER ID
-    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
+    private var userId: String? {
+        authVM.currentUserSession?.uid
+    }
     
     // MARK: - VIEW MODEL
     @StateObject private var vm = ActivityViewModel()
@@ -149,6 +152,7 @@ struct ActivityView: View {
                 }
             }
             .onAppear {
+                guard let userId else { return }
                 vm.fetchOrders(for: userId)
             }
         }

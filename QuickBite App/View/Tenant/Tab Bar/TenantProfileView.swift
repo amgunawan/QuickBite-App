@@ -26,6 +26,7 @@ struct TenantSettingsRowLabel: View {
 
             Text(title)
                 .foregroundColor(.primary)
+
             Spacer()
 
             if let trailingText = trailing {
@@ -38,8 +39,7 @@ struct TenantSettingsRowLabel: View {
 }
 
 struct TenantProfileCard: View {
-    @StateObject private var vm = TenantProfileViewModel()
-    
+
     let username: String
     let email: String
     var image: UIImage? = nil
@@ -65,7 +65,9 @@ struct TenantProfileCard: View {
             .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(username).font(.headline)
+                Text(username)
+                    .font(.headline)
+
                 Text(email)
                     .font(.subheadline)
                     .foregroundColor(.secondary)
@@ -92,47 +94,72 @@ struct TenantProfileCard: View {
 }
 
 struct TenantProfileView: View {
+
     @StateObject private var vm = TenantProfileViewModel()
-    
-    let storeId = "2plb4UCwxjle2Yy6PTdj"
+    @EnvironmentObject var authVM: AuthenticationViewModel
+
     @State private var showEditProfile = false
-    @State private var tenantlanguage = "English"
+    @State private var tenantLanguage = "English"
+
+    private var session: AppUserSession? {
+        authVM.currentUserSession
+    }
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .top) {
-
-                VStack(spacing: 0) {
-                    HeaderBackgroundView(height: 100)
-                    Spacer()
+            Group {
+                if let session {
+                    content(session: session)
+                } else {
+                    ProgressView("Loading profile...")
                 }
+            }
+        }
+        .toolbar(.hidden, for: .navigationBar)
+        .onAppear {
+            Task { await vm.loadProfileImage() }
+        }
+    }
 
-                VStack(spacing: 0) {
-                    Text("Store Profile")
-                        .font(.title)
-                        .fontWeight(.bold)
-                        .foregroundColor(.black)
-                        .padding(.horizontal)
-                        .padding(.bottom, 20)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+    @ViewBuilder
+    private func content(session: AppUserSession) -> some View {
+        ZStack(alignment: .top) {
 
-                    // === PROFILE CARD ===
-                    TenantProfileCard(
-                        username: vm.tenantUsername,
-                        email: vm.tenantEmail,
-                        image: vm.tenantProfileImage
-                    ) {
-                        showEditProfile = true
-                    }
+            VStack(spacing: 0) {
+                HeaderBackgroundView(height: 100)
+                Spacer()
+            }
+
+            VStack(spacing: 0) {
+
+                Text("Store Profile")
+                    .font(.title)
+                    .fontWeight(.bold)
                     .padding(.horizontal)
-                    .offset(y: -10)
-                    .zIndex(1)
+                    .padding(.bottom, 20)
+                    .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Spacer()
+                // === PROFILE CARD (SAMA SEPERTI VERSI LAMA) ===
+                TenantProfileCard(
+                    username: session.email.components(separatedBy: "@").first ?? "Merchant",
+                    email: session.email,
+                    image: vm.tenantProfileImage
+                ) {
+                    showEditProfile = true
+                }
+                .padding(.horizontal)
+                .offset(y: -10)
+                .zIndex(1)
 
-                    // === MENU LIST ===
-                    List {
-                        Section(header: Text("Store Management")) {
+                // ❌ TIDAK ADA SPACER DI SINI
+
+                List {
+
+                    // === STORE MANAGEMENT ===
+                    Section(header: Text("Store Management")) {
+
+                        if let storeId = session.storeId {
+
                             NavigationLink {
                                 ManageMenuStockTenantView(storeId: storeId)
                             } label: {
@@ -144,7 +171,7 @@ struct TenantProfileView: View {
                             }
 
                             NavigationLink {
-                                EditStoreDetailsTenantView()
+                                EditStoreDetailsTenantView(storeId: storeId)
                             } label: {
                                 TenantSettingsRowLabel(
                                     systemIcon: "shippingbox",
@@ -152,7 +179,7 @@ struct TenantProfileView: View {
                                     title: "Edit Store Details"
                                 )
                             }
-                            
+
                             NavigationLink {
                                 DiscountListTenantView(storeId: storeId)
                             } label: {
@@ -164,7 +191,7 @@ struct TenantProfileView: View {
                             }
 
                             NavigationLink {
-                                FinancialPayoutsTenantView()
+                                FinancialPayoutsTenantView(storeId: storeId)
                             } label: {
                                 TenantSettingsRowLabel(
                                     systemIcon: "creditcard",
@@ -172,87 +199,93 @@ struct TenantProfileView: View {
                                     title: "Financial & Payouts"
                                 )
                             }
-                        }
 
-                        Section("Account & Support") {
-                            NavigationLink {
-                                ChangePasswordTenantView()
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "lock.fill",
-                                    tint: .gray,
-                                    title: "Change Password"
-                                )
-                            }
-
-                            NavigationLink {
-                                LanguageSelectionTenantView(
-                                    selectedLanguage: $tenantlanguage
-                                )
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "globe",
-                                    tint: .gray,
-                                    title: "Languages",
-                                    trailing: tenantlanguage
-                                )
-                            }
-
-                            NavigationLink {
-                                HelpSupportTenantView()
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "questionmark.circle",
-                                    tint: .gray,
-                                    title: "Help & Support"
-                                )
-                            }
-
-                            NavigationLink {
-                                FAQTenantView()
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "questionmark.bubble",
-                                    tint: .gray,
-                                    title: "FAQ"
-                                )
-                            }
-
-                            NavigationLink {
-                                TermsServiceTenantView()
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "doc.text",
-                                    tint: .gray,
-                                    title: "Terms & Service"
-                                )
-                            }
-
-                            NavigationLink {
-                                ManageAccountTenantView()
-                            } label: {
-                                TenantSettingsRowLabel(
-                                    systemIcon: "gearshape",
-                                    tint: .gray,
-                                    title: "Manage Account"
-                                )
-                            }
+                        } else {
+                            TenantSettingsRowLabel(
+                                systemIcon: "exclamationmark.triangle",
+                                tint: .orange,
+                                title: "Store not linked yet"
+                            )
                         }
                     }
-                    .listStyle(.plain)
-                    .scrollContentBackground(.hidden)
-                    .padding(.top, -20)
-                }
-            }
-            .toolbar(.hidden, for: .navigationBar)
 
-            // === EDIT PROFILE ===
+                    // === ACCOUNT & SUPPORT (SEJAJAR, BUKAN NESTED) ===
+                    Section("Account & Support") {
+
+                        NavigationLink {
+                            ChangePasswordTenantView()
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "lock.fill",
+                                tint: .gray,
+                                title: "Change Password"
+                            )
+                        }
+
+                        NavigationLink {
+                            LanguageSelectionTenantView(
+                                selectedLanguage: $tenantLanguage
+                            )
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "globe",
+                                tint: .gray,
+                                title: "Languages",
+                                trailing: tenantLanguage
+                            )
+                        }
+
+                        NavigationLink {
+                            HelpSupportTenantView()
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "questionmark.circle",
+                                tint: .gray,
+                                title: "Help & Support"
+                            )
+                        }
+
+                        NavigationLink {
+                            FAQTenantView()
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "questionmark.bubble",
+                                tint: .gray,
+                                title: "FAQ"
+                            )
+                        }
+
+                        NavigationLink {
+                            TermsServiceTenantView()
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "doc.text",
+                                tint: .gray,
+                                title: "Terms & Service"
+                            )
+                        }
+
+                        NavigationLink {
+                            ManageAccountTenantView()
+                        } label: {
+                            TenantSettingsRowLabel(
+                                systemIcon: "gearshape",
+                                tint: .gray,
+                                title: "Manage Account"
+                            )
+                        }
+                    }
+                }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .padding(.top, -20)
+            }
             .navigationDestination(isPresented: $showEditProfile) {
                 EditProfileTenantView(
                     viewModel: vm,
-                    tenantusername: vm.tenantUsername,
+                    tenantusername: session.email,
                     tenantfullName: $vm.tenantFullName,
-                    tenantemail: .constant(vm.tenantEmail),
+                    tenantemail: .constant(session.email),
                     onSave: {
                         Task {
                             await vm.updateFullName(vm.tenantFullName)
@@ -262,15 +295,5 @@ struct TenantProfileView: View {
                 )
             }
         }
-        .onAppear {
-            vm.loadTenantFromEmail()
-            Task {
-                await vm.loadProfileImage()
-            }
-        }
     }
-}
-
-#Preview {
-    TenantProfileView()
 }

@@ -21,7 +21,6 @@ struct SummaryMetrics: Identifiable {
 }
 
 struct TenantHomeView: View {
-    let storeId = "2plb4UCwxjle2Yy6PTdj"
     
     @StateObject private var headerVM = TenantHeaderViewModel()
     @StateObject private var totalWalletVM = TotalWalletBalanceViewModel()
@@ -29,6 +28,11 @@ struct TenantHomeView: View {
     @StateObject private var topMenuVM = TopMenuItemsViewModel()
     @StateObject private var lowStockVM = LowStockItemsViewModel()
     @StateObject private var ratingVM = TenantRatingViewModel()
+    @EnvironmentObject var authVM: AuthenticationViewModel
+    
+    private var storeId: String? {
+        authVM.currentUserSession?.storeId
+    }
     
     @State private var showAllReviews = false
     @State private var showManageStock = false
@@ -165,26 +169,30 @@ struct TenantHomeView: View {
                 }
             }
             .onAppear {
+                guard let storeId else { return }
+
                 totalWalletVM.fetchWalletBalance(storeId: storeId)
                 todayPerformanceVM.fetchTodayStats(storeId: storeId)
                 topMenuVM.fetchTopMenuItems(storeId: storeId)
                 lowStockVM.fetchLowStockItems(storeId: storeId)
                 headerVM.loadTenantHeader(storeId: storeId)
                 ratingVM.fetchRating(for: storeId)
-
             }
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: TenantHomeDestination.self) { destination in
-                switch destination {
-
-                case .allReviews:
-                    AllReviewsTenantView(storeId: storeId)
-
-                case .manageStock:
-                    ManageMenuStockTenantView(storeId: storeId)
+                Group {
+                    if let storeId {
+                        switch destination {
+                        case .allReviews:
+                            AllReviewsTenantView(storeId: storeId)
+                        case .manageStock:
+                            ManageMenuStockTenantView(storeId: storeId)
+                        }
+                    } else {
+                        EmptyView()
+                    }
                 }
             }
-
         }
     }
     

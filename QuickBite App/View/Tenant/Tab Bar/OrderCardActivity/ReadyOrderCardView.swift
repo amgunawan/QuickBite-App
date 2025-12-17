@@ -10,7 +10,7 @@ import Foundation
 
 struct ReadyOrderCardView: View {
 
-    let order: OrderCardViewData   // hanya 1 parameter
+    let order: OrderCardViewData
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -27,14 +27,12 @@ struct ReadyOrderCardView: View {
                 Spacer()
 
                 Text("Ready for Pickup")
-                    .font(.subheadline)
-                    .foregroundColor(Color.green)
+                    .foregroundColor(.green)
                     .fontWeight(.semibold)
             }
 
             ForEach(order.items, id: \.self) { item in
                 Text(item)
-                    .font(.subheadline)
             }
 
             Divider()
@@ -48,18 +46,16 @@ struct ReadyOrderCardView: View {
                 HStack {
                     Text("Scan Order QR")
                         .font(.headline)
-                        .foregroundColor(Color.green.opacity(0.8))
+                        .foregroundColor(.green.opacity(0.8))
                     Spacer()
                     Image(systemName: "qrcode.viewfinder")
                         .font(.title2)
-                        .foregroundColor(Color.green.opacity(0.8))
+                        .foregroundColor(.green.opacity(0.8))
                 }
                 .padding()
                 .background(Color.green.opacity(0.15))
                 .cornerRadius(UIConst.corner)
             }
-
-
         }
         .padding()
         .background(
@@ -71,13 +67,14 @@ struct ReadyOrderCardView: View {
 }
 
 
-#Preview {
-    ReadyOrderCardView(
-        order: OrderCardViewData(
-            name: "Sharon Tan",
-            pickupTime: "12:00 PM",
-            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
-            total: "Rp 83.000"
-        )
-    )
-}
+
+//#Preview {
+//    ReadyOrderCardView(
+//        order: OrderCardViewData(
+//            name: "Sharon Tan",
+//            pickupTime: "12:00 PM",
+//            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
+//            total: "Rp 83.000"
+//        )
+//    )
+//}

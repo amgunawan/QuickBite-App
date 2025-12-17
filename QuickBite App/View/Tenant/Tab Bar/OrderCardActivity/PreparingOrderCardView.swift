@@ -61,14 +61,14 @@ struct PreparingOrderCardView: View {
 }
 
 
-#Preview {
-    PreparingOrderCardView(
-        order: OrderCardViewData(
-            name: "Rayna Shera",
-            pickupTime: "12:00 PM",
-            items: ["1x Chicken Teriyaki Shirokara Ramen", "1x Hot Ocha"],
-            total: "Rp 46.000"
-        ),
-        onMarkAsReady: {}
-    )
-}
+//#Preview {
+//    PreparingOrderCardView(
+//        order: OrderCardViewData(
+//            name: "Rayna Shera",
+//            pickupTime: "12:00 PM",
+//            items: ["1x Chicken Teriyaki Shirokara Ramen", "1x Hot Ocha"],
+//            total: "Rp 46.000"
+//        ),
+//        onMarkAsReady: {}
+//    )
+//}

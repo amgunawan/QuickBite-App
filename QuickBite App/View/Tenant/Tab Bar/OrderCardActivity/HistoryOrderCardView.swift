@@ -58,13 +58,13 @@ struct HistoryOrderCardView: View {
 
 
 // PREVIEW
-#Preview {
-    HistoryOrderCardView(
-        order: OrderCardViewData(
-            name: "Angela Melia",
-            pickupTime: "12:00 PM",
-            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
-            total: "Rp 83.000"
-        )
-    )
-}
+//#Preview {
+//    HistoryOrderCardView(
+//        order: OrderCardViewData(
+//            name: "Angela Melia",
+//            pickupTime: "12:00 PM",
+//            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
+//            total: "Rp 83.000"
+//        )
+//    )
+//}

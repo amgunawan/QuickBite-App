@@ -52,9 +52,9 @@ struct ScanQRCodeView: View {
             }
 
             guard
-                let snapshot = snapshot,
-                snapshot.exists,
-                let data = snapshot.data()
+                let document = snapshot,
+                document.exists,
+                let data = document.data()
             else {
                 print("⚠️ Order not found")
                 return
@@ -69,13 +69,16 @@ struct ScanQRCodeView: View {
 
             // 🔐 STATUS VALIDATION
             let status = data["status"] as? String ?? "pending"
-            if status == "completed" {
+
+            guard status == "ready_for_pickup" else {
                 DispatchQueue.main.async {
                     scannedOrder = OrderCardViewData(
+                        id: orderId,
                         name: "Order Invalid",
                         pickupTime: "-",
-                        items: ["This order has already been picked up"],
-                        total: "-"
+                        items: ["Order status is '\(status)'. Only READY orders can be scanned."],
+                        total: "-",
+                        status: status
                     )
                     showOrderSheet = true
                 }
@@ -84,21 +87,27 @@ struct ScanQRCodeView: View {
 
             // ✅ ORDER VALID
             let customerName = data["customerName"] as? String ?? "Unknown"
-            let pickupTime  = data["pickupTime"] as? String ?? "-"
-            let items       = data["items"] as? [String] ?? []
-            let totalInt    = data["total"] as? Int ?? 0
+            let pickupTime  = (data["pickup_time"] as? Timestamp)?.dateValue()
+            let itemsRaw    = data["items"] as? [[String: Any]] ?? []
+            let totalInt    = data["total_cost"] as? Int ?? 0
+
+            let itemNames = itemsRaw.compactMap { $0["item_id"] as? String }
 
             DispatchQueue.main.async {
                 scannedOrder = OrderCardViewData(
+                    id: orderId,
                     name: customerName,
-                    pickupTime: pickupTime,
-                    items: items,
-                    total: "Rp \(formatPrice(Double(totalInt)))"
+                    pickupTime: formatTime(pickupTime),
+                    items: itemNames,
+                    total: "Rp \(formatPrice(Double(totalInt)))",
+                    status: "ready_for_pickup"
                 )
                 showOrderSheet = true
                 isScanningEnabled = false
             }
+
         }
+
     }
 
     // MARK: - LOCK ORDER

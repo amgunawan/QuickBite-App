@@ -57,13 +57,13 @@ struct NewOrderCardView: View {
 }
 
 // PREVIEW
-#Preview {
-    NewOrderCardView(
-        order: OrderCardViewData(
-            name: "Angela Melia",
-            pickupTime: "12:00 PM",
-            items: ["1x Chicken Ramen", "1x Ocha"],
-            total: "Rp 45.000"
-        )
-    )
-}
+//#Preview {
+//    NewOrderCardView(
+//        order: OrderCardViewData(
+//            name: "Angela Melia",
+//            pickupTime: "12:00 PM",
+//            items: ["1x Chicken Ramen", "1x Ocha"],
+//            total: "Rp 45.000"
+//        )
+//    )
+//}

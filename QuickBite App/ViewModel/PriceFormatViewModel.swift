@@ -14,3 +14,11 @@ func formatPrice(_ value: Double) -> String {
     nf.groupingSeparator = "."
     return nf.string(from: NSNumber(value: value)) ?? "0"
 }
+
+// MARK: - Time Formatter
+func formatTime(_ date: Date?) -> String {
+    guard let date else { return "-" }
+    let f = DateFormatter()
+    f.dateFormat = "h:mm a"
+    return f.string(from: date)
+}

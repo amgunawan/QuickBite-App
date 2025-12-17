@@ -397,21 +397,47 @@ class TenantMenuViewModel: ObservableObject {
     }
     
     func saveNewItem(_ item: MenuItem) {
-        allItems.append(item)
-        
+
+        let stock = item.currentStock > 0
+            ? item.currentStock
+            : (item.defaultStock ?? 0)
+
+        var fixedItem = item
+        fixedItem.currentStock = stock   // 🔥 FIX UTAMA
+
+        allItems.append(fixedItem)
+
         trackingItems.append(
-            TrackingItem(itemId: item.itemId,
-                         currentStock: item.currentStock,
-                         totalSold: 0)
+            TrackingItem(
+                itemId: fixedItem.itemId,
+                currentStock: stock,
+                totalSold: 0
+            )
         )
+
         buildSectionsUI()
         saveAllToBackend()
     }
-    
+ 
     // MARK: - ADD ITEM
     func addItem(to sectionTitle: String) {
         prepareNewItem(for: sectionTitle)
     }
+    
+    // MARK: - RENAME SECTION (CATEGORY)
+    func renameSection(from oldName: String, to newName: String) {
+        guard !newName.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+
+        for index in allItems.indices {
+            if allItems[index].category == oldName {
+                allItems[index].category = newName
+            }
+        }
+
+        buildSectionsUI()
+        saveAllToBackend()
+    }
+
     
 }
 extension String {

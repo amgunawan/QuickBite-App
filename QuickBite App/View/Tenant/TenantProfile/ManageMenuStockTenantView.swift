@@ -142,12 +142,16 @@ struct ManageMenuStockTenantView: View {
             } header: {
                 SectionHeader(
                     title: section.title,
+                    onRename: { newName in
+                        viewModel.renameSection(from: section.title, to: newName)
+                    },
                     onAddItem: {
                         pendingCategory = section.title
                         viewModel.addItem(to: section.title)
                         showAddSheet = true
                     }
                 )
+
             }
         }
     }
@@ -170,13 +174,38 @@ struct ManageMenuStockTenantView: View {
 // ======================================================================
 private struct SectionHeader: View {
 
+    @State private var isEditing = false
+    @State private var draftTitle: String
+
     let title: String
+    let onRename: (String) -> Void
     let onAddItem: () -> Void
+
+    init(title: String,
+         onRename: @escaping (String) -> Void,
+         onAddItem: @escaping () -> Void) {
+        self.title = title
+        self.onRename = onRename
+        self.onAddItem = onAddItem
+        _draftTitle = State(initialValue: title)
+    }
 
     var body: some View {
         HStack {
-            Text(title)
-                .font(.headline)
+            if isEditing {
+                TextField("Section name", text: $draftTitle)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit {
+                        onRename(draftTitle)
+                        isEditing = false
+                    }
+            } else {
+                Text(title)
+                    .font(.headline)
+                    .onTapGesture {
+                        isEditing = true
+                    }
+            }
 
             Spacer()
 

@@ -17,44 +17,51 @@ struct DiscountListTenantView: View {
         VStack {
             if vm.isLoading || !vm.isMenuLoaded {
                 ProgressView("Loading discounts...")
-                    .padding()
-
-            } else if vm.discounts.isEmpty {
-                VStack(spacing: 12) {
-                    Image(systemName: "tag")
-                        .font(.largeTitle)
-                        .foregroundColor(.secondary)
-                    Text("No discounts yet")
-                        .foregroundColor(.secondary)
-                }
-                .padding()
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
 
             } else {
-                List {
-                    ForEach(vm.discounts) { discount in
-                        DiscountRow(
-                            discount: discount,
-                            menuName: vm.menuNameMap[discount.itemId] ?? "-"
-                        )
+                if vm.discounts.isEmpty {
+                    VStack(spacing: 12) {
+                        Image(systemName: "tag")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("No discounts yet")
+                            .foregroundColor(.secondary)
                     }
-                }
-                .listStyle(.insetGrouped)
-            }
-
-            // CREATE BUTTON
-            Button {
-                showAddDiscount = true
-            } label: {
-                Text("Create Discount")
-                    .frame(maxWidth: .infinity)
                     .padding()
-                    .background(Color.orange)
-                    .foregroundColor(.white)
-                    .font(.headline)
-                    .cornerRadius(14)
+
+                } else {
+                    List {
+                        ForEach(Array(vm.discounts.enumerated()), id: \.element.id) { index, discount in
+                            DiscountRow(
+                                discount: discount,
+                                menuName: vm.menuNameMap[discount.itemId] ?? "-"
+                            )
+                            // Cek jika ini adalah indeks 0 (baris pertama)
+                            .listRowSeparator(index == 0 ? .hidden : .visible, edges: .top)
+                        }
+                    }
+                    .listStyle(.plain)
+                }
+                
+                // CREATE BUTTON
+                Button {
+                    showAddDiscount = true
+                } label: {
+                    Text("Create Discount")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 12)
+                        .background(Color.orange)
+                        .foregroundColor(.white)
+                        .font(.headline)
+                        .cornerRadius(24)
+                }
+                .padding(.horizontal)
             }
-            .padding()
         }
+        .toolbar(.hidden, for: .tabBar)
+        .scrollContentBackground(.hidden)
         .navigationTitle("Discounts")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

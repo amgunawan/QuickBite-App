@@ -31,13 +31,7 @@ struct ManageMenuStockTenantView: View {
     // MARK: - BODY
     // =========================================================
     var body: some View {
-        List {
-            contentView
-        }
-        .listStyle(.plain)
-        .navigationTitle("Manage Menu & Stock")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(.hidden, for: .tabBar)
+        contentView
 
         // EDIT SHEET
         .sheet(item: $selectedItem) { item in
@@ -91,7 +85,13 @@ struct ManageMenuStockTenantView: View {
         } else if let error = viewModel.errorMessage {
             errorView(error)
         } else {
-            menuSections
+            List {
+                menuSections
+            }
+            .listStyle(.plain)
+            .navigationTitle("Manage Menu & Stock")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar(.hidden, for: .tabBar)
         }
     }
 
@@ -101,7 +101,9 @@ struct ManageMenuStockTenantView: View {
     private var loadingView: some View {
         HStack {
             Spacer()
-            ProgressView("Loading...")
+            ProgressView("Loading menu items...")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
             Spacer()
         }
     }

@@ -59,9 +59,10 @@ struct EditStoreDetailsTenantView: View {
                 } label: {
                     Text("Save Changes")
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 12)
                         .background(Color.orange)
                         .foregroundColor(.white)
+                        .font(.headline)
                         .cornerRadius(24)
                 }
                 .padding()
@@ -157,6 +158,7 @@ struct EditStoreDetailsTenantView: View {
                 }
             }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var searchIconSection: some View {

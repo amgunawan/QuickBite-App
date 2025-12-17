@@ -136,6 +136,7 @@ struct TenantActivityView: View {
                     .padding(.top, 16)
                     .padding(.bottom, 30)
                 }
+                .scrollIndicators(.hidden)
             }
             .onAppear {
                 if let storeId = authVM.currentUserSession?.storeId {

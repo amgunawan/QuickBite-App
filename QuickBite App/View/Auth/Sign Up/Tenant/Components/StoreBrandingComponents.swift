@@ -8,8 +8,15 @@
 import SwiftUI
 
 // MARK: - Weekday Enum
-enum Weekday: String, CaseIterable, Identifiable {
-    case monday, tuesday, wednesday, thursday, friday, saturday, sunday
+enum Weekday: String, CaseIterable, Identifiable, Hashable {
+    case Monday
+    case Tuesday
+    case Wednesday
+    case Thursday
+    case Friday
+    case Saturday
+    case Sunday
+
     var id: String { rawValue }
 }
 

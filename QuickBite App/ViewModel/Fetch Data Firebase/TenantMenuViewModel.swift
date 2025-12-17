@@ -245,26 +245,21 @@ class TenantMenuViewModel: ObservableObject {
             completion(nil)
             return
         }
-        
+
         let safeCategory = category.storageSafeKey
         let path = "\(storeFolder)/\(safeCategory)/\(filename)"
         let ref = Storage.storage().reference().child(path)
-        
-        ref.putData(data, metadata: nil) { metadata, error in
+
+        ref.putData(data, metadata: nil) { _, error in
             if let error = error {
                 print("Upload failed:", error)
                 completion(nil)
                 return
             }
-            
-            // 🔥 RETURN HTTPS DOWNLOAD URL
-            ref.downloadURL { url, error in
-                if let url = url {
-                    completion(url.absoluteString)
-                } else {
-                    completion(nil)
-                }
-            }
+
+            // ✅ Return gs:// path
+            let gsURL = "gs://\(ref.bucket)/\(ref.fullPath)"
+            completion(gsURL)
         }
     }
     

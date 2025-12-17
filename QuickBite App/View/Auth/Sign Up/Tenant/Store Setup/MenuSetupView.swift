@@ -140,6 +140,11 @@ struct MenuSetupView: View {
 
         Task {
             do {
+                let finalizedItems = storeVM.generateItemIDs(
+                    storeName: storeVM.storeName,
+                    sections: sections
+                )
+
                 let storeID = try await storeVM.registerStore(
                     storeName: storeVM.storeName,
                     location: storeVM.location,
@@ -149,7 +154,7 @@ struct MenuSetupView: View {
                     openDays: storeVM.openDays,
                     openingTime: storeVM.openingTime,
                     closingTime: storeVM.closingTime,
-                    sections: sections
+                    sections: finalizedItems
                 )
 
                 try await authVM.finalizeMerchantOnboarding(storeId: storeID)

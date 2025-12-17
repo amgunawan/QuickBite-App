@@ -19,6 +19,7 @@ func uploadImageToStorage(
 
     let ref = Storage.storage().reference().child(path)
     _ = try await ref.putDataAsync(data)
-    let url = try await ref.downloadURL()
-    return url.absoluteString
+
+    // ✅ Return canonical storage URI
+    return "gs://\(ref.bucket)/\(ref.fullPath)"
 }

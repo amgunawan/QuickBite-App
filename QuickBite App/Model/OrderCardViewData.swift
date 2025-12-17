@@ -14,21 +14,4 @@ struct OrderCardViewData: Identifiable {
     let items: [String]
     let total: String
     var status: String
-
-//    init(
-//        id: UUID = UUID(),
-//        name: String,
-//        pickupTime: String,
-//        items: [String],
-//        total: String,
-//        status: String
-//    ) {
-//        self.id = id
-//        self.name = name
-//        self.pickupTime = pickupTime
-//        self.items = items
-//        self.total = total
-//        self.status = status
-//    }
 }
-

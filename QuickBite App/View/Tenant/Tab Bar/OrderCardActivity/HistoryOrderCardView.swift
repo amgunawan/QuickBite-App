@@ -15,7 +15,6 @@ struct HistoryOrderCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-
             // ===== HEADER (Name + Completed)
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
@@ -55,16 +54,3 @@ struct HistoryOrderCardView: View {
         )
     }
 }
-
-
-// PREVIEW
-//#Preview {
-//    HistoryOrderCardView(
-//        order: OrderCardViewData(
-//            name: "Angela Melia",
-//            pickupTime: "12:00 PM",
-//            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
-//            total: "Rp 83.000"
-//        )
-//    )
-//}

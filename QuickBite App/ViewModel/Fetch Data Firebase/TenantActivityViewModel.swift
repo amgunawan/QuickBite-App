@@ -14,7 +14,6 @@ import FirebaseStorage
 @MainActor
 final class TenantActivityViewModel: ObservableObject {
     
-    @Published var newOrders: [OrderCardViewData] = []
     @Published var preparingOrders: [OrderCardViewData] = []
     @Published var readyOrders: [OrderCardViewData] = []
     @Published var historyOrders: [OrderCardViewData] = []
@@ -43,7 +42,7 @@ final class TenantActivityViewModel: ObservableObject {
                     for doc in docs {
                         let data = doc.data()
                         
-                        let status = data["status"] as? String ?? "new"
+                        let status = data["status"] as? String ?? "preparing"
                         let pickupDate = (data["pickup_time"] as? Timestamp)?.dateValue()
                         let totalInt = data["total_cost"] as? Int ?? 0
                         
@@ -67,9 +66,8 @@ final class TenantActivityViewModel: ObservableObject {
                         allOrders.append(order)
                     }
                     
-                    self.newOrders       = allOrders.filter { $0.status == "new" }
-                    self.preparingOrders = allOrders.filter { $0.status == "preparing" }
-                    self.readyOrders     = allOrders.filter { $0.status == "ready_for_pickup" }
+                    self.preparingOrders = allOrders.filter { $0.status == "pending" }
+                    self.readyOrders     = allOrders.filter { $0.status == "ready" }
                     self.historyOrders   = allOrders.filter { $0.status == "completed" }
                 }
             }
@@ -179,7 +177,7 @@ final class TenantActivityViewModel: ObservableObject {
                 let choices = opt["selected_choice"] as? [[String: Any]] ?? []
                 for choice in choices {
                     if let name = choice["name"] as? String {
-                        result.append(name)
+                        result.append("• \(name)")
                     }
                 }
             }

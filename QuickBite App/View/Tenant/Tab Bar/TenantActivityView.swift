@@ -19,15 +19,14 @@ struct TenantActivityView: View {
     @State private var selectedTab = 0
     @State private var isOpen = true
     
-    let activityTabs = ["New", "Preparing", "Ready", "History"]
+    let activityTabs = ["Preparing", "Ready", "History"]
     
     // Badge logic
     func badgeCount(_ index: Int) -> Int {
         switch index {
-        case 0: return vm.newOrders.count
-        case 1: return vm.preparingOrders.count
-        case 2: return vm.readyOrders.count
-        case 3: return vm.historyOrders.count
+        case 0: return vm.preparingOrders.count
+        case 1: return vm.readyOrders.count
+        case 2: return vm.historyOrders.count
         default: return 0
         }
     }
@@ -82,64 +81,54 @@ struct TenantActivityView: View {
                 .padding(.bottom, 8)
                 .background(Color.white)
                 
-                //                if !isOpen {
-                //                    Spacer()
-                //                    VStack(spacing: 12) {
-                //                        Image(systemName: "lock.fill")
-                //                            .font(.system(size: 40))
-                //                            .foregroundColor(.gray.opacity(0.6))
-                //
-                //                        Text("Your restaurant is closed")
-                //                            .font(.headline)
-                //                            .foregroundColor(.gray)
-                //
-                //                        Text("You cannot process orders while closed.")
-                //                            .font(.subheadline)
-                //                            .foregroundColor(.gray.opacity(0.7))
-                //                    }
-                //                    .padding(.bottom, 80)
-                //                    Spacer()
-                //
-                //                } else {
                 ScrollView {
                     VStack(spacing: 20) {
                         
                         // NEW
                         if selectedTab == 0 {
-                            ForEach(vm.newOrders) { order in
-                                NewOrderCardView(order: order) {
-                                    vm.updateStatus(
-                                        orderId: order.id,
-                                        to: "preparing"
-                                    )
+                            VStack(spacing: 16) {
+                                ForEach(vm.preparingOrders) { order in
+                                    PreparingOrderCardView(order: order) {
+                                        Task {
+                                            // Update ke Firestore
+                                            await vm.updateStatus(orderId: order.id, to: "ready")
+                                            
+                                            // Pindah ke tab History
+                                            withAnimation {
+                                                selectedTab = 1
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-                        
-                        // PREPARING
-                        if selectedTab == 1 {
-                            ForEach(vm.preparingOrders) { order in
-                                PreparingOrderCardView(order: order) {
-                                    vm.updateStatus(
-                                        orderId: order.id,
-                                        to: "ready_for_pickup"
-                                    )
-                                }
-                            }
-                        }
-                        
                         
                         // READY
-                        if selectedTab == 2 {
-                            ForEach(vm.readyOrders) { order in
-                                ReadyOrderCardView(order: order)
+                        if selectedTab == 1 {
+                            VStack(spacing: 16) {
+                                ForEach(vm.readyOrders) { order in
+                                    ReadyOrderCardView(order: order) {
+                                        Task {
+                                            // Update ke Firestore
+                                            await vm.updateStatus(orderId: order.id, to: "completed")
+                                            
+                                            // Pindah ke tab History
+                                            withAnimation {
+                                                selectedTab = 2
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         
                         // HISTORY
-                        if selectedTab == 3 {
-                            ForEach(vm.historyOrders) { order in
-                                HistoryOrderCardView(order: order)
+                        if selectedTab == 2 {
+                            VStack(spacing: 16) {
+                                ForEach(vm.historyOrders) { order in
+                                    
+                                    HistoryOrderCardView(order: order)
+                                }
                             }
                         }
                     }

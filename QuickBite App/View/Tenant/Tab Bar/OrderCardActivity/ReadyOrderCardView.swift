@@ -9,9 +9,11 @@ import SwiftUI
 import Foundation
 
 struct ReadyOrderCardView: View {
-
+    @State private var showConfirmAlert = false
+    
     let order: OrderCardViewData
-
+    var onMarkAsCompleted: (() -> Void)? = nil
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
@@ -28,11 +30,13 @@ struct ReadyOrderCardView: View {
 
                 Text("Ready for Pickup")
                     .foregroundColor(.green)
+                    .font(.subheadline)
                     .fontWeight(.semibold)
             }
 
             ForEach(order.items, id: \.self) { item in
                 Text(item)
+                    .font(.subheadline)
             }
 
             Divider()
@@ -56,6 +60,28 @@ struct ReadyOrderCardView: View {
                 .background(Color.green.opacity(0.15))
                 .cornerRadius(UIConst.corner)
             }
+            
+            Button(action: {
+                showConfirmAlert = true
+            }) {
+                Text("Mark as Completed")
+                    .fontWeight(.medium)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(Color.orange)
+                    .cornerRadius(24)
+            }
+            .tint(nil)
+            .accentColor(nil)
+            .alert("Mark Order as Completed?", isPresented: $showConfirmAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Complete") {
+                    onMarkAsCompleted?()
+                }
+            } message: {
+                Text("Confirm that this order has been successfully picked up by \(order.name).")
+            }
         }
         .padding()
         .background(
@@ -65,16 +91,3 @@ struct ReadyOrderCardView: View {
         )
     }
 }
-
-
-
-//#Preview {
-//    ReadyOrderCardView(
-//        order: OrderCardViewData(
-//            name: "Sharon Tan",
-//            pickupTime: "12:00 PM",
-//            items: ["2x Chicken Katsu Shirokara Ramen", "1x Cold Ocha"],
-//            total: "Rp 83.000"
-//        )
-//    )
-//}

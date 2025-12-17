@@ -10,13 +10,13 @@ import Foundation
 
 
 struct PreparingOrderCardView: View {
+    @State private var showConfirmAlert = false
     
     let order: OrderCardViewData
     var onMarkAsReady: (() -> Void)? = nil
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(order.name)
@@ -26,12 +26,15 @@ struct PreparingOrderCardView: View {
                         .foregroundColor(.red)
                 }
                 Spacer()
-                Text("Preparing…")
+                Text("Preparing")
                     .foregroundColor(.blue)
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
             }
             
             ForEach(order.items, id: \.self) { item in
                 Text(item)
+                    .font(.subheadline)
             }
             
             Divider()
@@ -41,7 +44,9 @@ struct PreparingOrderCardView: View {
             
             Divider()
             
-            Button(action: { onMarkAsReady?() }) {
+            Button(action: {
+                showConfirmAlert = true
+            }) {
                 Text("Mark as Ready")
                     .fontWeight(.medium)
                     .foregroundColor(.white)
@@ -49,6 +54,14 @@ struct PreparingOrderCardView: View {
                     .padding(.vertical, 12)
                     .background(Color.orange)
                     .cornerRadius(24)
+            }
+            .alert("Mark Order as Ready?", isPresented: $showConfirmAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Ready") {
+                    onMarkAsReady?()
+                }
+            } message: {
+                Text("This will notify \(order.name) that their order is ready for pickup.")
             }
         }
         .padding()
@@ -59,16 +72,3 @@ struct PreparingOrderCardView: View {
         )
     }
 }
-
-
-//#Preview {
-//    PreparingOrderCardView(
-//        order: OrderCardViewData(
-//            name: "Rayna Shera",
-//            pickupTime: "12:00 PM",
-//            items: ["1x Chicken Teriyaki Shirokara Ramen", "1x Hot Ocha"],
-//            total: "Rp 46.000"
-//        ),
-//        onMarkAsReady: {}
-//    )
-//}

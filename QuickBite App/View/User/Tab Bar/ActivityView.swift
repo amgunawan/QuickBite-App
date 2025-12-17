@@ -69,8 +69,10 @@ struct ActivityView: View {
                                         actionTitle: "Track Order",
                                         actionEnabled: true
                                     ) {
-                                        selectedOrderId = order.id
-                                        goToPickUpView = true
+                                        if let id = order.id {
+                                            self.selectedOrderId = id
+                                            self.goToPickUpView = true
+                                        }
                                     }
                                 }
                                 .cardStyle()
@@ -127,7 +129,6 @@ struct ActivityView: View {
             .navigationDestination(isPresented: $goToPickUpView) {
                 if let id = selectedOrderId {
                     OrderPreparedView(orderId: id)
-                        .navigationBarBackButtonHidden(true)
                 }
             }
             .navigationDestination(isPresented: $showReviewView) {

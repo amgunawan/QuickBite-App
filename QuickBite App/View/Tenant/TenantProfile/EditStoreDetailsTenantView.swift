@@ -1,9 +1,22 @@
 import SwiftUI
 import PhotosUI
 
+private struct StoreSnapshot: Equatable {
+    let bannerImage: UIImage?
+    let iconImage: UIImage?
+    let open24Hours: Bool
+    let openingTime: Date
+    let closingTime: Date
+    let openDays: Set<Weekday>
+}
+
 struct EditStoreDetailsTenantView: View {
 
     let storeId: String
+    
+    @State private var originalSnapshot: StoreSnapshot?
+    @State private var hasChanges = false
+
     @StateObject private var vm = EditStoreDetailsViewModel()
     
     @State private var didLoadFromFirestore = false
@@ -55,16 +68,28 @@ struct EditStoreDetailsTenantView: View {
                             closingTime: closingTime,
                             open24Hours: open24Hours
                         )
+
+                        // Reset baseline after successful save
+                        originalSnapshot = StoreSnapshot(
+                            bannerImage: bannerImage,
+                            iconImage: iconImage,
+                            open24Hours: open24Hours,
+                            openingTime: openingTime,
+                            closingTime: closingTime,
+                            openDays: openDays
+                        )
+                        hasChanges = false
                     }
                 } label: {
                     Text("Save Changes")
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(Color.orange)
+                        .background(hasChanges ? Color.orange : Color.gray.opacity(0.4))
                         .foregroundColor(.white)
                         .font(.headline)
                         .cornerRadius(24)
                 }
+                .disabled(!hasChanges)
                 .padding()
             }
             .disabled(!didLoadFromFirestore)
@@ -104,6 +129,12 @@ struct EditStoreDetailsTenantView: View {
                 ) ?? closingTime
             }
         }
+        .onChange(of: bannerImage) { _, _ in recomputeHasChanges() }
+        .onChange(of: iconImage) { _, _ in recomputeHasChanges() }
+        .onChange(of: open24Hours) { _, _ in recomputeHasChanges() }
+        .onChange(of: openingTime) { _, _ in recomputeHasChanges() }
+        .onChange(of: closingTime) { _, _ in recomputeHasChanges() }
+        .onChange(of: openDays) { _, _ in recomputeHasChanges() }
     }
     
     private func loadExistingStore() {
@@ -119,8 +150,30 @@ struct EditStoreDetailsTenantView: View {
             openingTime = parsed.openingTime
             closingTime = parsed.closingTime
 
+            originalSnapshot = StoreSnapshot(
+                bannerImage: bannerImage,
+                iconImage: iconImage,
+                open24Hours: open24Hours,
+                openingTime: openingTime,
+                closingTime: closingTime,
+                openDays: openDays
+            )
+
             didLoadFromFirestore = true
         }
+    }
+    
+    private func recomputeHasChanges() {
+        guard let original = originalSnapshot else { return }
+
+        hasChanges = StoreSnapshot(
+            bannerImage: bannerImage,
+            iconImage: iconImage,
+            open24Hours: open24Hours,
+            openingTime: openingTime,
+            closingTime: closingTime,
+            openDays: openDays
+        ) != original
     }
     
     private var storeBannerSection: some View {
@@ -163,7 +216,8 @@ struct EditStoreDetailsTenantView: View {
 
     private var searchIconSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Search Menu Icon").font(.headline)
+            Text("Search Menu Icon")
+                .font(.headline)
 
             HStack(spacing: 12) {
                 ZStack {
@@ -174,13 +228,19 @@ struct EditStoreDetailsTenantView: View {
                         Image(uiImage: img)
                             .resizable()
                             .scaledToFill()
+                            .frame(width: 64, height: 64)   // ✅ FIX: frame on IMAGE
+                            .clipped()
                             .clipShape(RoundedRectangle(cornerRadius: 10))
                     } else {
                         Image(systemName: "photo.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
                             .foregroundColor(.secondary)
                     }
                 }
                 .frame(width: 64, height: 64)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
 
                 PhotosPicker(selection: $iconPickedItem, matching: .images) {
                     pillButton("Choose File")
@@ -236,6 +296,7 @@ struct EditStoreDetailsTenantView: View {
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
                 }
+                .tint(.orange)
                 .padding(.horizontal, 16)
                 .frame(height: 48)
             }
@@ -364,6 +425,6 @@ struct EditStoreDetailsTenantView: View {
 
 #Preview {
     NavigationView {
-        EditStoreDetailsTenantView(storeId: "l8jFbmSGa7H4li3XR6nm")
+        EditStoreDetailsTenantView(storeId: "L6fI11B54V0HHh7y0jFa")
     }
 }

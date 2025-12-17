@@ -30,6 +30,9 @@ struct MainFormView: View {
         if Auth.auth().currentUser != nil && vm.currentUserSession == nil {
             ProgressView("Signing you in…")
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else if vm.awaitingEmailVerification {
+            ConfirmAccountView()
+                .environmentObject(vm)
         } else {
             NavigationStack {
                 VStack(spacing: 24) {
@@ -216,29 +219,15 @@ struct MainFormView: View {
             .onTapGesture {
                 hideKeyboard()
             }
+            .onAppear {
+                vm.resetCredentials()
+            }
         }
     }
     
     func signInUser() async {
         do {
             try await vm.signInWithEmailPassword()
-
-            guard let user = Auth.auth().currentUser else { return }
-
-            if !user.isEmailVerified {
-                try await user.sendEmailVerification()
-                alertMessage = "Please verify your email before signing in."
-                showingLoginAlert = true
-
-                // Delay sign-out to allow listener stabilization
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    try? Auth.auth().signOut()
-                }
-            }
-
-            // ✅ DO NOT set navigation flags here
-            // Navigation happens automatically when currentUserSession is populated
-
         } catch {
             alertMessage = error.localizedDescription
             showingLoginAlert = true

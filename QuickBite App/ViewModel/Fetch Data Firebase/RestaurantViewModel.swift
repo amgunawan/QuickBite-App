@@ -10,80 +10,101 @@ import Combine
 import FirebaseFirestore
 import FirebaseStorage
 
-class RestaurantsViewModel: ObservableObject {
+final class RestaurantsViewModel: ObservableObject {
+
     @Published var restaurants: [Restaurant] = []
-    @Published var isLoading = false // Tambahan biar UI bisa loading spinner
-    
-    private var db = Firestore.firestore()
-    private var storage = Storage.storage()
-    
+    @Published var isLoading = false
+
+    private let db = Firestore.firestore()
+    private let storage = Storage.storage()
+
     init() {
         fetchRestaurants()
     }
-    
+
+    // MARK: - Fetch
     func fetchRestaurants() {
-        self.isLoading = true
-        
+        isLoading = true
+
         db.collection("stores").getDocuments { [weak self] snapshot, error in
-            guard let self = self else { return }
-            
+            guard let self else { return }
+
             if let error = error {
-                print("Error fetching stores:", error)
+                print("❌ Error fetching stores:", error)
                 self.isLoading = false
                 return
             }
-            
+
             guard let documents = snapshot?.documents else {
+                print("⚠️ No store documents found")
                 self.isLoading = false
                 return
             }
-            
-            // PERBAIKAN 1: Pakai CompactMap & Codable
-            // Ini otomatis mengambil SEMUA field (termasuk menu_data_url)
-            // sesuai CodingKeys yang ada di RestaurantModel.swift
-            self.restaurants = documents.compactMap { doc -> Restaurant? in
-                return try? doc.data(as: Restaurant.self)
+
+            var decodedRestaurants: [Restaurant] = []
+
+            for doc in documents {
+                do {
+                    var restaurant = try doc.data(as: Restaurant.self)
+
+                    // ✅ SAFETY DEFAULTS
+                    if restaurant.deliveryTime == nil {
+                        restaurant.deliveryTime = "<15 min"
+                    }
+
+                    decodedRestaurants.append(restaurant)
+                } catch {
+                    print("❌ Failed decoding store \(doc.documentID): \(error)")
+                }
             }
-            
-            // Debugging: Cek apakah link menu sudah masuk
-            for resto in self.restaurants {
-                print("Resto: \(resto.name), Menu Link: \(resto.menuDataURL ?? "KOSONG")")
-            }
-            
-            // Convert gambar banner dari gs:// ke https://
+
+            self.restaurants = decodedRestaurants
+
+            print("✅ Loaded \(decodedRestaurants.count) restaurants")
+
+            // Convert all gs:// URLs
             self.convertAllGSURLs()
+
             self.isLoading = false
         }
     }
-    
+
+    // MARK: - Image URL Conversion
     private func convertAllGSURLs() {
-        // PERBAIKAN 2: Enumerated Loop
-        // Kita butuh index DAN datanya sekaligus
         for (index, restaurant) in restaurants.enumerated() {
-            
-            // Cek apakah ada bannerURL dan formatnya gs://
-            if let gsURL = restaurant.bannerURL, gsURL.starts(with: "gs://") {
-                
-                let ref = storage.reference(forURL: gsURL)
-                
-                ref.downloadURL { [weak self] url, error in
-                    guard let self = self else { return }
-                    
-                    if let error = error {
-                        print("Gagal convert gambar \(restaurant.name):", error)
-                        return
-                    }
-                    
-                    // PERBAIKAN 3: Safety Check (Anti Crash)
-                    DispatchQueue.main.async {
-                        // Pastikan index masih valid (user tidak refresh mendadak)
-                        if self.restaurants.indices.contains(index) {
-                            // Update URL gambar
-                            self.restaurants[index].bannerURL = url?.absoluteString
-                        }
-                    }
-                }
+
+            // Banner
+            if let gsBanner = restaurant.bannerURL, gsBanner.hasPrefix("gs://") {
+                convert(gsURL: gsBanner, index: index, keyPath: \.bannerURL)
+            }
+
+            // Search Icon
+            if let gsSearch = restaurant.searchURL, gsSearch.hasPrefix("gs://") {
+                convert(gsURL: gsSearch, index: index, keyPath: \.searchURL)
+            }
+        }
+    }
+
+    private func convert(
+        gsURL: String,
+        index: Int,
+        keyPath: WritableKeyPath<Restaurant, String?>
+    ) {
+        let ref = storage.reference(forURL: gsURL)
+
+        ref.downloadURL { [weak self] url, error in
+            guard let self else { return }
+
+            if let error = error {
+                print("❌ Failed converting image:", error)
+                return
+            }
+
+            DispatchQueue.main.async {
+                guard self.restaurants.indices.contains(index) else { return }
+                self.restaurants[index][keyPath: keyPath] = url?.absoluteString
             }
         }
     }
 }
+

@@ -263,6 +263,7 @@ struct StoreBrandingView: View {
             } label: {
                 HStack {
                     Text("Weekly Schedule")
+                        .foregroundColor(.orange)
                     Spacer()
                     Image(systemName: "chevron.right")
                         .foregroundColor(.secondary)
@@ -280,32 +281,46 @@ struct StoreBrandingView: View {
     
     private var storeBannerSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Store Banner").font(.headline)
+            Text("Store Banner")
+                .font(.headline)
 
             ZStack {
                 if let img = bannerImage {
                     Image(uiImage: img)
                         .resizable()
                         .scaledToFill()
+                        .frame(maxWidth: .infinity)
                         .aspectRatio(16/9, contentMode: .fill)
+                        .clipped()
+                        .cornerRadius(10)
                 } else {
-                    VStack {
+                    VStack(spacing: 8) {
                         Image(systemName: "photo.fill.on.rectangle.fill")
+                            .font(.system(size: 28))
                             .foregroundColor(.secondary)
+
                         Text("Upload Banner (16:9)")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
+                    .aspectRatio(16/9, contentMode: .fill)
+                    .padding(.vertical, 24)
+                    .background(Color(.systemGray6))
+                    .cornerRadius(10)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
+                            .foregroundColor(.secondary)
+                    )
                 }
             }
-            .frame(height: 120)
-            .background(Color(.secondarySystemBackground))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             HStack {
                 PhotosPicker(selection: $bannerPickedItem, matching: .images) {
                     pillButton("Choose File")
                 }
+
                 Text(bannerFileName.isEmpty ? "No file chosen" : bannerFileName)
                     .font(.subheadline)
                     .foregroundColor(.secondary)

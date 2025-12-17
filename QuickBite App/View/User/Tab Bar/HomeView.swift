@@ -202,7 +202,7 @@ struct HomeView: View {
                                         NavigationLink(destination: RestaurantDetailView(restaurant: restaurant)) {
                                             TopRatedRestaurantsCardView(
                                                 imageURL: restaurant.bannerURL,
-                                                deliveryTime: restaurant.deliveryTime,
+                                                deliveryTime: restaurant.deliveryTime ?? "",
                                                 name: restaurant.name,
                                                 rating: String(format: "%.1f", restaurant.rating),
                                                 reviewCount: restaurant.reviewCount == 0
@@ -236,7 +236,7 @@ struct HomeView: View {
                                         NavigationLink(destination: RestaurantDetailView(restaurant: r)) {
                                             AllRestaurantsCardView(
                                                 imageURL: r.bannerURL,
-                                                deliveryTime: r.deliveryTime, 
+                                                deliveryTime: r.deliveryTime ?? "",
                                                 name: r.name,
                                                 rating: String(format: "%.1f", r.rating),
                                                 reviewCount: r.reviewCount == 0 ? "No rating" : "\(r.reviewCount) ratings"

@@ -23,8 +23,11 @@ struct InitialView: View {
 
             // ===== MAIN CONTENT =====
             Group {
-                if authVM.currentUserSession == nil {
+                if authVM.awaitingEmailVerification {
+                    ConfirmAccountView()
+                        .environmentObject(authVM)
 
+                } else if authVM.currentUserSession == nil {
                     MainFormView()
                         .environmentObject(authVM)
                         .environmentObject(storeVM)

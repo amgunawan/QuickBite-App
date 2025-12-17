@@ -191,16 +191,6 @@ struct SignUpFormView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .navigationDestination(isPresented: $goNextScreen) {
-                switch role {
-                case .customer:
-                    UserContentView()
-                        .navigationBarBackButtonHidden(true)
-                case .merchant:
-                    SignUpFormTenantView()
-                        .navigationBarBackButtonHidden(true)
-                }
-            }
             .onAppear {
                 emailValidator.email = authVM.email
                 passwordVM.password = authVM.password
@@ -213,10 +203,6 @@ struct SignUpFormView: View {
         do {
             // Firebase signup + Firestore creation + loadCurrentUser
             try await authVM.signUp(role: role)
-
-            // No email verification flow needed anymore
-            goNextScreen = true
-
         } catch {
             loginError = error.localizedDescription
         }

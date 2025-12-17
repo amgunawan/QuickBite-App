@@ -173,14 +173,14 @@ struct DiscountListRow: View {
                 Spacer()
 
                 let tempRestaurant = Restaurant(
-                    id: deal.storeId.replacingOccurrences(of: "stores/", with: ""), // Clean ID
+//                    id: deal.storeId.replacingOccurrences(of: "stores/", with: ""), // Clean ID
                     name: deal.storeName,
                     location: "", // Placeholder
+                    cuisineType: [],
                     rating: 0.0,  // Placeholder
                     reviewCount: 0,
                     bannerURL: nil,
                     searchURL: nil,
-                    cuisineType: [],
                     menuDataURL: deal.menuDataURL, // ✅ Passed from ViewModel
                     deliveryTime: "30 min" // Placeholder
                 )

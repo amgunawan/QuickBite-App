@@ -1,142 +1,98 @@
 //
-//  ChangePasswordTenant.swift
+//  ChangePasswordTenantView.swift
 //  QuickBite App
 //
 //  Created by jessica tedja on 05/11/25.
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ChangePasswordTenantView: View {
+
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var currentPassword: String = ""
-    @State private var newPassword: String = ""
-    @State private var confirmPassword: String = ""
-    
-    @State private var showCurrent = false
-    @State private var showNew = false
-    @State private var showConfirm = false
-    
-    @FocusState private var focused: Field?
-    enum Field { case current, new, confirm }
-    
-    @StateObject private var passwordChecker = PasswordCheckViewModel()
-    
-    private var isMatch: Bool {
-        !newPassword.isEmpty && newPassword == confirmPassword
+    @StateObject private var resetVM = PasswordResetViewModel()
+
+    private var userEmail: String {
+        Auth.auth().currentUser?.email ?? ""
     }
-    
-    private var isDifferentFromCurrent: Bool {
-        !newPassword.isEmpty && newPassword != currentPassword
-    }
-    
-    private var isFormValid: Bool {
-        !currentPassword.isEmpty &&
-        passwordChecker.isPasswordValid &&
-        isMatch &&
-        isDifferentFromCurrent
-    }
-    
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // Current Password
+
+                // MARK: Email Section (same structure as password sections)
                 VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("Current Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Type your current password",
-                        text: $currentPassword,
-                        isSecure: !showCurrent,
-                        onToggle: { showCurrent.toggle() }
-                    )
-                    .focused($focused, equals: .current)
-                }
-                
-                // New Password
-                VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("New Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Type your new password",
-                        text: $newPassword,
-                        isSecure: !showNew,
-                        onToggle: { showNew.toggle() }
-                    )
-                    .focused($focused, equals: .new)
-                    .onChange(of: newPassword) {
-                        passwordChecker.password = newPassword
+                    requiredLabel("Email")
+
+                    HStack {
+                        Image(systemName: "envelope")
+                            .foregroundColor(.gray)
+
+                        Text(userEmail.isEmpty ? "No email found" : userEmail)
+                            .foregroundColor(userEmail.isEmpty ? .gray : .primary)
+
+                        Spacer()
                     }
-                    
-                    // Validasi visual dari PasswordCheckViewModel
-                    Group {
-                        if !passwordChecker.hasValidLength && !newPassword.isEmpty {
-                            Text("Password must be 8–20 characters long.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !passwordChecker.hasLetterAndNumber && !newPassword.isEmpty {
-                            Text("Password must contain both letters and numbers.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !passwordChecker.hasSpecialCharacter && !newPassword.isEmpty {
-                            Text("Password must include at least one special character.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !isDifferentFromCurrent && !newPassword.isEmpty {
-                            Text("New password must be different from current password.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-                
-                // Confirm Password
-                VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("Confirm New Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Confirm your new password",
-                        text: $confirmPassword,
-                        isSecure: !showConfirm,
-                        onToggle: { showConfirm.toggle() }
+                    .padding(.horizontal)
+                    .padding(.vertical, 12)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(.systemGray4))
                     )
-                    .focused($focused, equals: .confirm)
-                    
-                    if !isMatch && !confirmPassword.isEmpty {
-                        Text("Passwords do not match.")
-                            .font(.caption)
-                            .foregroundColor(.red)
-                    }
+
+                    Text("A secure password reset link will be sent to this email.")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
-                
-                // Submit Button
-                Button(action: handleChangePassword) {
-                    Text("Change password")
+
+                // MARK: Submit Button (IDENTICAL styling)
+                Button {
+                    resetVM.sendResetEmail(email: userEmail)
+                } label: {
+                    Text(resetVM.isLoading ? "Sending..." : "Send reset link")
                         .fontWeight(.medium)
                         .foregroundColor(.white)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 12)
-                        .background(isFormValid ? Color.orange : Color(.systemGray4))
+                        .background(
+                            (!userEmail.isEmpty && !resetVM.isLoading)
+                            ? Color.orange
+                            : Color(.systemGray4)
+                        )
                         .cornerRadius(24)
                 }
-                .disabled(!isFormValid)
+                .disabled(userEmail.isEmpty || resetVM.isLoading)
                 .padding(.top, 8)
-                
+
+                // MARK: Feedback (same placement as validation errors)
+                if let error = resetVM.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                if let success = resetVM.successMessage {
+                    Text(success)
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+
                 Spacer()
             }
-            .toolbar(.hidden, for: .tabBar)
             .padding(.horizontal)
             .padding(.top, 16)
             .navigationTitle("Change Password")
+            .toolbar(.hidden, for: .tabBar)
+            .onChange(of: resetVM.successMessage) { _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    dismiss()
+                }
+            }
         }
     }
-    
-    private func handleChangePassword() {
-        // TODO: sambungkan ke ViewModel / API
-        dismiss()
-    }
-    
+
+    // MARK: Shared Label Helper (same as ChangePasswordView)
     private func requiredLabel(_ text: String) -> some View {
         HStack(spacing: 2) {
             Text(text)
@@ -148,43 +104,3 @@ struct ChangePasswordTenantView: View {
         }
     }
 }
-
-struct PasswordTenantFieldWithToggle: View {
-    let placeholder: String
-    @Binding var text: String
-    var isSecure: Bool
-    var onToggle: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "lock")
-                .foregroundColor(.gray)
-            
-            if isSecure {
-                SecureField(placeholder, text: $text)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            } else {
-                TextField(placeholder, text: $text)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            }
-            
-            Button(action: onToggle) {
-                Image(systemName: isSecure ? "eye.slash" : "eye")
-                    .foregroundColor(.gray)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4))
-        )
-    }
-}
-
-#Preview {
-    TenantContentView()
-}
-

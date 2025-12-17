@@ -44,7 +44,7 @@ struct RestaurantDetailView: View {
                         categories: restaurant.cuisineType.joined(separator: ", "),
                         rating: restaurant.rating,
                         reviewCount: restaurant.reviewCount,
-                        pickupTime: restaurant.deliveryTime,
+                        pickupTime: restaurant.deliveryTime ?? "",
                         isGroupOrderActive: $isGroupOrderActive,
                         groupName: $groupName,
                         groupMembers: $groupMembers
@@ -565,14 +565,13 @@ struct RestaurantDetailView_Previews: PreviewProvider {
     static var previews: some View {
         // 1. Create Dummy Restaurant Data
         let dummyRestaurant = Restaurant(
-            id: "123",
             name: "Raburi Test",
             location: "UC Walk",
+            cuisineType: ["Japanese", "Noodles"],
             rating: 4.8,
             reviewCount: 100,
             bannerURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/main/banner.jpg",
             searchURL: nil,
-            cuisineType: ["Japanese", "Noodles"],
             menuDataURL: "gs://quickbite-app-fb529.firebasestorage.app/Raburi/menu.json",
             deliveryTime: "15-20 min"
         )

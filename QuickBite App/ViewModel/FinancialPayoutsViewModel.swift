@@ -7,13 +7,14 @@
 
 
 import Foundation
-import Combine
 import FirebaseFirestore
 import SwiftUI
+import Combine
 
+@MainActor
 final class FinancialPayoutsViewModel: ObservableObject {
 
-    // MARK: - Published States (bind ke View)
+    // MARK: - Published States
     @Published var bankName: String = ""
     @Published var accountHolder: String = ""
     @Published var accountNumber: String = ""
@@ -39,7 +40,7 @@ final class FinancialPayoutsViewModel: ObservableObject {
         !nmid.trimmingCharacters(in: .whitespaces).isEmpty
     }
 
-    // MARK: - Fetch
+    // MARK: - Fetch (OPTION A)
     func fetchPayoutDetails() {
         isLoading = true
         errorMessage = nil
@@ -48,65 +49,77 @@ final class FinancialPayoutsViewModel: ObservableObject {
             .document(storeId)
             .getDocument { [weak self] snapshot, error in
                 guard let self else { return }
-                self.isLoading = false
 
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                    return
+                DispatchQueue.main.async {
+                    self.isLoading = false
+
+                    if let error = error {
+                        self.errorMessage = error.localizedDescription
+                        return
+                    }
+
+                    guard
+                        let data = snapshot?.data(),
+                        let payout = data["payout_details"] as? [String: Any]
+                    else {
+                        // This is OK — first-time setup
+                        self.isDirty = false
+                        return
+                    }
+
+                    self.bankName = payout["bank_name"] as? String ?? ""
+                    self.accountHolder = payout["account_holder"] as? String ?? ""
+                    self.accountNumber = payout["account_number"] as? String ?? ""
+                    self.nmid = payout["nmid"] as? String ?? ""
+                    self.isDirty = false
                 }
-
-                guard
-                    let data = snapshot?.data(),
-                    let payout = data["payout_details"] as? [String: Any]
-                else {
-                    self.errorMessage = "Payout details not found"
-                    return
-                }
-
-                self.bankName = payout["bank_name"] as? String ?? ""
-                self.accountHolder = payout["account_holder"] as? String ?? ""
-                self.accountNumber = payout["account_number"] as? String ?? ""
-                self.nmid = payout["nmid"] as? String ?? ""
-
-                // Data awal dari server → belum diedit
-                self.isDirty = false
             }
     }
 
-    // MARK: - Save
+    // MARK: - Save (OPTION A)
     func savePayoutDetails(completion: @escaping () -> Void) {
         guard isValid else { return }
 
         isLoading = true
         errorMessage = nil
 
+        let payload: [String: Any] = [
+            "bank_name": bankName,
+            "account_holder": accountHolder,
+            "account_number": accountNumber,
+            "nmid": nmid
+        ]
+
         db.collection("stores")
             .document(storeId)
             .updateData([
-                "payout_details.bank_name": bankName,
-                "payout_details.account_holder": accountHolder,
-                "payout_details.account_number": accountNumber,
-                "payout_details.nmid": nmid
+                "payout_details": payload
             ]) { [weak self] error in
                 guard let self else { return }
-                self.isLoading = false
 
-                if let error = error {
-                    self.errorMessage = error.localizedDescription
-                } else {
-                    self.isDirty = false
-                    completion()
+                Task { @MainActor in
+                    self.isLoading = false
+
+                    if let error {
+                        self.errorMessage = error.localizedDescription
+                    } else {
+                        self.isDirty = false
+                        completion()
+                    }
                 }
             }
     }
 
-    // MARK: - Helper (dipanggil dari View)
+    // MARK: - Helpers
     func markDirty() {
-        isDirty = true
+        if !isDirty { isDirty = true }
     }
 
     func numericAccountOnly(_ value: String) {
-        accountNumber = value.filter { $0.isNumber }
-        isDirty = true
+        let filtered = value.filter { $0.isNumber }
+        if filtered != value {
+            accountNumber = filtered
+        }
+        markDirty()
     }
 }

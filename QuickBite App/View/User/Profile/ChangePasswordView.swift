@@ -6,179 +6,84 @@
 //
 
 import SwiftUI
+import FirebaseAuth
 
 struct ChangePasswordView: View {
     @Environment(\.dismiss) private var dismiss
-    
-    @State private var currentPassword: String = ""
-    @State private var newPassword: String = ""
-    @State private var confirmPassword: String = ""
-    
-    @State private var showCurrent = false
-    @State private var showNew = false
-    @State private var showConfirm = false
-    
-    @FocusState private var focused: Field?
-    enum Field { case current, new, confirm }
-    
-    @StateObject private var passwordChecker = PasswordCheckViewModel()
-    
-    private var isMatch: Bool {
-        !newPassword.isEmpty && newPassword == confirmPassword
-    }
-    
-    private var isDifferentFromCurrent: Bool {
-        !newPassword.isEmpty && newPassword != currentPassword
-    }
-    
-    private var isFormValid: Bool {
-        !currentPassword.isEmpty &&
-        passwordChecker.isPasswordValid &&
-        isMatch &&
-        isDifferentFromCurrent
-    }
-    
+    @StateObject private var resetVM = PasswordResetViewModel()
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 20) {
-                // Current Password
-                VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("Current Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Type your current password",
-                        text: $currentPassword,
-                        isSecure: !showCurrent,
-                        onToggle: { showCurrent.toggle() }
-                    )
-                    .focused($focused, equals: .current)
-                }
-                
-                // New Password
-                VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("New Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Type your new password",
-                        text: $newPassword,
-                        isSecure: !showNew,
-                        onToggle: { showNew.toggle() }
-                    )
-                    .focused($focused, equals: .new)
-                    .onChange(of: newPassword) {
-                        passwordChecker.password = newPassword
+
+                Image(systemName: "lock.rotation")
+                    .font(.system(size: 40))
+                    .foregroundColor(.orange)
+                    .padding(.top, 20)
+
+                Text("Change Password")
+                    .font(.title3)
+                    .fontWeight(.semibold)
+
+                Text("We’ll send you a secure email link to reset your password. Please complete the process through the email.")
+                    .font(.subheadline)
+                    .foregroundColor(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal)
+
+                if let email = Auth.auth().currentUser?.email {
+                    HStack {
+                        Image(systemName: "envelope")
+                            .foregroundColor(.gray)
+                        Text(email)
+                            .font(.subheadline)
+                            .foregroundColor(.black)
                     }
-                    
-                    // Validasi visual dari PasswordCheckViewModel
-                    Group {
-                        if !passwordChecker.hasValidLength && !newPassword.isEmpty {
-                            Text("Password must be 8–20 characters long.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !passwordChecker.hasLetterAndNumber && !newPassword.isEmpty {
-                            Text("Password must contain both letters and numbers.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !passwordChecker.hasSpecialCharacter && !newPassword.isEmpty {
-                            Text("Password must include at least one special character.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                        if !isDifferentFromCurrent && !newPassword.isEmpty {
-                            Text("New password must be different from current password.")
-                                .font(.caption)
-                                .foregroundColor(.red)
-                        }
-                    }
-                }
-                
-                // Confirm Password
-                VStack(alignment: .leading, spacing: 8) {
-                    requiredLabel("Confirm New Password")
-                    PasswordFieldWithToggle(
-                        placeholder: "Confirm your new password",
-                        text: $confirmPassword,
-                        isSecure: !showConfirm,
-                        onToggle: { showConfirm.toggle() }
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12)
+                            .stroke(Color(.systemGray4))
                     )
-                    .focused($focused, equals: .confirm)
-                    
-                    if !isMatch && !confirmPassword.isEmpty {
-                        Text("Passwords do not match.")
-                            .font(.caption)
-                            .foregroundColor(.red)
+                }
+
+                if let error = resetVM.errorMessage {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                }
+
+                if let success = resetVM.successMessage {
+                    Text(success)
+                        .font(.caption)
+                        .foregroundColor(.green)
+                }
+
+                Button {
+                    guard let email = Auth.auth().currentUser?.email else {
+                        resetVM.errorMessage = "Unable to retrieve email."
+                        return
+                    }
+                    resetVM.sendResetEmail(email: email)
+                } label: {
+                    if resetVM.isLoading {
+                        ProgressView().tint(.white)
+                    } else {
+                        Text("Send Reset Email")
+                            .fontWeight(.medium)
                     }
                 }
-                
-                // Submit Button
-                Button(action: handleChangePassword) {
-                    Text("Change password")
-                        .fontWeight(.medium)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 12)
-                        .background(isFormValid ? Color.orange : Color(.systemGray4))
-                        .cornerRadius(24)
-                }
-                .disabled(!isFormValid)
-                .padding(.top, 8)
-                
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 12)
+                .background(Color.orange)
+                .cornerRadius(24)
+                .disabled(resetVM.isLoading)
+
                 Spacer()
             }
             .padding(.horizontal)
-            .padding(.top, 16)
             .navigationTitle("Change Password")
         }
-    }
-    
-    private func handleChangePassword() {
-        // TODO: sambungkan ke ViewModel / API
-        dismiss()
-    }
-    
-    private func requiredLabel(_ text: String) -> some View {
-        HStack(spacing: 2) {
-            Text(text)
-                .font(.subheadline)
-                .fontWeight(.medium)
-            Text("*")
-                .foregroundColor(.orange)
-                .font(.subheadline)
-        }
-    }
-}
-
-struct PasswordFieldWithToggle: View {
-    let placeholder: String
-    @Binding var text: String
-    var isSecure: Bool
-    var onToggle: () -> Void
-    
-    var body: some View {
-        HStack {
-            Image(systemName: "lock")
-                .foregroundColor(.gray)
-            
-            if isSecure {
-                SecureField(placeholder, text: $text)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            } else {
-                TextField(placeholder, text: $text)
-                    .autocapitalization(.none)
-                    .disableAutocorrection(true)
-            }
-            
-            Button(action: onToggle) {
-                Image(systemName: isSecure ? "eye.slash" : "eye")
-                    .foregroundColor(.gray)
-            }
-        }
-        .padding(.horizontal)
-        .padding(.vertical, 12)
-        .background(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(Color(.systemGray4))
-        )
     }
 }

@@ -64,6 +64,8 @@ struct AddMenuItemOverlay: View {
                 }
                 saveButton
             }
+            .background(Color.white)
+            .ignoresSafeArea(edges: .bottom)
             .navigationTitle(existingItem == nil ? "Add New Item" : "Edit Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -77,6 +79,11 @@ struct AddMenuItemOverlay: View {
             }
             .onChange(of: pickedImage) { _, newValue in
                 loadSelectedImage(newValue)
+            }
+            .onAppear {
+                if existingItem == nil && prepMinutes == 0 {
+                    prepMinutes = 10
+                }
             }
         }
     }
@@ -169,12 +176,12 @@ extension AddMenuItemOverlay {
 
             // PRICE + STOCK + PREP TIME
             HStack(spacing: 12) {
-
+                
                 // PRICE
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Base Price (Rp)")
                         .font(.caption)
-
+                    
                     TextField("35000", text: $priceText)
                         .keyboardType(.numberPad)
                         .onChange(of: priceText) { _, v in
@@ -188,12 +195,12 @@ extension AddMenuItemOverlay {
                                 .stroke(Color.gray.opacity(0.3))
                         )
                 }
-
+                
                 // STOCK
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Stock / Day")
                         .font(.caption)
-
+                    
                     TextField("10", text: $stockText)
                         .keyboardType(.numberPad)
                         .onChange(of: stockText) { _, v in
@@ -207,21 +214,37 @@ extension AddMenuItemOverlay {
                                 .stroke(Color.gray.opacity(0.3))
                         )
                 }
-
+                
                 // PREP TIME
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Prep Time (Max)")
                         .font(.caption)
-
-                    Picker("", selection: $prepMinutes) {
-                        ForEach(minutesChoices, id: \.self) {
-                            Text("\($0)").tag($0)
+                    
+                    HStack(spacing: 10) {
+                        
+                        Picker("", selection: $prepMinutes) {
+                            ForEach(minutesChoices, id: \.self) { minute in
+                                Text("\(minute)")
+                                    .tag(minute)
+                            }
                         }
+                        .pickerStyle(.menu)
+                        .tint(.orange)   // number + chevron only
+                        .frame(
+                            minWidth: 64,
+                            maxWidth: 72,
+                            minHeight: 44,
+                            maxHeight: 44
+                        )
+                        
+                        Text("mins")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        
+                        Spacer()
                     }
-                    .pickerStyle(.menu)
                     .padding(.horizontal, 14)
-                    .padding(.vertical, 10)
-                    .frame(width: 150, height: 44)
+                    .frame(width: 160, height: 44)
                     .background(
                         RoundedRectangle(cornerRadius: 10)
                             .stroke(Color.gray.opacity(0.3))

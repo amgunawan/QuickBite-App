@@ -4,13 +4,11 @@
 //
 //  Created by student on 11/12/25.
 //
-
 import Foundation
 import FirebaseFirestore
 import FirebaseStorage
 import SwiftUI
 import Combine
-
 class TenantMenuViewModel: ObservableObject {
     
     // MARK: - Published (UI updates)
@@ -74,7 +72,7 @@ class TenantMenuViewModel: ObservableObject {
                 self.finishError("sanitized_name missing in Firestore.")
                 return
             }
-
+            
             // tracking_item array
             if let trackingArray = data["tracking_item"] as? [[String: Any]] {
                 do {
@@ -192,17 +190,17 @@ class TenantMenuViewModel: ObservableObject {
     
     // MARK: - PUBLIC: Delete item
     func deleteItem(_ item: MenuItem) {
-
+        
         // Remove from main list
         allItems.removeAll { $0.itemId == item.itemId }
-
+        
         // Remove tracking
         trackingItems.removeAll { $0.itemId == item.itemId }
-
+        
         buildSectionsUI()
         saveAllToBackend()
     }
-
+    
     
     // MARK: ===============================================================
     // MARK: - IMAGE LISTING FOR CATEGORY (Storage)
@@ -223,17 +221,17 @@ class TenantMenuViewModel: ObservableObject {
                 completion([])
                 return
             }
-
+            
             guard let result = result else {
                 completion([])
                 return
             }
-
+            
             let filenames = result.items.map { $0.name }
             completion(filenames)
         }
     }
-
+    
     // MARK: - UPLOAD IMAGE TO FIREBASE STORAGE
     func uploadImage(
         _ data: Data,
@@ -245,21 +243,26 @@ class TenantMenuViewModel: ObservableObject {
             completion(nil)
             return
         }
-
+        
         let safeCategory = category.storageSafeKey
         let path = "\(storeFolder)/\(safeCategory)/\(filename)"
         let ref = Storage.storage().reference().child(path)
-
-        ref.putData(data, metadata: nil) { _, error in
+        
+        ref.putData(data, metadata: nil) { metadata, error in
             if let error = error {
                 print("Upload failed:", error)
                 completion(nil)
                 return
             }
-
-            // ✅ Return gs:// path
-            let gsURL = "gs://\(ref.bucket)/\(ref.fullPath)"
-            completion(gsURL)
+            
+            // 🔥 RETURN HTTPS DOWNLOAD URL
+            ref.downloadURL { url, error in
+                if let url = url {
+                    completion(url.absoluteString)
+                } else {
+                    completion(nil)
+                }
+            }
         }
     }
     
@@ -331,12 +334,18 @@ class TenantMenuViewModel: ObservableObject {
         let ref = Storage.storage().reference(forURL: menuPath)
         
         do {
-            let json = try JSONEncoder().encode(allItems)
-            ref.putData(json, metadata: nil) { _, error in
+            let encoder = JSONEncoder()
+                       encoder.outputFormatting = [.prettyPrinted]
+            let json = try encoder.encode(allItems)
+            
+            let metadata = StorageMetadata()
+            metadata.contentType = "application/json"
+            
+            ref.putData(json, metadata: metadata) { _, error in
                 if let error = error {
                     print("Failed to upload menu.json:", error)
                 } else {
-                    print("menu.json updated")
+                    print("menu.json updated with correct content-type")
                 }
             }
         } catch {
@@ -371,7 +380,7 @@ class TenantMenuViewModel: ObservableObject {
     }
     
     @Published var newItemDraft: MenuItem? = nil
-
+    
     func prepareNewItem(for category: String) {
         newItemDraft = MenuItem(
             itemId: String(UUID().uuidString.prefix(6)),
@@ -386,10 +395,10 @@ class TenantMenuViewModel: ObservableObject {
             currentStock: 0
         )
     }
-
+    
     func saveNewItem(_ item: MenuItem) {
         allItems.append(item)
-
+        
         trackingItems.append(
             TrackingItem(itemId: item.itemId,
                          currentStock: item.currentStock,
@@ -403,9 +412,8 @@ class TenantMenuViewModel: ObservableObject {
     func addItem(to sectionTitle: String) {
         prepareNewItem(for: sectionTitle)
     }
-
+    
 }
-
 extension String {
     var storageSafeKey: String {
         self

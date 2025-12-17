@@ -19,6 +19,10 @@ class StoreRegistrationViewModel: ObservableObject {
     @Published var storeName: String = ""
     @Published var location: String = ""
     @Published var cuisineTypes: [String] = []
+    
+    // MARK: - CHECK STORE NAME
+    @Published var storeNameError: String? = nil
+    @Published var isCheckingStoreName: Bool = false
 
     // MARK: - BRANDING
     @Published var bannerImage: UIImage? = nil
@@ -28,6 +32,7 @@ class StoreRegistrationViewModel: ObservableObject {
     @Published var openDays: Set<Weekday> = []
     @Published var openingTime: Date = Date()
     @Published var closingTime: Date = Date()
+    @Published var open24Hours: Bool = true
 
     // MARK: - MENU (NEW MODEL)
     @Published var menuSections: [MenuSectionModel] = []
@@ -54,6 +59,34 @@ class StoreRegistrationViewModel: ObservableObject {
     }
 
     // MARK: - MAIN ENTRY POINT
+
+    @MainActor
+    func validateStoreNameUniqueness(_ name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !trimmed.isEmpty else {
+            storeNameError = nil
+            return
+        }
+
+        isCheckingStoreName = true
+        defer { isCheckingStoreName = false }
+
+        let sanitized = sanitizeStoreName(trimmed)
+
+        do {
+            let snapshot = try await db.collection("stores")
+                .whereField("sanitized_name", isEqualTo: sanitized)
+                .getDocuments()
+
+            storeNameError = snapshot.documents.isEmpty
+                ? nil
+                : "Store name already exists. Please choose another."
+        } catch {
+            storeNameError = "Unable to verify store name. Please try again."
+            print("❌ Store name validation error:", error.localizedDescription)
+        }
+    }
 
     func saveDraft() {
         UserDefaults.standard.set(storeName, forKey: kStoreName)
@@ -99,7 +132,7 @@ class StoreRegistrationViewModel: ObservableObject {
 
         try await assertStoreNameIsUnique(storeName)
 
-        let sanitizedStoreName = sanitizeFolderName(storeName)
+        let sanitizedStoreName = sanitizeStoreName(storeName)
 
         // 1️⃣ CREATE STORE DOC
         let storeRef = db.collection("stores").document()
@@ -127,7 +160,7 @@ class StoreRegistrationViewModel: ObservableObject {
 
         for secIndex in preparedSections.indices {
             let section = preparedSections[secIndex]
-            let sanitizedCategory = sanitizeFolderName(section.title)
+            let sanitizedCategory = sanitizeStoreName(section.title)
 
             for itemIndex in section.items.indices {
                 var item = section.items[itemIndex]
@@ -187,7 +220,10 @@ class StoreRegistrationViewModel: ObservableObject {
     // MARK: - IMAGE UPLOAD
     // -----------------------------------------------------
 
-    private func uploadImage(_ image: UIImage, path: String) async throws -> String {
+    private func uploadImage(
+        _ image: UIImage,
+        path: String
+    ) async throws -> String {
 
         guard let data = image.jpegData(compressionQuality: 0.8) else {
             throw NSError(domain: "IMG", code: 500)
@@ -195,9 +231,9 @@ class StoreRegistrationViewModel: ObservableObject {
 
         let ref = storage.reference().child(path)
         _ = try await ref.putDataAsync(data)
-        let url = try await ref.downloadURL()
 
-        return url.absoluteString
+        // ✅ Canonical storage URI
+        return "gs://\(ref.bucket)/\(ref.fullPath)"
     }
 
     // -----------------------------------------------------
@@ -220,10 +256,46 @@ class StoreRegistrationViewModel: ObservableObject {
             .reference()
             .child("\(sanitizedStoreName)/menu.json")
 
-        _ = try await ref.putDataAsync(data)
-        let url = try await ref.downloadURL()
+        // Upload JSON
+        _ = try await ref.putDataAsync(
+            data,
+            metadata: {
+                let meta = StorageMetadata()
+                meta.contentType = "application/json"
+                return meta
+            }()
+        )
 
-        return url.absoluteString
+        // ✅ RETURN STORAGE URI (NOT downloadURL)
+        return "gs://\(ref.bucket)/\(ref.fullPath)"
+    }
+    
+    // -----------------------------------------------------
+    // MARK: - GENERATE ITEM IDS
+    // -----------------------------------------------------
+
+    func generateItemIDs(
+        storeName: String,
+        sections: [MenuSectionModel]
+    ) -> [MenuSectionModel] {
+
+        let storePrefix = storeName.prefix(1).uppercased()
+
+        return sections.map { section in
+            let categoryPrefix = section.title.prefix(1).uppercased()
+
+            var counter = 1
+            var updatedSection = section
+
+            updatedSection.items = section.items.map { item in
+                var updatedItem = item
+                updatedItem.itemId = "\(storePrefix)\(categoryPrefix)\(counter)"
+                counter += 1
+                return updatedItem
+            }
+
+            return updatedSection
+        }
     }
 
     // -----------------------------------------------------
@@ -276,6 +348,7 @@ class StoreRegistrationViewModel: ObservableObject {
         name
             .trimmingCharacters(in: .whitespacesAndNewlines)
             .replacingOccurrences(of: " ", with: "")
+            .replacingOccurrences(of: "/", with: "")
     }
     
     private func assertStoreNameIsUnique(_ storeName: String) async throws {

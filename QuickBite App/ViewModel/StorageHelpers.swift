@@ -8,13 +8,6 @@
 import UIKit
 import FirebaseStorage
 
-func sanitizeFolderName(_ name: String) -> String {
-    name
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: " ", with: "")
-        .replacingOccurrences(of: "/", with: "")
-}
-
 func uploadImageToStorage(
     _ image: UIImage,
     path: String
@@ -26,6 +19,7 @@ func uploadImageToStorage(
 
     let ref = Storage.storage().reference().child(path)
     _ = try await ref.putDataAsync(data)
-    let url = try await ref.downloadURL()
-    return url.absoluteString
+
+    // ✅ Return canonical storage URI
+    return "gs://\(ref.bucket)/\(ref.fullPath)"
 }

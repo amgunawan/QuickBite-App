@@ -39,48 +39,7 @@ struct StoreBrandingView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 8) {
                     
-                    Group {
-                        Text("Store Banner").font(.headline)
-                        Text("This will appear on the top of your store profile")
-                            .font(.footnote).foregroundColor(.secondary)
-                        
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                .fill(Color(.secondarySystemBackground))
-                            if let img = bannerImage {
-                                Image(uiImage: img)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .aspectRatio(16/9, contentMode: .fill)
-                                    .frame(maxWidth: .infinity)
-                                    .clipped()
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                            } else {
-                                VStack {
-                                    Image(systemName: "photo.fill.on.rectangle.fill")
-                                        .resizable()
-                                        .scaledToFit()
-                                        .frame(width: 40, height: 30)
-                                        .foregroundColor(.secondary)
-                                    Text("Upload Banner (16:9)")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                            }
-                        }
-                        .frame(height: 120)
-                        
-                        HStack(spacing: 10) {
-                            PhotosPicker(selection: $bannerPickedItem, matching: .images) {
-                                pillButton("Choose File")
-                            }
-                            Text(bannerFileName.isEmpty ? "No file chosen" : bannerFileName)
-                                .font(.subheadline).foregroundColor(.secondary)
-                                .lineLimit(1).truncationMode(.middle)
-                            Spacer()
-                        }
-                        .padding(.bottom, 8)
-                    }
+                    storeBannerSection
                     
                     Group {
                         Text("Search Menu Icon").font(.headline)
@@ -123,53 +82,7 @@ struct StoreBrandingView: View {
                     Text("Operational Hours").font(.headline)
                         .padding(.top, 10)
                     
-                    VStack(spacing: 0) {
-                        GroupBoxRow {
-                            Toggle(isOn: $open24Hours) { Text("Open 24 Hours") }
-                        }
-                        
-                        GroupBoxRow {
-                            HStack {
-                                Text("Opening Time")
-                                    .foregroundColor(open24Hours ? .secondary : .primary)
-                                Spacer()
-                                Button(formatTime(openingTime)) { showOpeningPicker = true }
-                                    .font(.callout.weight(.semibold))
-                                    .foregroundColor(open24Hours ? .gray : .orange)
-                                    .disabled(open24Hours)
-                            }
-                        }
-                        
-                        GroupBoxRow {
-                            HStack {
-                                Text("Closing Time")
-                                    .foregroundColor(open24Hours ? .secondary : .primary)
-                                Spacer()
-                                Button(formatTime(closingTime)) { showClosingPicker = true }
-                                    .font(.callout.weight(.semibold))
-                                    .foregroundColor(open24Hours ? .gray : .orange)
-                                    .disabled(open24Hours)
-                            }
-                        }
-                        
-                        NavigationLink {
-                            WeeklyScheduleView(openDays: $openDays)
-                        } label: {
-                            HStack {
-                                Text("Weekly Schedule")
-                                Spacer()
-                                Image(systemName: "chevron.right").foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 16)
-                            .frame(height: 48)
-                        }
-                        .background(Color(.systemBackground))
-                    }
-                    .background(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(Color(.systemBackground))
-                            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
-                    )
+                    operationalHoursSection
                 }
                 .padding(.horizontal, 16)
                 .padding(.bottom, 16)
@@ -231,6 +144,41 @@ struct StoreBrandingView: View {
             }
         }
         
+        .onChange(of: open24Hours) { _, isOn in
+            storeVM.open24Hours = isOn
+
+            let calendar = Calendar.current   // ✅ shared scope
+
+            if isOn {
+                // 24-hour operation
+                openingTime = calendar.startOfDay(for: Date())
+                closingTime = calendar.date(
+                    bySettingHour: 23,
+                    minute: 59,
+                    second: 0,
+                    of: Date()
+                ) ?? Date()
+            } else {
+                // Restore reasonable defaults
+                openingTime = calendar.date(
+                    bySettingHour: 8,
+                    minute: 0,
+                    second: 0,
+                    of: Date()
+                ) ?? Date()
+
+                closingTime = calendar.date(
+                    bySettingHour: 20,
+                    minute: 0,
+                    second: 0,
+                    of: Date()
+                ) ?? Date()
+            }
+
+            storeVM.openingTime = openingTime
+            storeVM.closingTime = closingTime
+        }
+
         .onChange(of: openingTime) { _, new in
             storeVM.openingTime = new
         }
@@ -276,6 +224,117 @@ struct StoreBrandingView: View {
                     completion(uiimg, filename)
                 }
             }
+        }
+    }
+    
+    private var operationalHoursSection: some View {
+        VStack(spacing: 0) {
+
+            GroupBoxRow {
+                Toggle(isOn: $open24Hours) {
+                    Text("Open 24 Hours")
+                }
+            }
+
+            if !open24Hours {
+                GroupBoxRow {
+                    HStack {
+                        Text("Opening Time")
+                        Spacer()
+                        Button(formatTime(openingTime)) {
+                            showOpeningPicker = true
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundColor(.orange)
+                    }
+                }
+
+                GroupBoxRow {
+                    HStack {
+                        Text("Closing Time")
+                        Spacer()
+                        Button(formatTime(closingTime)) {
+                            showClosingPicker = true
+                        }
+                        .font(.callout.weight(.semibold))
+                        .foregroundColor(.orange)
+                    }
+                }
+            }
+
+            NavigationLink {
+                WeeklyScheduleView(openDays: $openDays)
+            } label: {
+                HStack {
+                    Text("Weekly Schedule")
+                        .foregroundColor(open24Hours ? .orange : .primary)
+
+                    Spacer()
+
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(open24Hours ? .orange : .secondary)
+                }
+                .padding(.horizontal, 16)
+                .frame(height: 48)
+            }
+            .background(Color(.systemBackground))
+        }
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color(.systemBackground))
+                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+        )
+    }
+    
+    private var storeBannerSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Store Banner")
+                .font(.headline)
+
+            Text("This will appear on the top of your store profile")
+                .font(.footnote)
+                .foregroundColor(.secondary)
+
+            ZStack {
+                if let img = bannerImage {
+                    Image(uiImage: img)
+                        .resizable()
+                        .scaledToFill()
+                        .aspectRatio(16/9, contentMode: .fill)
+                } else {
+                    VStack(spacing: 6) {
+                        Image(systemName: "photo.fill.on.rectangle.fill")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 40, height: 30)
+                            .foregroundColor(.secondary)
+
+                        Text("Upload Banner (16:9)")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                }
+            }
+            .frame(height: 120)
+            .frame(maxWidth: .infinity)
+            .background(Color(.secondarySystemBackground))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .clipped()
+
+            HStack(spacing: 10) {
+                PhotosPicker(selection: $bannerPickedItem, matching: .images) {
+                    pillButton("Choose File")
+                }
+
+                Text(bannerFileName.isEmpty ? "No file chosen" : bannerFileName)
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+
+                Spacer()
+            }
+            .padding(.bottom, 8)
         }
     }
 }

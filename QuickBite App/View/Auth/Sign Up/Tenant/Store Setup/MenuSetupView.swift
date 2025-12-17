@@ -27,6 +27,7 @@ struct MenuSetupView: View {
     var body: some View {
         mainContent
             .overlay(editSheet)
+            .overlay(submittingOverlay)
             .onAppear(perform: onAppear)
             .onChange(of: sections, perform: onSectionsChange)
             .onChange(of: editingIndex, perform: onEditingChange)
@@ -139,6 +140,11 @@ struct MenuSetupView: View {
 
         Task {
             do {
+                let finalizedItems = storeVM.generateItemIDs(
+                    storeName: storeVM.storeName,
+                    sections: sections
+                )
+
                 let storeID = try await storeVM.registerStore(
                     storeName: storeVM.storeName,
                     location: storeVM.location,
@@ -148,7 +154,7 @@ struct MenuSetupView: View {
                     openDays: storeVM.openDays,
                     openingTime: storeVM.openingTime,
                     closingTime: storeVM.closingTime,
-                    sections: sections
+                    sections: finalizedItems
                 )
 
                 try await authVM.finalizeMerchantOnboarding(storeId: storeID)
@@ -273,6 +279,33 @@ struct MenuSetupView: View {
             RoundedRectangle(cornerRadius: 16)
                 .stroke(Color(.systemGray4))
         )
+    }
+    
+    // MARK: - SUBMITTING OVERLAY
+    private var submittingOverlay: some View {
+        Group {
+            if isSubmitting {
+                ZStack {
+                    Color.black.opacity(0.25)
+                        .ignoresSafeArea()
+
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .progressViewStyle(.circular)
+
+                        Text("Setting up your store…")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(24)
+                    .background(
+                        RoundedRectangle(cornerRadius: 16)
+                            .fill(Color(.systemBackground))
+                    )
+                }
+                .transition(.opacity)
+            }
+        }
     }
 
     // MARK: - LIFECYCLE HANDLERS

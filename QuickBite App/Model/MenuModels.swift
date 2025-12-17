@@ -10,7 +10,7 @@ import SwiftUI
 
 struct MenuItem: Identifiable, Codable, Hashable {
 
-    // MARK: JSON Fields
+    // MARK: - JSON Fields
     var itemId: String
     var name: String
     var description: String?
@@ -21,12 +21,12 @@ struct MenuItem: Identifiable, Codable, Hashable {
     var prepTimeMinutes: Int?
     var options: [MenuOptionGroup]?
 
-    // MARK: Runtime-only
+    // MARK: - Runtime-only
     var draftImage: UIImage? = nil
     var currentStock: Int = 0
     var totalSold: Int = 0
-    
-    // MARK: - Stock Status (UI Helper)
+
+    // MARK: - UI Helper
     var stockStatus: StockStatus {
         if currentStock <= 0 { return .outOfStock }
         if currentStock <= 5 { return .lowStock }
@@ -49,6 +49,25 @@ struct MenuItem: Identifiable, Codable, Hashable {
 
     var nonOptionalOptions: [MenuOptionGroup] {
         options ?? []
+    }
+
+    // MARK: - Custom Encoder (IMPORTANT FIX)
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encode(itemId, forKey: .itemId)
+        try container.encode(name, forKey: .name)
+        try container.encodeIfPresent(description, forKey: .description)
+        try container.encode(price, forKey: .price)
+        try container.encodeIfPresent(category, forKey: .category)
+        try container.encodeIfPresent(imageURL, forKey: .imageURL)
+        try container.encodeIfPresent(defaultStock, forKey: .defaultStock)
+        try container.encodeIfPresent(prepTimeMinutes, forKey: .prepTimeMinutes)
+
+        // ✅ ONLY encode options if they exist AND are not empty
+        if let options, !options.isEmpty {
+            try container.encode(options, forKey: .options)
+        }
     }
 }
 

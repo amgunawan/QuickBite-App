@@ -85,9 +85,19 @@ struct PayoutSetupView: View {
                                 .font(.subheadline)
                                 .foregroundColor(.secondary)
                             
-                            TextField("Enter account number", text: $storeVM.payoutAccountNumber)
-                                .keyboardType(.numberPad)
-                                .fieldStyle()
+                            TextField(
+                                "Enter account number",
+                                text: Binding(
+                                    get: { storeVM.payoutAccountNumber },
+                                    set: { newValue in
+                                        // Allow digits only
+                                        let filtered = newValue.filter { $0.isNumber }
+                                        storeVM.payoutAccountNumber = filtered
+                                    }
+                                )
+                            )
+                            .keyboardType(.numberPad)
+                            .fieldStyle()
                         }
                         
                         Divider().padding(.top, 6)

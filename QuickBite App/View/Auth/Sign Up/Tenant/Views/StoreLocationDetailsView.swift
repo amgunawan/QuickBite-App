@@ -30,6 +30,18 @@ struct StoreLocationDetailsView: View {
                 TextField("Store Name", text: $storeVM.storeName)
                     .padding(.horizontal)
                     .frame(height: 50)
+                    .onChange(of: storeVM.storeName) { _, newValue in
+                        Task {
+                            await storeVM.validateStoreNameUniqueness(newValue)
+                        }
+                    }
+
+                if let error = storeVM.storeNameError {
+                    Text(error)
+                        .font(.caption)
+                        .foregroundColor(.red)
+                        .padding(.horizontal)
+                }
 
                 Divider()
 
@@ -127,6 +139,8 @@ struct StoreLocationDetailsView: View {
     // ✅ VALIDATION USING VIEWMODEL
     private var canContinue: Bool {
         !storeVM.storeName.isEmpty &&
+        storeVM.storeNameError == nil &&
+        !storeVM.isCheckingStoreName &&
         !storeVM.location.isEmpty &&
         !storeVM.cuisineTypes.isEmpty
     }

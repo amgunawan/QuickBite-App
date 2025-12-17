@@ -59,6 +59,43 @@ struct OrderPreparedView: View {
         max(0, orderTotal)
     }
 
+    // ======================
+    // ✅ STATUS COMPUTED
+    // ======================
+    private var statusTitle: String {
+        switch orderStatus {
+        case "ready":
+            return "Order Ready for Pickup"
+        case "completed":
+            return "Order Completed"
+        default:
+            return "Order in Preparation"
+        }
+    }
+
+    private var statusColor: Color {
+        switch orderStatus {
+        case "ready":
+            return .green
+        case "completed":
+            return .gray
+        default:
+            return .orange
+        }
+    }
+
+    private var statusDescription: String {
+        switch orderStatus {
+        case "ready":
+            return "Show this QR code to the tenant."
+        case "completed":
+            return "This order has been completed."
+        default:
+            return "The restaurant is preparing your order.\nThe QR code will appear when it’s ready."
+        }
+    }
+
+    // MARK: - LISTENER
     private func listenOrder() {
         db.collection("orders")
             .document(orderId)
@@ -69,9 +106,9 @@ struct OrderPreparedView: View {
                 DispatchQueue.main.async {
 
                     self.orderNumber = self.orderId
-                    self.orderStatus = data["status"] as? String ?? "pending"
+                    self.orderStatus = (data["status"] as? String ?? "pending").lowercased()
 
-                    // ✅ ORDER DATE (PASTI MUNCUL)
+                    // ORDER DATE
                     if let ts = data["created_at"] as? Timestamp {
                         self.orderDate = formatOrderDate(ts.dateValue())
                     } else if let ts = data["createdAt"] as? Timestamp {
@@ -106,14 +143,13 @@ struct OrderPreparedView: View {
                         fetchRestaurantInfo(tenantId)
                     }
 
-                    // QR
-                    if self.orderStatus == "pending" {
+                    // 🔥 QR LOGIC (READY & COMPLETED)
+                    if self.orderStatus == "ready" || self.orderStatus == "completed" {
+                        if self.qrImage == nil {
+                            self.qrImage = QRGenerator().generate(from: self.orderId)
+                        }
+                    } else {
                         self.qrImage = nil
-                    }
-
-                    if (self.orderStatus == "ready" || self.orderStatus == "completed"),
-                       self.qrImage == nil {
-                        self.qrImage = QRGenerator().generate(from: self.orderId)
                     }
                 }
             }
@@ -134,7 +170,6 @@ struct OrderPreparedView: View {
                     self.rating = data["rating"] as? Double ?? 0
                     self.reviewCount = data["review_count"] as? Int ?? 0
 
-                    // ✅ CUISINE TYPE (STRING / ARRAY)
                     if let cuisines = data["cuisine_type"] as? [String] {
                         self.cuisineText = cuisines.joined(separator: ", ")
                     } else if let cuisine = data["cuisine_type"] as? String {
@@ -144,7 +179,6 @@ struct OrderPreparedView: View {
                     }
                 }
 
-                // IMAGE (gs:// → downloadURL)
                 if let path = data["search_url"] as? String {
                     let ref = storage.reference(forURL: path)
                     ref.downloadURL { url, _ in
@@ -164,6 +198,9 @@ struct OrderPreparedView: View {
         return f.string(from: date)
     }
 
+    // ======================
+    // BODY (UI — TIDAK DIUBAH)
+    // ======================
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading) {
@@ -201,12 +238,14 @@ struct OrderPreparedView: View {
 
                 // STATUS & QR
                 VStack(spacing: 16) {
-                    Text("Order in Preparation")
+
+                    Text(statusTitle)
                         .font(.headline)
+                        .foregroundColor(statusColor)
                         .multilineTextAlignment(.center)
 
                     ZStack {
-                        if orderStatus == "pending" {
+                        if orderStatus == "pending" || orderStatus == "preparing" {
                             Image("Pending")
                                 .resizable()
                                 .scaledToFit()
@@ -221,19 +260,14 @@ struct OrderPreparedView: View {
                                 .frame(width: 200, height: 200)
                         }
                     }
-                    .frame(maxWidth: .infinity)   
+                    .frame(maxWidth: .infinity)
 
-                    Text(
-                        orderStatus == "pending"
-                        ? "The restaurant is preparing your order.\nThe QR code will appear when it’s ready."
-                        : "Show this QR code to the tenant."
-                    )
-                    .multilineTextAlignment(.center)
-                    .foregroundColor(.secondary)
+                    Text(statusDescription)
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.horizontal)
-
 
                 sectionDivider()
 
@@ -323,6 +357,3 @@ struct OrderPreparedView: View {
         OrderPreparedView(orderId: "I8oUxS8tW1F9wk9CIKga")
     }
 }
-
-
-

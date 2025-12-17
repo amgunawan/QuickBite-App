@@ -7,46 +7,46 @@
 
 import SwiftUI
 import FirebaseFirestore
+import FirebaseStorage
 import Combine
 
 final class ActivityViewModel: ObservableObject {
-    
+
     // MARK: - PUBLISHED STATE
     @Published var historyOrders: [ActivityOrderModel] = []
     @Published var progressOrders: [ActivityOrderModel] = []
-    
+
     // MARK: - PRIVATE
     private let db = Firestore.firestore()
+    private let storage = Storage.storage()
     private var listener: ListenerRegistration?
-    
+
     // MARK: - FETCH ORDERS (REALTIME)
     func fetchOrders() {
-        
-        // Hapus listener lama (hindari duplicate)
+
         listener?.remove()
-        
+
         listener = db
             .collection("orders")
-        // 🔥 pakai timestamp yang ADA di database kamu
             .order(by: "created_at", descending: true)
             .addSnapshotListener { snapshot, error in
-                
+
                 if let error = error {
                     print("🔥 Activity fetch error:", error.localizedDescription)
                     return
                 }
-                
+
                 guard let documents = snapshot?.documents else { return }
-                
+
                 var history: [ActivityOrderModel] = []
                 var progress: [ActivityOrderModel] = []
-                
+
                 for doc in documents {
                     let data = doc.data()
-                    
+
                     // ===== BASIC FIELDS =====
                     let status = (data["status"] as? String ?? "pending").lowercased()
-                    
+
                     let createdDate: String = {
                         if let ts = data["created_at"] as? Timestamp {
                             return ts.dateValue().formatted(
@@ -56,63 +56,88 @@ final class ActivityViewModel: ObservableObject {
                         }
                         return "-"
                     }()
+
                     let items = data["items"] as? [String] ?? []
-                    
-                    // 🔥 HITUNG TOTAL QUANTITY
-                    let totalQuantity: Int = items.reduce(0) { result, item in
-                        let number = item
+
+                    // ===== TOTAL QUANTITY =====
+                    let totalQuantity = items.reduce(0) { sum, item in
+                        let qty = item
                             .split(separator: "x")
                             .first
                             .flatMap { Int($0.trimmingCharacters(in: .whitespaces)) } ?? 1
-                        return result + number
+                        return sum + qty
                     }
-                    
-                    // 🔥 AMBIL NAMA MAKANAN TANPA "1x"
-                    let mealName: String = items.first?
+
+                    // ===== MEAL NAME =====
+                    let mealName = items.first?
                         .components(separatedBy: "x ")
                         .dropFirst()
                         .joined(separator: " ") ?? "-"
-                    
-                    
-                    // ===== BUILD MODEL =====
-                    let model = ActivityOrderModel(
+
+                    // ===== BUILD BASE MODEL (IMAGE NIL DULU) =====
+                    var model = ActivityOrderModel(
                         id: doc.documentID,
-                        orderId: doc.documentID,
                         status: status,
                         storeId: data["tenantId"] as? String ?? "",
-                        userId: data["customerName"] as? String ?? "",
+                        userId: data["customerId"] as? String ?? "",
                         itemId: doc.documentID,
                         quantity: totalQuantity,
                         price: data["total"] as? Int ?? 0,
                         date: createdDate,
                         totalCost: data["total"] as? Int ?? 0,
                         restaurantName: data["restaurantName"] as? String,
-                        mealName: (data["items"] as? [String])?.first,
+                        restaurantImageURL: nil,
+                        mealName: mealName,
                         rating: data["rating"] as? Int
                     )
-                    
+
                     // ===== STATUS ROUTING =====
-                    switch status {
-                    case "completed", "done", "picked_up":
+                    let targetArrayIsHistory =
+                        status == "completed" ||
+                        status == "done" ||
+                        status == "picked_up"
+
+                    if targetArrayIsHistory {
                         history.append(model)
-                        
-                    case "pending", "preparing", "ready":
-                        progress.append(model)
-                        
-                    default:
-                        // fallback → tetap tampil di In Progress
+                    } else {
                         progress.append(model)
                     }
+
+                    // ===== HANDLE IMAGE (gs:// → https) =====
+                    if let gsURL = data["search_url"] as? String {
+
+                        let storageRef = self.storage.reference(forURL: gsURL)
+
+                        storageRef.downloadURL { url, _ in
+                            guard let httpsURL = url?.absoluteString else { return }
+
+                            DispatchQueue.main.async {
+
+                                if targetArrayIsHistory,
+                                   let index = history.firstIndex(where: { $0.id == model.id }) {
+                                    history[index].restaurantImageURL = httpsURL
+                                }
+
+                                if !targetArrayIsHistory,
+                                   let index = progress.firstIndex(where: { $0.id == model.id }) {
+                                    progress[index].restaurantImageURL = httpsURL
+                                }
+
+                                self.historyOrders = history
+                                self.progressOrders = progress
+                            }
+                        }
+                    }
                 }
-                
-                // ===== UPDATE UI =====
+
+                // ===== UPDATE UI (BASE DATA) =====
                 DispatchQueue.main.async {
                     self.historyOrders = history
                     self.progressOrders = progress
                 }
             }
     }
-    
+
     // MARK: - CLEANUP
     deinit {
         listener?.remove()

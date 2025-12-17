@@ -5,18 +5,12 @@
 //  Created by student on 26/11/25.
 //
 
-//
-//  ActivityOrderModel.swift
-//  QuickBite
-//
 
 import Foundation
 
 struct ActivityOrderModel: Identifiable {
 
     let id: String
-    let orderId: String
-
     let status: String
     let storeId: String
     let userId: String
@@ -28,6 +22,7 @@ struct ActivityOrderModel: Identifiable {
     let date: String
     let totalCost: Int
 
+    var restaurantImageURL: String?   // ✅ TAMBAH INI
     let restaurantName: String?
     let mealName: String?
 
@@ -36,7 +31,6 @@ struct ActivityOrderModel: Identifiable {
     // ✅ CUSTOM INIT (FIX ERROR)
     init(
         id: String,
-        orderId: String,
         status: String,
         storeId: String,
         userId: String,
@@ -46,11 +40,11 @@ struct ActivityOrderModel: Identifiable {
         date: String,
         totalCost: Int,
         restaurantName: String?,
+        restaurantImageURL: String?,
         mealName: String?,
         rating: Int?
     ) {
         self.id = id
-        self.orderId = orderId
         self.status = status
         self.storeId = storeId
         self.userId = userId
@@ -60,6 +54,7 @@ struct ActivityOrderModel: Identifiable {
         self.date = date
         self.totalCost = totalCost
         self.restaurantName = restaurantName
+        self.restaurantImageURL = restaurantImageURL
         self.mealName = mealName
         self.rating = rating
     }

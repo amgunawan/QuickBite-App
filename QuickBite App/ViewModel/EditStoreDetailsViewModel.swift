@@ -36,7 +36,8 @@ class EditStoreDetailsViewModel: ObservableObject {
                 self.isLoading = false
 
                 guard
-                    let data = snapshot?.data(),
+                    let snapshot,
+                    let data = snapshot.data(),
                     error == nil
                 else {
                     self.errorMessage = "Failed to load store data."
@@ -47,18 +48,14 @@ class EditStoreDetailsViewModel: ObservableObject {
                     let banner = await self.loadImage(from: data["banner_url"] as? String)
                     let icon = await self.loadImage(from: data["search_url"] as? String)
 
-                    let schedule = self.parseSchedule(
-                        data["store_schedule"] as? [String: Any]
-                    )
+                    // ✅ RAW SCHEDULE — DO NOT PARSE HERE
+                    let rawSchedule = data["store_schedule"] as? [String: Any]
 
                     completion(
                         StoreEditData(
                             banner: banner,
                             icon: icon,
-                            open24Hours: schedule.open24Hours,
-                            openingTime: schedule.openingTime,
-                            closingTime: schedule.closingTime,
-                            openDays: schedule.openDays
+                            rawSchedule: rawSchedule
                         )
                     )
                 }
@@ -168,7 +165,7 @@ class EditStoreDetailsViewModel: ObservableObject {
     }
 
     // -----------------------------------------------------
-    // MARK: - SCHEDULE (MATCH REGISTRATION VM)
+    // MARK: - SCHEDULE GENERATION
     // -----------------------------------------------------
 
     private func generateSchedule(
@@ -195,54 +192,14 @@ class EditStoreDetailsViewModel: ObservableObject {
 
         return schedule
     }
-
-    private func parseSchedule(
-        _ raw: [String: Any]?
-    ) -> (
-        openDays: Set<Weekday>,
-        openingTime: Date,
-        closingTime: Date,
-        open24Hours: Bool
-    ) {
-
-        guard let raw else {
-            return ([], .now, .now, false)
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-
-        var days: Set<Weekday> = []
-        var openTime: Date = .now
-        var closeTime: Date = .now
-        var is24h = true
-
-        for (key, value) in raw {
-            guard
-                let dict = value as? [String: String],
-                let open = dict["open_time"],
-                let close = dict["close_time"],
-                let day = Weekday(rawValue: key)
-            else { continue }
-
-            days.insert(day)
-
-            if open != "00:00" || close != "23:59" {
-                is24h = false
-                openTime = formatter.date(from: open) ?? openTime
-                closeTime = formatter.date(from: close) ?? closeTime
-            }
-        }
-
-        return (days, openTime, closeTime, is24h)
-    }
 }
+
+// -----------------------------------------------------
+// MARK: - DATA MODEL
+// -----------------------------------------------------
 
 struct StoreEditData {
     let banner: UIImage?
     let icon: UIImage?
-    let open24Hours: Bool
-    let openingTime: Date
-    let closingTime: Date
-    let openDays: Set<Weekday>
+    let rawSchedule: [String: Any]?
 }

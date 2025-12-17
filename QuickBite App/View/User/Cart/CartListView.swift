@@ -61,23 +61,14 @@ struct CartListView: View {
             }
 
             // ======================
-            // EDIT ITEM
+            // EDIT ITEM (FIXED)
             // ======================
             .sheet(item: $itemToEdit) { cartItem in
-                let tempMenuItem = MenuItem(
-                    itemId: cartItem.id.uuidString,
-                    name: cartItem.name,
-                    description: nil,
-                    price: Int(cartItem.basePrice),
-                    category: nil,
-                    imageURL: cartItem.imageName,
-                    options: nil
-                )
-
+                // ✅ FIX: Use a helper function here instead of 'let tempMenuItem = ...'
                 MenuOptionsView(
                     restaurantName: cart.restaurantName,
                     restaurantId: cart.restaurantId,
-                    item: tempMenuItem,
+                    item: convertToMenuItem(cartItem), // Call function here
                     finalPrice: cartItem.basePrice,
                     originalPrice: cartItem.baseOriginalPrice,
                     itemToEdit: cartItem
@@ -99,10 +90,25 @@ struct CartListView: View {
         .presentationDragIndicator(.visible)
         .background(Color.white)
     }
+    
+    // ✅ HELPER FUNCTION TO FIX THE ERROR
+    func convertToMenuItem(_ cartItem: CartItemModel) -> MenuItem {
+        return MenuItem(
+            itemId: cartItem.menuItemId, // Use stored menuItemId
+            name: cartItem.name,
+            description: nil,
+            price: Int(cartItem.basePrice),
+            category: nil,
+            imageURL: cartItem.imageName,
+            defaultStock: nil,
+            prepTimeMinutes: cartItem.prepTime,
+            options: nil // Options are handled via itemToEdit in MenuOptionsView
+        )
+    }
 }
 
 //////////////////////////////////////////////////////////////
-/// CART ITEM ROW
+/// CART ITEM ROW (Unchanged)
 //////////////////////////////////////////////////////////////
 struct CartItemRow: View {
 
@@ -205,7 +211,7 @@ struct CartItemRow: View {
 }
 
 //////////////////////////////////////////////////////////////
-/// FOOTER
+/// FOOTER (Unchanged)
 //////////////////////////////////////////////////////////////
 struct CartFooterView: View {
 
@@ -223,7 +229,7 @@ struct CartFooterView: View {
                         .foregroundColor(.orange)
                         .padding(.top, 2)
                         .padding(.trailing, 2)
-                    
+                   
                     if cart.totalItemCount > 0 {
                         Text("\(cart.totalItemCount)")
                             .font(.system(size: 12, weight: .bold))
@@ -235,10 +241,10 @@ struct CartFooterView: View {
                     }
                 }
                 .frame(width: 44, height: 44)
-                
+               
                 Spacer()
 
-                VStack(alignment: .trailing) {
+                VStack(alignment: .leading) {
                     if cart.totalOriginalPrice > cart.totalPrice {
                         Text("Rp\(formatPrice(cart.totalOriginalPrice))")
                             .font(.system(size: 14))
@@ -247,7 +253,7 @@ struct CartFooterView: View {
                     }
 
                     Text("Rp\(formatPrice(cart.totalPrice))")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundColor(.orange)
                 }
 
@@ -257,10 +263,10 @@ struct CartFooterView: View {
                     Text("Checkout")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 28)
+                        .padding(.horizontal, 32)
                         .padding(.vertical, 12)
                         .background(Color.orange)
-                        .cornerRadius(50)
+                        .cornerRadius(20)
                 }
             }
             .padding()

@@ -8,13 +8,6 @@
 import UIKit
 import FirebaseStorage
 
-func sanitizeFolderName(_ name: String) -> String {
-    name
-        .trimmingCharacters(in: .whitespacesAndNewlines)
-        .replacingOccurrences(of: " ", with: "")
-        .replacingOccurrences(of: "/", with: "")
-}
-
 func uploadImageToStorage(
     _ image: UIImage,
     path: String

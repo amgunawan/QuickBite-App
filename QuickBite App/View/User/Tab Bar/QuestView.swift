@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+
 struct RankUser: Identifiable {
     let id = UUID()
     let username: String
@@ -26,10 +27,12 @@ struct BadgeItem: Identifiable {
 }
 
 struct QuestView: View {
-    let userName = "Angela"
-    @State private var dailyProgress: Double = 30
-    private let weeklyTarget: Double = 100
+    
     @State private var showLockedAlert = false
+    @StateObject private var vm = QuestViewModel()
+    private let weeklyTarget: Double = 100
+    let username = "natgwk02"
+
     
     private let podiumUsers: [RankUser] = [
         .init(username: "@hsutedjo", points: 700, tier: "Diamond"),
@@ -48,22 +51,19 @@ struct QuestView: View {
     private let badges: [BadgeItem] = [
         .init(title: "Beginner Badges",
               subtitle: "Spend min. Rp50K to earn 30 pts.",
-              current: 1, target: 3, rewardPts: 30, tint: .orange),
+              current: 1, target: 4, rewardPts: 30, tint: .orange),
         .init(title: "Explorer Badges",
               subtitle: "Spend Rp150K total at 3 tenants for 200 pts.",
-              current: 0, target: 5, rewardPts: 200, tint: .blue),
+              current: 0, target: 3, rewardPts: 200, tint: .blue),
         .init(title: "Challenge Badges",
               subtitle: "Grab 5 Last Call items in 3 days for 300 pts.",
               current: 0, target: 5, rewardPts: 300, tint: .pink),
         .init(title: "Loyalty Badges",
               subtitle: "Keep a 7-day streak to earn 650 pts.",
               current: 0, target: 7, rewardPts: 650, tint: .green),
-        .init(title: "Legendary Badges",
-              subtitle: "Reach Rp500K total to unlock all for 1000 pts.",
-              current: 0, target: 2, rewardPts: 1000, tint: .purple)
     ]
     
-    var nextTierLabel: String { "Next tier: Silver" }
+    var nextTierLabel: String {vm.nextTierLabel()}
     
     var body: some View {
         NavigationStack {
@@ -99,7 +99,7 @@ struct QuestView: View {
                             .fontWeight(.semibold)
                             .padding(.top, 12)
                         
-                        PodiumView(users: podiumUsers)
+                        PodiumView(users: vm.podiumUsers)
                         rankingTable
                         
                         Text("How far can you go?")
@@ -108,10 +108,10 @@ struct QuestView: View {
                             .padding(.top, 8)
                         
                         VStack(spacing: 16) {
-                            ForEach(badges) { badge in
+                            ForEach(vm.badges) { badge in
                                 BadgeRow(badge: badge)
                                     .onTapGesture {
-                                        if badge.current == 0 { showLockedAlert = true }
+                                        vm.tapBadge(badge)
                                     }
                             }
                         }
@@ -123,7 +123,7 @@ struct QuestView: View {
                 .zIndex(-1)
             }
             .toolbar(.hidden, for: .navigationBar)
-            .alert("Badge Locked", isPresented: $showLockedAlert) {
+            .alert("Badge Locked", isPresented: $vm.showLockedAlert) {
                 Button("Got it") {}
             } message: {
                 Text("You’re almost there! Finish all required challenges before this badge can be unlocked.")
@@ -142,21 +142,25 @@ struct QuestView: View {
             .frame(width: 48, height: 48)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Welcome, \(userName)!")
+                Text("Welcome, \(username)!")
                     .font(.headline)
                 Text("Ready to earn more badges this week?")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                 
                 VStack(spacing: 6) {
-                    BarProgress(value: dailyProgress, total: weeklyTarget)
+                    BarProgress(
+                        value: Double(vm.weeklyPoints),
+                        total: Double(vm.weeklyTarget)
+                    )
                     HStack {
-                        Text("\(Int(dailyProgress))/\(Int(weeklyTarget))")
+                        Text("\(vm.weeklyPoints)/\(vm.weeklyTarget)")
                             .font(.caption).bold()
                         Spacer()
                         Text(nextTierLabel)
                             .font(.caption)
                             .foregroundColor(.secondary)
+
                     }
                 }
             }
@@ -198,7 +202,7 @@ struct QuestView: View {
     private var rankingTable: some View {
         VStack(spacing: 8) {
             RankRow(rank: "Rank", username: "Username", points: "Points", isHeader: true)
-            ForEach(Array(topUsers.enumerated()), id: \.offset) { index, u in
+            ForEach(Array(vm.topUsers.enumerated()), id: \.offset) { index, u in
                 RankRow(rank: "\(index + 1)", username: u.username, points: "\(u.points)")
             }
         }

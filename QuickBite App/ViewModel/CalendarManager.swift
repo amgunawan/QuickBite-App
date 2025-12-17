@@ -145,7 +145,7 @@ class CalendarManager: ObservableObject {
                             let summary = item["summary"] as? String ?? "Busy"
                             
                             // Uses init from your CalendarEvent.swift
-                             newEvents.append(CalendarEvent(title: summary, startTime: startDate, endTime: endDate))
+                            newEvents.append(CalendarEvent(title: summary, startTime: startDate, endTime: endDate))
                         }
                     }
                 }
@@ -163,16 +163,21 @@ class CalendarManager: ObservableObject {
         // Assume a slot is 15 mins long
         let slotEnd = slotTime.addingTimeInterval(15 * 60)
         
+        // PASS 1: Check for BUSY (High Priority)
+        // We must check ALL events first. If any event overlaps, it is BUSY.
         for event in events {
-            // Check for Overlap: (StartA < EndB) and (EndA > StartB)
             if event.startTime < slotEnd && event.endTime > slotTime {
-                return (.busy, "Still in class")
+                return (.busy, "Occupied ⛔️")
             }
-            
-            // Check if slot starts shortly after an event ends (within 20 mins)
+        }
+        
+        // PASS 2: Check for "Right After Class"
+        // Only runs if we confirmed the slot is NOT busy.
+        for event in events {
             let timeDifference = slotTime.timeIntervalSince(event.endTime)
-            if timeDifference >= 0 && timeDifference <= (20 * 60) {
-                 return (.justFree, "15 mins after class")
+            
+            if timeDifference >= 0 && timeDifference <= (15 * 60) {
+                return (.justFree, "Perfect Timing! ⏰")
             }
         }
         

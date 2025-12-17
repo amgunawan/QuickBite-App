@@ -6,240 +6,63 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
 
 struct GroupCartView: View {
     @EnvironmentObject var cart: CartViewModel
     @Environment(\.dismiss) var dismiss
     
-    // Dummy Data untuk anggota lain (Simulasi)
-    let members = [
-        UserMember(name: "Heidy Mudita", username: "@hsutedjo", initial: "H", color: .blue),
-        UserMember(name: "Sharon Tan", username: "@sharontan", initial: "S", color: .yellow)
-    ]
+    @Binding var groupMembers: [UserMember]
     
-    // 🔥 DIPERBARUI: State untuk navigasi ke OrderConfirmationView (jika menggunakan .navigationDestination)
     @State private var showOrderConfirmation = false
+    @State private var showRemoveAlert = false
+    @State private var memberToRemove: UserMember?
+    
+    var groupOrderId: String?
+    @Binding var groupName: String
+    @State private var itemToEdit: CartItemModel?
+    
+    @Binding var selectedBillingOption: BillingOption
+    
+    var groupTotal: Double {
+        let myTotal = cart.totalPrice
+        
+        let friendsTotal = groupMembers.reduce(0.0) { sum, member in
+            let memberItemsSum = member.items.reduce(0.0) { itemSum, item in
+                itemSum + (item.currentPrice * Double(item.quantity))
+            }
+            return sum + memberItemsSum
+        }
+        
+        return myTotal + friendsTotal
+    }
+    
+    var isEveryoneReady: Bool {
+        // Everyone else is ready AND my cart isn't empty
+        let friendsReady = groupMembers.filter { !$0.isCurrentUser }.allSatisfy { $0.status == .ready }
+        let iAmReady = !cart.items.isEmpty
+        return friendsReady && iAmReady
+    }
+    
+    private var pendingMembersNames: String {
+        groupMembers.filter { $0.status != .ready }.map { $0.name }.joined(separator: ", ")
+    }
     
     var body: some View {
-        // Menggunakan NavigationStack agar bisa push ke OrderConfirmationView
         NavigationStack {
             ZStack(alignment: .bottom) {
                 ScrollView {
                     VStack(spacing: 24) {
-                        
-                        // 1. Current User Section (You)
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                UserAvatar(initial: "A", color: .orange, isCurrentUser: true)
-                                VStack(alignment: .leading) {
-                                    Text("Angela (You)")
-                                        .font(.headline)
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .foregroundColor(.green)
-                                            .font(.caption)
-                                        Text("Ready")
-                                            .font(.caption)
-                                            .foregroundColor(.green)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.green.opacity(0.1))
-                                            .cornerRadius(4)
-                                    }
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing) {
-                                    Text("Rp\(formatPrice(cart.totalPrice))")
-                                        .font(.headline)
-                                        .foregroundColor(.orange)
-                                    Text("\(cart.totalItemCount) menu")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                Image(systemName: "chevron.up")
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            // List Item User (Dari CartViewModel)
-                            ForEach(cart.items) { item in
-                                GroupCartItemRow(item: item)
-                                    .padding()
-                                    .background(Color(.systemGray6).opacity(0.5))
-                                    .cornerRadius(12)
-                            }
-                        }
-                        .padding(.horizontal)
-                        
-                        // 2. Other Member (Adding Items...)
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                UserAvatar(initial: members[0].initial, color: members[0].color)
-                                VStack(alignment: .leading) {
-                                    Text(members[0].name)
-                                        .font(.headline)
-                                    HStack(spacing: 4) {
-                                        Text("Adding Items...")
-                                            .font(.caption)
-                                            .foregroundColor(.blue)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.blue.opacity(0.1))
-                                            .cornerRadius(4)
-                                    }
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing) {
-                                    Text("Rp42.500") // Dummy price
-                                        .font(.headline)
-                                        .foregroundColor(.orange)
-                                    Text("1 menu")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                }
-                                Image(systemName: "chevron.up")
-                                    .foregroundColor(.gray)
-                            }
-                            
-                            // Dummy Item for Heidy
-                            HStack(alignment: .top, spacing: 12) {
-                                Image("ChickenTeriyakiDonburi") // Pastikan asset ada
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 50, height: 50)
-                                    .cornerRadius(8)
-                                    .clipped()
-                                VStack(alignment: .leading) {
-                                    Text("Chicken Teriyaki Donburi")
-                                        .font(.system(size: 14, weight: .semibold))
-                                    Text("Sleeping (Lvl. 0), Classic")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                    Text("Rp42.500")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(.orange)
-                                        .padding(.top, 2)
-                                }
-                                Spacer()
-                                Image(systemName: "bell")
-                                    .foregroundColor(.orange)
-                                    .padding(8)
-                                    .background(Color.orange.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                            .padding()
-                            .background(Color(.systemGray6).opacity(0.5))
-                            .cornerRadius(12)
-                        }
-                        .padding(.horizontal)
-                        
-                        // 3. Other Member (Invited / Ready)
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                UserAvatar(initial: members[1].initial, color: members[1].color)
-                                VStack(alignment: .leading) {
-                                    Text(members[1].name)
-                                        .font(.headline)
-                                    HStack(spacing: 4) {
-                                        Text("Invited...")
-                                            .font(.caption)
-                                            .foregroundColor(.orange)
-                                            .padding(.horizontal, 6)
-                                            .padding(.vertical, 2)
-                                            .background(Color.orange.opacity(0.1))
-                                            .cornerRadius(4)
-                                    }
-                                }
-                                Spacer()
-                                
-                                Button("Remove member") {
-                                    // Action remove
-                                }
-                                .font(.caption)
-                                .foregroundColor(.red)
-                            }
-                            
-                            // Waiting box
-                            HStack {
-                                Text("Waiting to join...")
-                                    .font(.subheadline)
-                                    .italic()
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Image(systemName: "bell")
-                                    .foregroundColor(.orange)
-                                    .padding(8)
-                                    .background(Color.orange.opacity(0.1))
-                                    .clipShape(Circle())
-                            }
-                            .padding()
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [5]))
-                                    .foregroundColor(.gray.opacity(0.5))
-                            )
-                        }
-                        .padding(.horizontal)
+                        currentUserSection
+                        otherMembersSection
                     }
                     .padding(.top)
                     .padding(.bottom, 120)
                 }
                 
-                // Bottom Bar Group Cart
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack {
-                        // Icon Basket with Badge
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "basket")
-                                .font(.system(size: 24))
-                                .foregroundColor(.orange)
-                            
-                            // Total items (User + Dummy)
-                            let totalGroupItems = cart.totalItemCount + 1 // +1 dummy from Heidy
-                            if totalGroupItems > 0 {
-                                Text("\(totalGroupItems)")
-                                    .font(.system(size: 10, weight: .bold))
-                                    .foregroundColor(.white)
-                                    .frame(width: 16, height: 16)
-                                    .background(Color.orange)
-                                    .clipShape(Circle())
-                                    .offset(x: 6, y: -6)
-                            }
-                        }
-                        .padding(.trailing, 8)
-                        
-                        Spacer()
-                        
-                        // Total Price Info
-                        VStack(alignment: .trailing) {
-                            // Harga User
-                            Text("Rp\(formatPrice(cart.totalPrice))")
-                                .font(.headline)
-                                .foregroundColor(.orange)
-                            
-                            // Total Group (Dummy calculation: User + 42.500)
-                            Text("(Total: Rp\(formatPrice(cart.totalPrice + 42500)))")
-                                .font(.caption)
-                                .foregroundColor(.orange)
-                        }
-                        
-                        // 🔥 DIPERBARUI: Checkout Button menggunakan NavigationLink (Push)
-                        // Ini meniru perilaku CartListView normal Anda
-                        NavigationLink(destination: OrderConfirmationView().environmentObject(cart)) {
-                            Text("Checkout")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 24)
-                                .padding(.vertical, 12)
-                                .background(Color.orange)
-                                .cornerRadius(25)
-                        }
-                    }
-                    .padding()
-                    .background(Color.white)
-                }
+                bottomBar
             }
-            .navigationTitle("Angela's Group")
+            .navigationTitle(groupName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -250,7 +73,283 @@ struct GroupCartView: View {
                     }
                 }
             }
+            .alert("Remove Member?", isPresented: $showRemoveAlert) {
+                Button("Cancel", role: .cancel) { }
+                Button("Remove", role: .destructive) {
+                    if let member = memberToRemove {
+                        removeMember(member)
+                    }
+                }
+            } message: {
+                Text("Are you sure you want to remove \(memberToRemove?.name ?? "this member")?")
+            }
+            .sheet(item: $itemToEdit) { cartItem in
+                MenuOptionsView(
+                    restaurantName: cart.restaurantName,
+                    restaurantId: cart.restaurantId,
+                    item: convertToMenuItem(cartItem),
+                    finalPrice: cartItem.basePrice,
+                    originalPrice: cartItem.baseOriginalPrice,
+                    itemToEdit: cartItem
+                )
+                .environmentObject(cart)
+            }
         }
+        .onChange(of: selectedBillingOption) { newValue in
+            print("DEBUG: Billing changed in GroupCartView to: \(newValue.rawValue)")
+        }
+    }
+    
+    // MARK: - Subviews (Helps Compiler Speed)
+    
+    private var currentUserSection: some View {
+        let currentUser = groupMembers.first(where: { $0.isCurrentUser })
+        let name = currentUser?.name ?? "User"
+        
+        // Logic: If cart is empty, user is still "Ordering" (Adding Items)
+        let currentUserStatus: MemberStatus = cart.items.isEmpty ? .ordering : .ready
+        
+        return VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                UserAvatar(initial: currentUser?.initial ?? "U", color: .orange, isCurrentUser: true)
+                VStack(alignment: .leading) {
+                    Text("\(name) (You)").font(.headline)
+                    // Use the dynamic status here
+                    statusBadge(for: currentUserStatus)
+                }
+                Spacer()
+                VStack(alignment: .trailing) {
+                    Text("Rp\(formatPrice(cart.totalPrice))")
+                        .font(.headline)
+                        .foregroundColor(.orange)
+                    Text("\(cart.totalItemCount) menu").font(.caption).foregroundColor(.gray)
+                }
+            }
+            
+            if cart.items.isEmpty {
+
+                Text("Your cart is empty. Add some items!")
+                    .font(.subheadline)
+                    .italic()
+                    .foregroundColor(.gray)
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(.systemGray6).opacity(0.3))
+                    .cornerRadius(12)
+            } else {
+                ForEach(cart.items) { item in
+                    GroupCartItemRow(item: item) { itemToEdit = item }
+                        .padding()
+                        .background(Color(.systemGray6).opacity(0.5))
+                        .cornerRadius(12)
+                }
+            }
+        }
+        .padding(.horizontal)
+    }
+    
+//    private var otherMembersSection: some View {
+//        ForEach(groupMembers.filter { !$0.isCurrentUser }) { member in
+//            VStack(alignment: .leading, spacing: 12) {
+//                HStack {
+//                    UserAvatar(initial: member.initial, color: member.color)
+//                    VStack(alignment: .leading) {
+//                        Text(member.name).font(.headline)
+//                        statusBadge(for: member.status)
+//                    }
+//                    Spacer()
+//                    
+//                    if member.status != .invited {
+//                        memberPriceInfo(member)
+//                    } else {
+//                        Button("Remove") {
+//                            memberToRemove = member
+//                            showRemoveAlert = true
+//                        }.font(.caption).foregroundColor(.red)
+//                    }
+//                }
+//                
+//                memberContent(member)
+//            }
+//            .padding(.horizontal)
+//        }
+//    }
+    
+    private var otherMembersSection: some View {
+        // We use indices to allow direct modification of the @Binding array
+        ForEach(groupMembers.indices, id: \.self) { index in
+            let member = groupMembers[index]
+            
+            // Skip the current user (Leader is handled in currentUserSection)
+            if !member.isCurrentUser {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        UserAvatar(initial: member.initial, color: member.color)
+                        VStack(alignment: .leading) {
+                            Text(member.name).font(.headline)
+                            statusBadge(for: member.status)
+                        }
+                        
+                        Spacer()
+                        
+                        // --- TRIAL BUTTON FOR TESTING ---
+                        // Show this button if they are still "Invited" or "Ordering"
+                        if member.status != .ready {
+                            Button("Test: Set Ready") {
+                                // This updates the Binding array locally for your trial
+                                groupMembers[index].status = .ready
+                            }
+                            .font(.system(size: 10, weight: .bold))
+                            .padding(6)
+                            .background(Color.green.opacity(0.2))
+                            .foregroundColor(.green)
+                            .cornerRadius(8)
+                        }
+                        // --------------------------------
+                        
+                        // Price and Remove logic
+                        if member.status != .invited {
+                            memberPriceInfo(member)
+                        } else {
+                            Button("Remove") {
+                                memberToRemove = member
+                                showRemoveAlert = true
+                            }.font(.caption).foregroundColor(.red)
+                        }
+                    }
+                    
+                    memberContent(member)
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+    
+    private func memberPriceInfo(_ member: UserMember) -> some View {
+        let total = member.items.reduce(0.0) { $0 + ($1.currentPrice * Double($1.quantity)) }
+        let count = member.items.reduce(0) { $0 + $1.quantity }
+        return VStack(alignment: .trailing) {
+            Text("Rp\(formatPrice(total))").font(.headline).foregroundColor(.orange)
+            Text("\(count) menu").font(.caption).foregroundColor(.gray)
+        }
+    }
+    
+    @ViewBuilder
+    private func memberContent(_ member: UserMember) -> some View {
+        if member.status == .invited {
+            HStack {
+                Text("Waiting to join...").font(.subheadline).italic().foregroundColor(.gray)
+                Spacer()
+            }
+            .padding()
+            .background(RoundedRectangle(cornerRadius: 12).stroke(style: StrokeStyle(lineWidth: 1, dash: [5])).foregroundColor(.gray.opacity(0.5)))
+        } else if member.items.isEmpty {
+            Text("\(member.name) is looking at the menu...").font(.subheadline).italic().foregroundColor(.gray)
+                .padding().frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color(.systemGray6).opacity(0.3)).cornerRadius(12)
+        } else {
+            ForEach(member.items) { item in
+                GroupCartItemRow(item: item, onChange: {})
+                    .padding().background(Color(.systemGray6).opacity(0.5)).cornerRadius(12)
+            }
+        }
+    }
+    
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack {
+                basketIcon
+                Spacer()
+                
+                VStack(alignment: .trailing) {
+                    Text("Rp\(formatPrice(cart.totalPrice))").font(.headline).foregroundColor(.orange)
+                    Text("(Total: Rp\(formatPrice(groupTotal)))").font(.headline).foregroundColor(.orange)
+                }
+                
+                // CHECKOUT LOGIC
+                NavigationLink(destination: OrderConfirmationView(
+                    billingOption: selectedBillingOption, // Dynamic binding value
+                    groupMembers: groupMembers,
+                    isGroupOrder: true
+                ).environmentObject(cart)) {
+                    Text("Checkout")
+                        .font(.headline)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 28)
+                        .padding(.vertical, 12)
+                        .background(isEveryoneReady ? Color.orange : Color.gray)
+                        .cornerRadius(25)
+                        .onAppear {
+                            // DEBUGGING PRINTS
+                            print("--- GroupCartView Debug ---")
+                            print("Selected Billing Option: \(selectedBillingOption.rawValue)")
+                            print("Member Count: \(groupMembers.count)")
+                            print("Is Everyone Ready: \(isEveryoneReady)")
+                        }
+                }
+                .disabled(!isEveryoneReady)
+                .id(selectedBillingOption)
+            }
+            .padding()
+            .background(Color.white)
+            
+            if !isEveryoneReady {
+                Text("Waiting for: \(pendingMembersNames)")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var basketIcon: some View {
+        ZStack(alignment: .topTrailing) {
+            Image(systemName: "basket").font(.system(size: 24)).foregroundColor(.orange)
+            let totalItems = cart.totalItemCount + 1 // dummy
+            if totalItems > 0 {
+                Text("\(totalItems)").font(.system(size: 10, weight: .bold)).foregroundColor(.white)
+                    .frame(width: 16, height: 16).background(Color.orange).clipShape(Circle()).offset(x: 6, y: -6)
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func statusBadge(for status: MemberStatus) -> some View {
+        HStack(spacing: 4) {
+            if status == .ready {
+                Image(systemName: "checkmark.circle.fill").foregroundColor(.green)
+                Text("Ready").foregroundColor(.green)
+            } else if status == .invited {
+                Text("Invited...").foregroundColor(.orange)
+            } else {
+                Text("Adding Items...").foregroundColor(.blue)
+            }
+        }
+        .font(.caption)
+        .padding(.horizontal, 6).padding(.vertical, 2)
+        .background(status == .ready ? Color.green.opacity(0.1) : (status == .invited ? Color.orange.opacity(0.1) : Color.blue.opacity(0.1)))
+        .cornerRadius(4)
+    }
+
+    // MARK: - Logic Functions
+    
+    func removeMemberFromFirestore(memberId: String) {
+        guard let orderId = groupOrderId else { return }
+        Firestore.firestore().collection("group_orders").document(orderId).updateData([
+            "memberIds": FieldValue.arrayRemove([memberId]),
+            "invitedIds": FieldValue.arrayRemove([memberId])
+        ])
+    }
+    
+    func removeMember(_ member: UserMember) {
+        if let index = groupMembers.firstIndex(where: { $0.id == member.id }) {
+            groupMembers.remove(at: index)
+            removeMemberFromFirestore(memberId: member.id)
+        }
+    }
+    
+    func convertToMenuItem(_ cartItem: CartItemModel) -> MenuItem {
+        return MenuItem(itemId: cartItem.menuItemId, name: cartItem.name, description: nil, price: Int(cartItem.basePrice), category: nil, imageURL: cartItem.imageName, defaultStock: nil, prepTimeMinutes: cartItem.prepTime, options: nil)
     }
 }
 
@@ -287,18 +386,32 @@ struct UserAvatar: View {
     }
 }
 
-// Component: Item Row for Group Cart (Simplified)
+// Component: Item Row for Group Cart
 struct GroupCartItemRow: View {
     let item: CartItemModel
+    // 1. Add this closure property
+    let onChange: () -> Void
     
     var body: some View {
         HStack(alignment: .top, spacing: 12) {
-            Image(item.imageName)
-                .resizable()
-                .scaledToFill()
+            // Image Logic (Same as before)
+            if let url = URL(string: item.imageName), item.imageName.starts(with: "http") {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Color.gray.opacity(0.2)
+                }
                 .frame(width: 50, height: 50)
                 .cornerRadius(8)
                 .clipped()
+            } else {
+                Image(item.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .cornerRadius(8)
+                    .clipped()
+            }
             
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
@@ -306,10 +419,13 @@ struct GroupCartItemRow: View {
                         .font(.system(size: 14, weight: .semibold))
                         .lineLimit(1)
                     Spacer()
-                    // Tombol Change (Belum ada aksi)
-                    Button("Change") {}
-                        .font(.caption)
-                        .foregroundColor(.blue)
+                    
+                    // 2. Call onChange inside the button
+                    Button("Change") {
+                        onChange()
+                    }
+                    .font(.caption)
+                    .foregroundColor(.blue)
                 }
                 
                 Text(item.optionsDescription)
@@ -322,14 +438,14 @@ struct GroupCartItemRow: View {
                         .font(.system(size: 14, weight: .bold))
                         .foregroundColor(.orange)
                     if item.baseOriginalPrice != nil {
-                         Text("Rp\(formatPrice(item.originalPrice))")
+                        Text("Rp\(formatPrice(item.originalPrice))")
                             .font(.caption)
                             .foregroundColor(.gray)
                             .strikethrough()
                     }
                     Spacer()
                     
-                    // Mini Stepper Display (Static for now)
+                    // Static Stepper for display
                     HStack(spacing: 8) {
                         Image(systemName: "minus.square")
                             .foregroundColor(.gray)
@@ -346,7 +462,18 @@ struct GroupCartItemRow: View {
 
 struct GroupCartView_Previews: PreviewProvider {
     static var previews: some View {
-        GroupCartView()
+        // Create dummy data
+        let dummyMembers = [
+            UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true),
+            UserMember(name: "Heidy", username: "@heidy", initial: "H", color: .blue, isCurrentUser: false),
+            UserMember(name: "John", username: "@john", initial: "J", color: .red, isCurrentUser: false)
+        ]
+        
+        GroupCartView(
+            groupMembers: .constant(dummyMembers),
+            groupName: .constant("Angela's Group"),
+            selectedBillingOption: .constant(.individual)
+        )
             .environmentObject(CartViewModel())
     }
 }

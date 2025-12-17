@@ -255,7 +255,7 @@ struct MenuOptionsView: View {
             } message: {
                 Text("Your cart contains items from another restaurant. Starting a new order will clear your current cart.")
             }
-            .presentationDetents([.large, .medium])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
             .background(Color.white)
         }

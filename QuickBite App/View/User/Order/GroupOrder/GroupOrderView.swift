@@ -16,7 +16,7 @@ struct GroupOrderView: View {
     @State private var isEditingGroupName: Bool = false
     @FocusState private var isGroupNameFocused: Bool
     
-    @State private var selectedBillingOption: BillingOption = .individual
+    @Binding var selectedBillingOption: BillingOption 
     @State private var showBillingSheet = false
     
     @State private var orderDeadline: Date?
@@ -125,19 +125,23 @@ struct GroupOrderView: View {
                         }
                         .buttonStyle(.plain)
                         
+//                         deadline
+                        // Order Deadline Section
                         Button(action: {
+                            // Action is now disabled
                             showDeadlineSheet = true
                         }) {
                             GroupOrderSettingRow(
                                 icon: "clock",
-                                iconColor: .orange,
+                                iconColor: .gray, // Changed to gray to indicate disabled state
                                 title: "Order Deadline",
-                                // Tampilkan deadline jika ada, atau default text
-                                subtitle: orderDeadline != nil ? "Today, " + orderDeadline!.formatted(date: .omitted, time: .shortened) : "No deadline set"
-                                
+                                // Updated subtitle with the "Future Feature" description
+                                subtitle: "Coming Soon: Set a time limit for members to join."
                             )
+                            .opacity(0.6) // Makes the whole row look dimmed/disabled
                         }
                         .buttonStyle(.plain)
+                        .disabled(true) // ✅ Disables the button interaction
                     }
                     
                     Spacer()
@@ -278,12 +282,19 @@ struct GroupOrderView: View {
     func createGroupOrderInFirestore() {
         guard let leader = leader else { return }
         
+        for index in groupMembers.indices {
+            if !groupMembers[index].isCurrentUser {
+                // Assuming your UserMember struct has a property called 'status'
+                groupMembers[index].status = .invited
+            }
+        }
+        
         let db = Firestore.firestore()
         
         // 1. Prepare Data for the "Lobby"
         let memberIds = groupMembers.map { $0.id }
         
-        // We set status to "open" -> This means "Inviting / Deciding", NOT "Ordered"
+
         let orderData: [String: Any] = [
             "restaurantName": restaurantName,
             "leaderName": leader.name,
@@ -369,8 +380,15 @@ struct TopRoundedCorner: Shape {
 struct GroupOrderView_Previews: PreviewProvider {
     static var previews: some View {
         NavigationStack {
-            // Dummy binding for preview
-            GroupOrderView(restaurantName: "Raburi", isGroupOrderActive: .constant(false), groupName: .constant("Angela's Group"), groupMembers: .constant([UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)]))
+            GroupOrderView(
+                restaurantName: "Raburi",
+                selectedBillingOption: .constant(.individual),
+                isGroupOrderActive: .constant(false),
+                groupName: .constant("Angela's Group"),
+                groupMembers: .constant([
+                    UserMember(name: "Angela", username: "@angela", initial: "A", color: .orange, isCurrentUser: true)
+                ])
+            )
         }
     }
 }

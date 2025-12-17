@@ -7,6 +7,12 @@
 
 import SwiftUI
 
+enum MemberStatus: String, Equatable {
+    case ready      // Green Checkmark
+    case ordering   // "Adding Items..."
+    case invited    // "Invited..."
+}
+
 struct UserMember: Identifiable, Equatable {
     let id: String // Changed from UUID to String to match Firestore ID
     let name: String
@@ -14,15 +20,26 @@ struct UserMember: Identifiable, Equatable {
     let initial: String
     let color: Color
     var isCurrentUser: Bool = false
+    var status: MemberStatus = .invited
+    var items: [CartItemModel] = []
     
     // Custom init to handle UUID generation if needed, or pass specific ID
-    init(firestoreId: String = UUID().uuidString, name: String, username: String, initial: String, color: Color, isCurrentUser: Bool = false) {
+    init(firestoreId: String = UUID().uuidString,
+         name: String,
+         username: String,
+         initial: String,
+         color: Color,
+         isCurrentUser: Bool = false,
+         status: MemberStatus = .invited,
+         items: [CartItemModel] = []) {
         self.id = firestoreId
         self.name = name
         self.username = username
         self.initial = initial
         self.color = color
         self.isCurrentUser = isCurrentUser
+        self.status = status
+        self.items = items
     }
 }
 

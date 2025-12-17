@@ -24,6 +24,8 @@ struct RestaurantDetailView: View {
     
     @State private var groupName = "My Group"
     @State private var groupMembers: [UserMember] = []
+    @State private var currentGroupOrderId: String?
+    @State private var selectedBillingOption: BillingOption = .individual
     
     private let initialItem: MenuItem?
     
@@ -31,6 +33,20 @@ struct RestaurantDetailView: View {
             self.restaurant = restaurant
             self.initialItem = openItem
         }
+    
+    var groupTotal: Double {
+        let myTotal = cart.totalPrice
+        
+        // Sum up items from all other members in the groupMembers array
+        let friendsTotal = groupMembers.reduce(0.0) { sum, member in
+            let memberItemsSum = member.items.reduce(0.0) { itemSum, item in
+                itemSum + (item.currentPrice * Double(item.quantity))
+            }
+            return sum + memberItemsSum
+        }
+        
+        return myTotal + friendsTotal
+    }
     
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -47,7 +63,8 @@ struct RestaurantDetailView: View {
                         pickupTime: restaurant.deliveryTime,
                         isGroupOrderActive: $isGroupOrderActive,
                         groupName: $groupName,
-                        groupMembers: $groupMembers
+                        groupMembers: $groupMembers,
+                        selectedBillingOption: $selectedBillingOption // Added to link to GroupOrderView
                     )
                     .padding(.horizontal)
                     
@@ -88,12 +105,15 @@ struct RestaurantDetailView: View {
             }
             
             if isGroupOrderActive {
-                GroupOrderBottomBar(cart: cart, showGroupCart: $showingGroupCart)
+                GroupOrderBottomBar(
+                    cart: cart,
+                    showGroupCart: $showingGroupCart,
+                    totalGroupPrice: groupTotal
+                )
             } else if !cart.items.isEmpty {
                 CheckoutBarView(showCart: $navState.isCartPresented)
             }
         }
-        .toolbar(.hidden, for: .tabBar)
         .environmentObject(cart)
         .ignoresSafeArea(edges: .top)
         .navigationBarTitleDisplayMode(.inline)
@@ -138,32 +158,41 @@ struct RestaurantDetailView: View {
         }
         
         .sheet(isPresented: $showingGroupCart) {
-            GroupCartView().environmentObject(cart)
+            GroupCartView(
+                groupMembers: $groupMembers,
+                groupOrderId: currentGroupOrderId,
+                groupName: $groupName,
+                selectedBillingOption: $selectedBillingOption
+            )
+            .environmentObject(cart)
         }
         .scrollIndicators(.hidden)
     }
     
     func fetchCurrentUser() {
-            if let user = Auth.auth().currentUser {
-                let name = user.displayName ?? (user.email?.components(separatedBy: "@").first ?? "User")
-                let initial = String(name.prefix(1)).uppercased()
-                
-                // Set Group Name
-                self.groupName = "\(name)'s Group"
-                
-                // Set Group Members
-                self.groupMembers = [
-                    UserMember(
-                        name: name,
-                        username: user.email ?? "",
-                        initial: initial,
-                        color: .orange,
-                        isCurrentUser: true
-                    )
-                ]
-            }
+        // 1. Add this check: Only initialize if the list is empty!
+        if !groupMembers.isEmpty { return }
         
+        if let user = Auth.auth().currentUser {
+            let name = user.displayName ?? (user.email?.components(separatedBy: "@").first ?? "User")
+            let initial = String(name.prefix(1)).uppercased()
+            
+            // Set Group Name
+            self.groupName = "\(name)'s Group"
+            
+            // Set Group Members
+            self.groupMembers = [
+                UserMember(
+                    name: name,
+                    username: user.email ?? "",
+                    initial: initial,
+                    color: .orange,
+                    isCurrentUser: true,
+                    status: .ready
+                )
+            ]
         }
+    }
 
 }
 
@@ -315,7 +344,7 @@ struct MenuItemRow: View {
                 }
             }
         }
-        .frame(height: 90) 
+        .frame(height: 90)
     }
 }
 
@@ -329,6 +358,7 @@ struct InfoView: View {
     @Binding var isGroupOrderActive: Bool
     @Binding var groupName: String
     @Binding var groupMembers: [UserMember]
+    @Binding var selectedBillingOption: BillingOption // Binding added here
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -338,10 +368,17 @@ struct InfoView: View {
                     Text(categories).font(.body).foregroundColor(.gray)
                 }
                 Spacer()
-                NavigationLink(destination: GroupOrderView(restaurantName: name, isGroupOrderActive: $isGroupOrderActive, groupName: $groupName, groupMembers: $groupMembers)) {
+                NavigationLink(destination: GroupOrderView(
+                    restaurantName: name,
+                    selectedBillingOption: $selectedBillingOption, // Move this here
+                    isGroupOrderActive: $isGroupOrderActive,
+                    groupName: $groupName,
+                    groupMembers: $groupMembers
+                )) {
                     GroupOrderButton(title: isGroupOrderActive ? groupName : "Group Order")
                 }
-                .padding(.top, 4)          }
+                .padding(.top, 4)
+            }
             HStack(spacing: 4) {
                 Image(systemName: "star.fill").foregroundColor(.yellow)
                 Text(String(format: "%.1f", rating))
@@ -500,6 +537,7 @@ struct CheckoutBarView: View {
 struct GroupOrderBottomBar: View {
     @ObservedObject var cart: CartViewModel
     @Binding var showGroupCart: Bool
+    let totalGroupPrice: Double
     
     var body: some View {
         HStack(spacing: 16) {
@@ -528,14 +566,13 @@ struct GroupOrderBottomBar: View {
                 
                 Spacer()
                 
-                // Text Total Harga (User saja)
-                // Menggunakan Group untuk menghindari error type check pada + operator
+
                 VStack(alignment: .trailing) {
                     Text("Rp\(formatPrice(cart.totalPrice))")
                         .font(.system(size: 18, weight: .bold))
                         .foregroundColor(.orange)
                     
-                    Text(" (Total: Rp\(formatPrice(cart.totalPrice + 42500)))") // Dummy total grup
+                    Text(" (Total: Rp\(formatPrice(totalGroupPrice)))")
                         .font(.system(size:14))
                         .foregroundColor(.orange)
                 }

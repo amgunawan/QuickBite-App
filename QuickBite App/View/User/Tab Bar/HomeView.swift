@@ -256,8 +256,9 @@ struct HomeView: View {
                     hideKeyboard()
                 }
             }
+            .toolbar(.visible, for: .tabBar)
             .onAppear {
-                print("🏁 HomeView Appeared - Triggering Fetches")
+                print("HomeView Appeared - Triggering Fetches")
                 discountVM.fetchDiscounts() // <--- Fetch Discounts
                 cuisineTypeVM.fetchCuisineTypes()
                 topRatedVM.fetchTopRated()

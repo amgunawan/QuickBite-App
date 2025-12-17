@@ -112,34 +112,31 @@ struct FinancialPayoutsTenantView: View {
             }
             .padding(.horizontal, 16)
             .padding(.top, 16)
-            .padding(.bottom, 100)
         }
         .background(Color(.systemBackground).ignoresSafeArea())
         .navigationTitle("Financial & Payouts")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Button {
-                    vm.savePayoutDetails {
-                        dismiss()
-                    }
-                } label: {
-                    Text("Save Changes")
-                        .font(.headline)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(vm.isDirty && vm.isValid
-                                    ? Color.orange
-                                    : Color.orange.opacity(0.4))
-                        .foregroundColor(.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 22))
+        
+        VStack(spacing: 0) {
+            Button {
+                vm.savePayoutDetails {
+                    dismiss()
                 }
-                .disabled(!(vm.isDirty && vm.isValid))
+            } label: {
+                Text("Save Changes")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(vm.isDirty && vm.isValid
+                                ? Color.orange
+                                : Color.orange.opacity(0.4))
+                    .foregroundColor(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 24)) // Corner radius disesuaikan agar lebih modern
             }
+            .disabled(!(vm.isDirty && vm.isValid))
             .padding(.horizontal, 16)
-            .padding(.top, 8)
-            .padding(.bottom, 12)
+            .padding(.top, 12)
         }
         
         .sheet(isPresented: $showBankPicker) {

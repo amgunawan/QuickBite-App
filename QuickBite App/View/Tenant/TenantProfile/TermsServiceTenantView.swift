@@ -84,6 +84,7 @@ QuickBite reserves the right to suspend or terminate your access to the platform
             .padding(.horizontal)
             .padding(.bottom, 24)
         }
+        .toolbar(.hidden, for: .tabBar)
         .navigationTitle("Terms & Service")
         .navigationBarTitleDisplayMode(.inline)
     }

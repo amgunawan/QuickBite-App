@@ -183,15 +183,15 @@ struct EditStoreDetailsTenantView: View {
             }) {
                 Text("Save Changes")
                     .frame(maxWidth: .infinity)
-                    .padding()
+                    .padding(.vertical, 12)
                     .background(Color.orange)
                     .foregroundColor(.white)
                     .font(.headline)
-                    .cornerRadius(12)
+                    .cornerRadius(24)
             }
             .padding(.horizontal)
-            .padding(.bottom, 10)
         }
+        .toolbar(.hidden, for: .tabBar)
         .onChange(of: bannerPickedItem) { _, newValue in
             handlePhotoPicker(item: newValue,
                               image: $bannerImage,

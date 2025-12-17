@@ -304,6 +304,7 @@ struct AllReviewsTenantView: View {
             }
             .padding(.top, 8)
         }
+        .toolbar(.hidden, for: .tabBar)
         .navigationTitle("All Reviews")
         .navigationBarTitleDisplayMode(.inline)
         .background(Color.white)

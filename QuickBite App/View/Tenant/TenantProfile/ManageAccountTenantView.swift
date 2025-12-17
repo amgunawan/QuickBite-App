@@ -95,6 +95,7 @@ struct ManageAccountTenantView: View {
                     )
                 }
             }
+            .toolbar(.hidden, for: .tabBar)
             .padding(.horizontal)
             
             Spacer()

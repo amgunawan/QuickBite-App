@@ -59,9 +59,10 @@ struct EditStoreDetailsTenantView: View {
                 } label: {
                     Text("Save Changes")
                         .frame(maxWidth: .infinity)
-                        .padding()
+                        .padding(.vertical, 12)
                         .background(Color.orange)
                         .foregroundColor(.white)
+                        .font(.headline)
                         .cornerRadius(24)
                 }
                 .padding()
@@ -157,6 +158,7 @@ struct EditStoreDetailsTenantView: View {
                 }
             }
         }
+        .toolbar(.hidden, for: .tabBar)
     }
 
     private var searchIconSection: some View {
@@ -311,7 +313,7 @@ struct EditStoreDetailsTenantView: View {
         open24Hours: Bool
     ) {
 
-        guard let raw else {
+        guard let raw, !raw.isEmpty else {
             return ([], .now, .now, false)
         }
 
@@ -319,37 +321,42 @@ struct EditStoreDetailsTenantView: View {
         formatter.dateFormat = "HH:mm"
 
         var days: Set<Weekday> = []
-        var openTime: Date?
-        var closeTime: Date?
-        var is24h = true
+        var opening: Date?
+        var closing: Date?
+        var detected24h = true
 
         for (key, value) in raw {
+
             guard
                 let dict = value as? [String: String],
                 let open = dict["open_time"],
                 let close = dict["close_time"],
                 let day = Weekday(rawValue: key)
-            else { continue }
+            else {
+                continue
+            }
 
             days.insert(day)
 
             if open != "00:00" || close != "23:59" {
-                is24h = false
+                detected24h = false
             }
 
-            if openTime == nil {
-                openTime = formatter.date(from: open)
+            if opening == nil {
+                opening = formatter.date(from: open)
             }
 
-            if closeTime == nil {
-                closeTime = formatter.date(from: close)
+            if closing == nil {
+                closing = formatter.date(from: close)
             }
         }
 
+        let is24h = detected24h && !days.isEmpty
+
         return (
             days,
-            openTime ?? .now,
-            closeTime ?? .now,
+            opening ?? .now,
+            closing ?? .now,
             is24h
         )
     }

@@ -24,7 +24,7 @@ struct StoreBrandingView: View {
     @State private var openingTime: Date = Calendar.current.date(bySettingHour: 8, minute: 0, second: 0, of: Date()) ?? Date()
     @State private var closingTime: Date = Calendar.current.date(bySettingHour: 20, minute: 0, second: 0, of: Date()) ?? Date()
 
-    @State private var openDays: Set<Weekday> = [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
+    @State private var openDays: Set<Weekday> = [.Monday, .Tuesday, .Wednesday, .Thursday, .Friday, .Saturday, .Sunday]
     
     @State private var showOpeningPicker = false
     @State private var showClosingPicker = false

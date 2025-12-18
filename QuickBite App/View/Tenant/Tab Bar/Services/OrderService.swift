@@ -23,7 +23,7 @@ class OrderService {
 
         // Build order data
         let data: [String: Any] = [
-            "orderId": orderId,
+            "order_id": orderId,
             "customerName": customerName,
             "items": items,
             "total": total,
@@ -32,7 +32,7 @@ class OrderService {
             "user_id": db.collection("users").document(userId),
             "status": "pending",
             "created_at": FieldValue.serverTimestamp(),
-            "timestamp": Int(Date().timeIntervalSince1970)
+            "timestamp": Int(Date().timeIntervalSince1970),
         ]
 
         // Save to Firestore

@@ -43,7 +43,6 @@ struct TenantActivityView: View {
                         
                         Spacer()
                     }
-                    .padding(.top, 10)
                     
                     // SEGMENTED CONTROL + BADGES
                     ZStack {
@@ -78,15 +77,15 @@ struct TenantActivityView: View {
                     }
                 }
                 .padding(.horizontal)
-                .padding(.bottom, 8)
                 .background(Color.white)
                 
+               
                 ScrollView {
                     VStack(spacing: 20) {
                         
                         // NEW
                         if selectedTab == 0 {
-                            VStack(spacing: 16) {
+                            VStack(spacing: 12) {
                                 ForEach(vm.preparingOrders) { order in
                                     PreparingOrderCardView(order: order) {
                                         Task {
@@ -105,7 +104,7 @@ struct TenantActivityView: View {
                         
                         // READY
                         if selectedTab == 1 {
-                            VStack(spacing: 16) {
+                            VStack(spacing: 12) {
                                 ForEach(vm.readyOrders) { order in
                                     ReadyOrderCardView(order: order) {
                                         Task {

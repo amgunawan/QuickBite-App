@@ -21,9 +21,16 @@ struct ReadyOrderCardView: View {
                     Text(order.name)
                         .font(.headline)
 
-                    Text("Pick up at \(order.pickupTime)")
-                        .font(.subheadline)
-                        .foregroundColor(.red)
+                    (
+                        Text("Pick up at ")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                        +
+                        Text(order.pickupTime)
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.green)
+                    )
                 }
 
                 Spacer()

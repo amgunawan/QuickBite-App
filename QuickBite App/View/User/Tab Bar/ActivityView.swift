@@ -130,7 +130,6 @@ struct ActivityView: View {
             .navigationDestination(isPresented: $goToPickUpView) {
                 if let id = selectedOrderId {
                     OrderPreparedView(orderId: id)
-                        .navigationBarBackButtonHidden(true)
                 }
             }
             .navigationDestination(isPresented: $showReviewView) {

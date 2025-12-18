@@ -371,29 +371,27 @@ struct OrderConfirmationView: View {
         print("DEBUG: Placing order for \(finalCustomerName) total Rp\(Int(amountToPay))")
         
         OrderService().createOrder(
-            customerName: finalCustomerName, // ✅ Uses the logic above
-            items: items,
-            total: Int(amountToPay),
-            pickupTime: selectedTime.timeRange,
-            tenantId: cart.restaurantId,
-            userId: userId
+            cartItems: cart.items,
+            storeId: cart.restaurantId,
+            pickupDate: selectedTime.rawDate ?? Date(),
+            totalCost: Int(amountToPay),
+            userId: userId,
+            isGroupOrder: isGroupOrder
         ) { orderId in
             guard let orderId else {
                 isPlacingOrder = false
                 return
             }
-            
+
             DispatchQueue.main.async {
-                // Update Tab and App State
                 navState.activeOrderId = orderId
                 navState.selectedTab = 1
                 navState.activitySegment = .inProgress
-                
-                // Clear Cart and trigger Navigation to Pickup View
+
                 cart.clearCart()
                 navState.isCartPresented = false
                 self.generatedOrderId = orderId
-                self.navigateToCompleted = true // ✅ This triggers the QR screen
+                self.navigateToCompleted = true
                 
                 print("✅ Order successfully placed: \(orderId)")
             }

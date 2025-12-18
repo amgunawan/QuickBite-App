@@ -7,42 +7,56 @@
 
 import FirebaseFirestore
 
-class OrderService {
+final class OrderService {
+
     private let db = Firestore.firestore()
 
-    func createOrder(customerName: String,
-                     items: [String],
-                     total: Int,
-                     pickupTime: String,
-                     tenantId: String,
-                     userId: String,
-                     completion: @escaping (String?) -> Void) {
+    func createOrder(
+        cartItems: [CartItemModel],
+        storeId: String,
+        pickupDate: Date,
+        totalCost: Int,
+        userId: String,
+        isGroupOrder: Bool,
+        completion: @escaping (String?) -> Void
+    ) {
 
-        // Generate Firestore auto-ID
-        let orderId = db.collection("orders").document().documentID
+        let orderRef = db.collection("orders").document()
 
-        // Build order data
+        let userRef = db.collection("users").document(userId)
+        let storeRef = db.collection("stores").document(storeId)
+
+        // ✅ Build items array in correct Firestore structure
+        let items: [[String: Any]] = cartItems.map { item in
+            [
+                "item_id": item.menuItemId,
+                "price": Int(item.currentPrice),
+                "quantity": item.quantity,
+                "preptime_min": item.prepTime,
+                "preptime_max": (item.prepTime ?? 0) + 10,
+                "additional_options": [] // future-proof
+            ]
+        }
+
         let data: [String: Any] = [
-            "order_id": orderId,
-            "customerName": customerName,
+            "created_at": Timestamp(date: Date()),
             "items": items,
-            "total": total,
-            "pickupTime": pickupTime,
-            "tenantId": tenantId,
-            "user_id": db.collection("users").document(userId),
+            "order_type": isGroupOrder ? "group" : "individual",
+            "pickup_time": Timestamp(date: pickupDate),
+            "qr_code": "",
             "status": "pending",
-            "created_at": FieldValue.serverTimestamp(),
-            "timestamp": Int(Date().timeIntervalSince1970),
+            "store_id": storeRef,
+            "total_cost": totalCost,
+            "user_id": userRef
         ]
 
-        // Save to Firestore
-        db.collection("orders").document(orderId).setData(data) { error in
-            if let error = error {
-                print("❌ Error creating order: \(error.localizedDescription)")
+        orderRef.setData(data) { error in
+            if let error {
+                print("❌ Error creating order:", error.localizedDescription)
                 completion(nil)
             } else {
-                print("Order created with ID: \(orderId)")
-                completion(orderId)
+                print("✅ Order created:", orderRef.documentID)
+                completion(orderRef.documentID)
             }
         }
     }

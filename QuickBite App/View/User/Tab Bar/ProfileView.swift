@@ -220,7 +220,6 @@ struct ProfileView: View {
                     username: vm.user?.username ?? "-",
                     fullName: $fullName,
                     email: vm.user?.email ?? "-",
-                    points: points,
                     userId: userId ?? "",
                     vm: vm,
                     onSave: {

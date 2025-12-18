@@ -7,7 +7,6 @@ struct EditProfileView: View {
     let username: String
     @Binding var fullName: String
     let email: String
-    let points: Int
     var userId: String
     var vm: ProfileViewModel
     var onSave: () -> Void
@@ -28,7 +27,7 @@ struct EditProfileView: View {
         ScrollView {
             VStack(spacing: 20) {
                 
-                // MARK: Profile Avatar & Points
+                // MARK: Profile Avatar
                 VStack(spacing: 8) {
                     ZStack {
                         if let image = profileImage ?? vm.profileImage {
@@ -66,14 +65,6 @@ struct EditProfileView: View {
                             }
                         }
                         .frame(width: 96, height: 96)
-                    }
-                    
-                    HStack(spacing: 6) {
-                        Image(systemName: "sparkles")
-                            .foregroundColor(.orange)
-                        Text("\(points) Points")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
                     }
                 }
                 .padding(.top, 6)

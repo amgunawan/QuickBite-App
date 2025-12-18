@@ -80,11 +80,6 @@ struct SyncCalendarView: View {
             
             // --- FEATURES LIST ---
             VStack(alignment: .leading, spacing: 24) {
-                FeatureRow(
-                    icon: "bell.fill",
-                    title: "Proactive Notifications",
-                    subtitle: "We'll remind you to order before your class ends."
-                )
                 
                 FeatureRow(
                     icon: "clock.fill",

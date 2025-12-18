@@ -244,7 +244,7 @@ struct CartFooterView: View {
                
                 Spacer()
 
-                VStack(alignment: .leading) {
+                VStack(alignment: .trailing) {
                     if cart.totalOriginalPrice > cart.totalPrice {
                         Text("Rp\(formatPrice(cart.totalOriginalPrice))")
                             .font(.system(size: 14))
@@ -263,7 +263,7 @@ struct CartFooterView: View {
                     Text("Checkout")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(.white)
-                        .padding(.horizontal, 32)
+                        .padding(.horizontal, 28)
                         .padding(.vertical, 12)
                         .background(Color.orange)
                         .cornerRadius(20)

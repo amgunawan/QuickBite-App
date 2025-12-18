@@ -45,7 +45,6 @@ final class QuestViewModel: ObservableObject {
         fetchUserData()
         fetchLeaderboard()
         fetchOrders()
-        loadBadges()
     }
     
     private var leaderboardListener: ListenerRegistration?
@@ -127,12 +126,14 @@ final class QuestViewModel: ObservableObject {
         guard let userId = Auth.auth().currentUser?.uid else { return }
         
         db.collection("orders")
-            .whereField("userId", isEqualTo: userId)
+            .whereField("user_id", isEqualTo: userId)
+            .whereField("status", isEqualTo: "completed")
             .getDocuments { snap, _ in
                 guard let docs = snap?.documents else { return }
                 
                 let orders = docs.compactMap { doc -> Order? in
                     let d = doc.data()
+                    let status = d["status"] as? String ?? ""
                     return Order(
                         totalCost: d["totalCost"] as? Int ?? 0,
                         tenantName: d["tenantName"] as? String ?? "",
@@ -145,6 +146,7 @@ final class QuestViewModel: ObservableObject {
                     self.badges = self.buildBadgesFromHistory(orders)
                 }
             }
+        
     }
     
     // MARK: - POINT RULE (Rp20.000 = 10 pts)
@@ -215,17 +217,20 @@ final class QuestViewModel: ObservableObject {
     private func buildBadgesFromHistory(_ orders: [Order]) -> [BadgeItem] {
         
         // 1. BEGINNER BADGE (4/4)
-        // Spend ≥ 50K per week
-        
-        let weeklyGroups = Dictionary(grouping: orders) {
-            Calendar.current.component(.weekOfYear, from: $0.createdAt)
+        // Rule:
+        // Dalam 1 hari, jika ADA minimal 1 transaksi ≥ 50.000
+        // maka progress +1 (max 4)
+
+        let dailyGroups = Dictionary(grouping: orders) {
+            Calendar.current.startOfDay(for: $0.createdAt)
         }
-        
-        let qualifiedWeeks = weeklyGroups.values.filter {
-            $0.reduce(0) { $0 + $1.totalCost } >= 50_000
+
+        let qualifiedDays = dailyGroups.values.filter { dailyOrders in
+            dailyOrders.contains { $0.totalCost >= 50_000 }
         }.count
-        
-        let beginnerProgress = min(qualifiedWeeks, 4)
+
+        let beginnerProgress = min(qualifiedDays, 4)
+
         
         // 2. EXPLORER BADGE (3/3)
         // Rp150K at 3 tenants
@@ -238,15 +243,15 @@ final class QuestViewModel: ObservableObject {
         
         // 3. CHALLENGE BADGE (5/5)
         // 5 deals in 3 days
-        
+
         let dealOrders = orders.filter { $0.discount > 0 }
-        
-        let dailyGroups = Dictionary(grouping: dealOrders) {
+
+        let dealDailyGroups = Dictionary(grouping: dealOrders) {
             Calendar.current.startOfDay(for: $0.createdAt)
         }
-        
+
         let challengeProgress = min(
-            dailyGroups.values.filter { $0.count >= 5 }.count,
+            dealDailyGroups.values.filter { $0.count >= 5 }.count,
             5
         )
         
@@ -307,8 +312,8 @@ final class QuestViewModel: ObservableObject {
         ]
     }
     
-    private func loadBadges() {
-        badges = buildBadgesFromHistory([])
-    }
+//    private func loadBadges() {
+//        badges = buildBadgesFromHistory([])
+//    }
     
 }

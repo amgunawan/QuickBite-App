@@ -1,76 +1,39 @@
 import Foundation
 import FirebaseFirestore
 
-// MARK: - Order Item (SESUAI Firestore)
-struct OrderItem: Codable {
-    var itemId: String
-    var price: Int
-    var quantity: Int
-
-    enum CodingKeys: String, CodingKey {
-        case itemId = "item_id"
-        case price
-        case quantity
-    }
-}
-
-
-// MARK: - Activity Order Model
 struct ActivityOrderModel: Identifiable, Codable {
-
-    // Firestore document ID
     @DocumentID var id: String?
-
-    // ===== FIELD YANG ADA DI FIRESTORE =====
-    var userId: DocumentReference
-    var storeId: DocumentReference
-    var status: String
+    var userId: DocumentReference?
+    var storeId: DocumentReference?
+    var restaurantImageURL: String? // Field dari koleksi orders (jika ada)
+    var mealName: String?
     var totalCost: Int
-    var createdAt: Timestamp
-    var pickupTime: Timestamp
-    var items: [OrderItem]
-
-    // Optional Firestore fields
-    var orderType: String?
-    var preptimeMin: Int?
-    var preptimeMax: Int?
-    var qrCode: String?
-
-    // ===== UI ONLY (JANGAN MASUK CodingKeys) =====
+    var status: String
+    var rating: Int?
+    var createdAt: Date?
+    var pickupTime: Date?
+    
+    // Variabel tambahan hasil fetch dari koleksi stores
     var restaurantName: String?
-    var storeSearchImageURL: String?
+    var storeSearchImageURL: String? // Menampung hasil konversi gs:// ke https://
 
-    // ===== COMPUTED =====
     var formattedDate: String {
+        guard let date = createdAt else { return "" }
         let formatter = DateFormatter()
         formatter.dateFormat = "dd MMM, HH:mm"
-        return formatter.string(from: createdAt.dateValue())
-    }
-    
-    var rating: Int?
-
-
-    var itemSummary: String {
-        "\(items.count) item(s)"
+        return formatter.string(from: date)
     }
 
-    var mealSummary: String {
-        items.map { "\($0.quantity)x \($0.itemId)" }.joined(separator: ", ")
-    }
-
-    // ===== CODING KEYS (1:1 DENGAN FIRESTORE) =====
     enum CodingKeys: String, CodingKey {
+        case id
         case userId = "user_id"
         case storeId = "store_id"
-        case status
+        case restaurantImageURL = "restaurant_image_url"
+        case mealName = "meal_name"
         case totalCost = "total_cost"
+        case status
+        case rating
         case createdAt = "created_at"
         case pickupTime = "pickup_time"
-        case items
-        case rating 
-        case orderType = "order_type"
-        case preptimeMin = "preptime_min"
-        case preptimeMax = "preptime_max"
-        case qrCode = "qr_code"
     }
 }

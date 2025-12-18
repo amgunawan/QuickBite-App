@@ -12,12 +12,9 @@ struct ActivityView: View {
     // MARK: - ENVIRONMENT
     @EnvironmentObject var cart: CartViewModel
     @EnvironmentObject var navState: AppNavigationState
-    @EnvironmentObject var authVM: AuthenticationViewModel
 
     // MARK: - STATIC USER ID
-    private var userId: String? {
-        authVM.currentUserSession?.uid
-    }
+    private let userId = "GPPxfTRmwlfr1hkmVKvSVI9Kvtk1"
     
     // MARK: - VIEW MODEL
     @StateObject private var vm = ActivityViewModel()
@@ -72,10 +69,8 @@ struct ActivityView: View {
                                         actionTitle: "Track Order",
                                         actionEnabled: true
                                     ) {
-                                        if let id = order.id {
-                                            self.selectedOrderId = id
-                                            self.goToPickUpView = true
-                                        }
+                                        selectedOrderId = order.id
+                                        goToPickUpView = true
                                     }
                                 }
                                 .cardStyle()
@@ -132,6 +127,7 @@ struct ActivityView: View {
             .navigationDestination(isPresented: $goToPickUpView) {
                 if let id = selectedOrderId {
                     OrderPreparedView(orderId: id)
+                        .navigationBarBackButtonHidden(true)
                 }
             }
             .navigationDestination(isPresented: $showReviewView) {
@@ -152,7 +148,6 @@ struct ActivityView: View {
                 }
             }
             .onAppear {
-                guard let userId else { return }
                 vm.fetchOrders(for: userId)
             }
         }
@@ -191,7 +186,7 @@ struct ActivityView: View {
                 Text(order.restaurantName ?? "Loading Store...")
                     .font(.headline)
                 
-                Text(order.mealSummary)
+                Text(order.mealName ?? "")
                     .foregroundColor(.secondary)
                     .lineLimit(1)
                 
